@@ -1,0 +1,2347 @@
+#+TITLE: 40.Operating-System-Interface
+* 40 Operating System Interface
+   :PROPERTIES:
+   :CUSTOM_ID: operating-system-interface
+   :END:
+
+This chapter is about starting and getting out of Emacs, access to values in the operating system environment, and terminal input, output.
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Building-Emacs][Building Emacs]], for related information. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Display][Display]], for additional operating system status information pertaining to the terminal and the screen.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Starting-Up][Starting Up]]: Customizing Emacs startup processing.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Getting-Out][Getting Out]]: How exiting works (permanent or temporary).
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Environment][System Environment]]: Distinguish the name and kind of system.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#User-Identification][User Identification]]: Finding the name and user id of the user.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]: Getting the current time.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]]: Rules for time zones and daylight saving time.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Conversion][Time Conversion]]: Converting a time from numeric form to calendrical data and vice versa.
+8) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Parsing][Time Parsing]]: Converting a time from numeric form to text and vice versa.
+9) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Processor-Run-Time][Processor Run Time]]: Getting the run time used by Emacs.
+10) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Calculations][Time Calculations]]: Adding, subtracting, comparing times, etc.
+11) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Timers][Timers]]: Setting a timer to call a function at a certain time.
+12) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Idle-Timers][Idle Timers]]: Setting a timer to call a function when Emacs has been idle for a certain length of time.
+13) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Input][Terminal Input]]: Accessing and recording terminal input.
+14) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Output][Terminal Output]]: Controlling and recording terminal output.
+15) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sound-Output][Sound Output]]: Playing sounds on the computer's speaker.
+16) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#X11-Keysyms][X11 Keysyms]]: Operating on key symbols for X Windows.
+17) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Batch-Mode][Batch Mode]]: Running Emacs without terminal interaction.
+18) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Session-Management][Session Management]]: Saving and restoring state with X Session Management.
+19) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Desktop-Notifications][Desktop Notifications]]: Desktop notifications.
+20) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Notifications][File Notifications]]: File notifications.
+21) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Libraries][Dynamic Libraries]]: On-demand loading of support libraries.
+22) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Security-Considerations][Security Considerations]]: Running Emacs in an unfriendly environment.
+
+* 40.1 Starting Up Emacs
+    :PROPERTIES:
+    :CUSTOM_ID: starting-up-emacs
+    :END:
+
+This section describes what Emacs does when it is started, and how you can customize these actions.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Startup-Summary][Startup Summary]]: Sequence of actions Emacs performs at startup.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Init-File][Init File]]: Details on reading the init file.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal_002dSpecific][Terminal-Specific]]: How the terminal-specific Lisp file is read.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Command_002dLine-Arguments][Command-Line Arguments]]: How command-line arguments are processed, and how you can customize them.
+
+
+** 40.1.1 Summary: Sequence of Actions at Startup
+     :PROPERTIES:
+     :CUSTOM_ID: summary-sequence-of-actions-at-startup
+     :END:
+
+When Emacs is started up, it performs the following operations (see =normal-top-level= in startup.el):
+
+1.  It adds subdirectories to =load-path=, by running the file named subdirs.el in each directory in the list. Normally, this file adds the directory's subdirectories to the list, and those are scanned in their turn. The files subdirs.el are normally generated automatically when Emacs is installed.
+
+2.  It loads any
+
+    leim-list.el
+
+    that it finds in the
+
+    #+BEGIN_EXAMPLE
+        load-path
+    #+END_EXAMPLE
+
+    directories. This file is intended for registering input methods. The search is only for any personal
+
+    leim-list.el
+
+    files that you may have created; it skips the directories containing the standard Emacs libraries (these should contain only a single
+
+    leim-list.el
+
+    file, which is compiled into the Emacs executable).
+
+3.  It sets the variable =before-init-time= to the value of =current-time= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]). It also sets =after-init-time= to =nil=, which signals to Lisp programs that Emacs is being initialized.
+
+4.  It sets the language environment and the terminal coding system, if requested by environment variables such as LANG.
+
+5.  It does some basic parsing of the command-line arguments.
+
+6.  If not running in batch mode, it initializes the window system that the variable =initial-window-system= specifies (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Window-Systems][initial-window-system]]). The initialization function, =window-system-initialization=, is a generic function (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Generic-Functions][Generic Functions]]) whose actual implementation is different for each supported window system. If the value of =initial-window-system= is windowsystem, then the appropriate implementation of the initialization function is defined in the file term/windowsystem-win.el. This file should have been compiled into the Emacs executable when it was built.
+
+7.  It runs the normal hook =before-init-hook=.
+
+8.  If appropriate, it creates a graphical frame. As part of creating the graphical frame, it initializes the window system specified by =initial-frame-alist= and =default-frame-alist= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Initial-Parameters][Initial Parameters]]) for the graphical frame, by calling the =window-system-initialization= function for that window system. This is not done in batch (noninteractive) or daemon mode.
+
+9.  It initializes the initial frame's faces, and sets up the menu bar and tool bar if needed. If graphical frames are supported, it sets up the tool bar even if the current frame is not a graphical one, since a graphical frame may be created later on.
+
+10. It use =custom-reevaluate-setting= to re-initialize the members of the list =custom-delayed-init-variables=. These are any pre-loaded user options whose default value depends on the run-time, rather than build-time, context. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Building-Emacs][custom-initialize-delay]].
+
+11. It loads the library site-start, if it exists. This is not done if the options '-Q' or '--no-site-file' were specified.
+
+12. It loads your init file (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Init-File][Init File]]). This is not done if the options '-q', '-Q', or '--batch' were specified. If the '-u' option was specified, Emacs looks for the init file in that user's home directory instead.
+
+13. It loads the library default, if it exists. This is not done if =inhibit-default-init= is non-=nil=, nor if the options '-q', '-Q', or '--batch' were specified.
+
+14. It loads your abbrevs from the file specified by =abbrev-file-name=, if that file exists and can be read (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Abbrev-Files][abbrev-file-name]]). This is not done if the option '--batch' was specified.
+
+15. It calls the function
+
+    #+BEGIN_EXAMPLE
+        package-initialize
+    #+END_EXAMPLE
+
+    to activate any optional Emacs Lisp package that has been installed. See
+
+    Packaging Basics
+
+    . However, Emacs doesn't initialize packages when
+
+    #+BEGIN_EXAMPLE
+        package-enable-at-startup
+    #+END_EXAMPLE
+
+    is
+
+    #+BEGIN_EXAMPLE
+        nil
+    #+END_EXAMPLE
+
+    or when it's started with one of the options ‘
+
+    -q
+
+    ', ‘
+
+    -Q
+
+    ', or ‘
+
+    --batch
+
+    '. To initialize packages in the latter case,
+
+    #+BEGIN_EXAMPLE
+        package-initialize
+    #+END_EXAMPLE
+
+    should be called explicitly (e.g., via the ‘
+
+    --funcall
+
+    ' option).
+
+16. It sets the variable =after-init-time= to the value of =current-time=. This variable was set to =nil= earlier; setting it to the current time signals that the initialization phase is over, and, together with =before-init-time=, provides the measurement of how long it took.
+
+17. It runs the normal hook =after-init-hook=.
+
+18. If the buffer /scratch/ exists and is still in Fundamental mode (as it should be by default), it sets its major mode according to =initial-major-mode=.
+
+19. If started on a text terminal, it loads the terminal-specific Lisp library (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal_002dSpecific][Terminal-Specific]]), and runs the hook =tty-setup-hook=. This is not done in =--batch= mode, nor if =term-file-prefix= is =nil=.
+
+20. It displays the initial echo area message, unless you have suppressed that with =inhibit-startup-echo-area-message=.
+
+21. It processes any command-line options that were not handled earlier.
+
+22. It now exits if the option =--batch= was specified.
+
+23. If the /scratch/ buffer exists and is empty, it inserts =(substitute-command-keys initial-scratch-message)= into that buffer.
+
+24. If =initial-buffer-choice= is a string, it visits the file (or directory) with that name. If it is a function, it calls the function with no arguments and selects the buffer that it returns. If one file is given as a command line argument, that file is visited and its buffer displayed alongside =initial-buffer-choice=. If more than one file is given, all of the files are visited and the /Buffer List/ buffer is displayed alongside =initial-buffer-choice=.
+
+25. It runs =emacs-startup-hook=.
+
+26. It calls =frame-notice-user-settings=, which modifies the parameters of the selected frame according to whatever the init files specify.
+
+27. It runs =window-setup-hook=. The only difference between this hook and =emacs-startup-hook= is that this one runs after the previously mentioned modifications to the frame parameters.
+
+28. It displays the startup screen, which is a special buffer that contains information about copyleft and basic Emacs usage. This is not done if =inhibit-startup-screen= or =initial-buffer-choice= are non-=nil=, or if the '--no-splash' or '-Q' command-line options were specified.
+
+29. If a daemon was requested, it calls =server-start=. (On POSIX systems, if a background daemon was requested, it then detaches from the controlling terminal.) See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Emacs-Server][Emacs Server]].
+
+30. If started by the X session manager, it calls =emacs-session-restore= passing it as argument the ID of the previous session. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Session-Management][Session Management]].
+
+The following options affect some aspects of the startup sequence.
+
+--- User Option: *inhibit-startup-screen*
+
+#+BEGIN_QUOTE
+  This variable, if non-=nil=, inhibits the startup screen. In that case, Emacs typically displays the /scratch/ buffer; but see =initial-buffer-choice=, below.
+
+  Do not set this variable in the init file of a new user, or in a way that affects more than one user, as that would prevent new users from receiving information about copyleft and basic Emacs usage.
+
+  =inhibit-startup-message= and =inhibit-splash-screen= are aliases for this variable.
+#+END_QUOTE
+
+--- User Option: *initial-buffer-choice*
+
+#+BEGIN_QUOTE
+  If non-=nil=, this variable is a string that specifies a file or directory for Emacs to display after starting up, instead of the startup screen. If its value is a function, Emacs calls that function which must return a buffer which is then displayed. If its value is =t=, Emacs displays the /scratch/ buffer.
+#+END_QUOTE
+
+--- User Option: *inhibit-startup-echo-area-message*
+
+#+BEGIN_QUOTE
+  This variable controls the display of the startup echo area message. You can suppress the startup echo area message by adding text with this form to your init file:
+
+  #+BEGIN_EXAMPLE
+                (setq inhibit-startup-echo-area-message
+                      "your-login-name")
+  #+END_EXAMPLE
+
+  Emacs explicitly checks for an expression as shown above in your init file; your login name must appear in the expression as a Lisp string constant. You can also use the Customize interface. Other methods of setting =inhibit-startup-echo-area-message= to the same value do not inhibit the startup message. This way, you can easily inhibit the message for yourself if you wish, but thoughtless copying of your init file will not inhibit the message for someone else.
+#+END_QUOTE
+
+--- User Option: *initial-scratch-message*
+
+#+BEGIN_QUOTE
+  This variable, if non-=nil=, should be a string, which is treated as documentation to be inserted into the /scratch/ buffer when Emacs starts up. If it is =nil=, the /scratch/ buffer is empty.
+#+END_QUOTE
+
+The following command-line options affect some aspects of the startup sequence. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Initial-Options][Initial Options]].
+
+- =--no-splash=
+
+  Do not display a splash screen.
+
+- =--batch=
+
+  Run without an interactive terminal. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Batch-Mode][Batch Mode]].
+
+- =--daemon=
+
+- =--bg-daemon=
+
+- =--fg-daemon=
+
+  Do not initialize any display; just start a server. (A "background" daemon automatically runs in the background.)
+
+- =--no-init-file=
+
+- =-q=
+
+  Do not load either the init file, or the default library.
+
+- =--no-site-file=
+
+  Do not load the site-start library.
+
+- =--quick=
+
+- =-Q=
+
+  Equivalent to '-q --no-site-file --no-splash'.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal_002dSpecific][Terminal-Specific]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Startup-Summary][Startup Summary]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Starting-Up][Starting Up]]
+
+** 40.1.2 The Init File
+     :PROPERTIES:
+     :CUSTOM_ID: the-init-file
+     :END:
+
+When you start Emacs, it normally attempts to load your init file. This is either a file named .emacs or .emacs.el in your home directory, or a file named init.el in a subdirectory named .emacs.d in your home directory.
+
+The command-line switches '-q', '-Q', and '-u' control whether and where to find the init file; '-q' (and the stronger '-Q') says not to load an init file, while '-u user' says to load user's init file instead of yours. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Entering-Emacs][Entering Emacs]]. If neither option is specified, Emacs uses the LOGNAME environment variable, or the USER (most systems) or USERNAME (MS systems) variable, to find your home directory and thus your init file; this way, even if you have su'd, Emacs still loads your own init file. If those environment variables are absent, though, Emacs uses your user-id to find your home directory.
+
+An Emacs installation may have a default init file, which is a Lisp library named default.el. Emacs finds this file through the standard search path for libraries (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#How-Programs-Do-Loading][How Programs Do Loading]]). The Emacs distribution does not come with this file; it is intended for local customizations. If the default init file exists, it is loaded whenever you start Emacs. But your own personal init file, if any, is loaded first; if it sets =inhibit-default-init= to a non-=nil= value, then Emacs does not subsequently load the default.el file. In batch mode, or if you specify '-q' (or '-Q'), Emacs loads neither your personal init file nor the default init file.
+
+Another file for site-customization is site-start.el. Emacs loads this /before/ the user's init file. You can inhibit the loading of this file with the option '--no-site-file'.
+
+--- User Option: *site-run-file*
+
+#+BEGIN_QUOTE
+  This variable specifies the site-customization file to load before the user's init file. Its normal value is ="site-start"=. The only way you can change it with real effect is to do so before dumping Emacs.
+#+END_QUOTE
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Init-Examples][Init File Examples]], for examples of how to make various commonly desired customizations in your .emacs file.
+
+--- User Option: *inhibit-default-init*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, it prevents Emacs from loading the default initialization library file. The default value is =nil=.
+#+END_QUOTE
+
+--- Variable: *before-init-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run, once, just before loading all the init files (site-start.el, your init file, and default.el). (The only way to change it with real effect is before dumping Emacs.)
+#+END_QUOTE
+
+--- Variable: *after-init-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run, once, just after loading all the init files (site-start.el, your init file, and default.el), before loading the terminal-specific library (if started on a text terminal) and processing the command-line action arguments.
+#+END_QUOTE
+
+--- Variable: *emacs-startup-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run, once, just after handling the command line arguments. In batch mode, Emacs does not run this hook.
+#+END_QUOTE
+
+--- Variable: *window-setup-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is very similar to =emacs-startup-hook=. The only difference is that it runs slightly later, after setting of the frame parameters. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Startup-Summary][window-setup-hook]].
+#+END_QUOTE
+
+--- Variable: *user-init-file*
+
+#+BEGIN_QUOTE
+  This variable holds the absolute file name of the user's init file. If the actual init file loaded is a compiled file, such as .emacs.elc, the value refers to the corresponding source file.
+#+END_QUOTE
+
+--- Variable: *user-emacs-directory*
+
+#+BEGIN_QUOTE
+  This variable holds the name of the .emacs.d directory. It is ~/.emacs.d on all platforms but MS-DOS.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Command_002dLine-Arguments][Command-Line Arguments]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Init-File][Init File]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Starting-Up][Starting Up]]
+
+** 40.1.3 Terminal-Specific Initialization
+     :PROPERTIES:
+     :CUSTOM_ID: terminal-specific-initialization
+     :END:
+
+Each terminal type can have its own Lisp library that Emacs loads when run on that type of terminal. The library's name is constructed by concatenating the value of the variable =term-file-prefix= and the terminal type (specified by the environment variable TERM). Normally, =term-file-prefix= has the value ="term/"=; changing this is not recommended. If there is an entry matching TERM in the =term-file-aliases= association list, Emacs uses the associated value in place of TERM. Emacs finds the file in the normal manner, by searching the =load-path= directories, and trying the '.elc' and '.el' suffixes.
+
+The usual role of a terminal-specific library is to enable special keys to send sequences that Emacs can recognize. It may also need to set or add to =input-decode-map= if the Termcap or Terminfo entry does not specify all the terminal's function keys. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Input][Terminal Input]].
+
+When the name of the terminal type contains a hyphen or underscore, and no library is found whose name is identical to the terminal's name, Emacs strips from the terminal's name the last hyphen or underscore and everything that follows it, and tries again. This process is repeated until Emacs finds a matching library, or until there are no more hyphens or underscores in the name (i.e., there is no terminal-specific library). For example, if the terminal name is 'xterm-256color' and there is no term/xterm-256color.el library, Emacs tries to load term/xterm.el. If necessary, the terminal library can evaluate =(getenv "TERM")= to find the full name of the terminal type.
+
+Your init file can prevent the loading of the terminal-specific library by setting the variable =term-file-prefix= to =nil=.
+
+You can also arrange to override some of the actions of the terminal-specific library by using =tty-setup-hook=. This is a normal hook that Emacs runs after initializing a new text terminal. You could use this hook to define initializations for terminals that do not have their own libraries. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Hooks][Hooks]].
+
+--- User Option: *term-file-prefix*
+
+#+BEGIN_QUOTE
+  If the value of this variable is non-=nil=, Emacs loads a terminal-specific initialization file as follows:
+
+  #+BEGIN_EXAMPLE
+                (load (concat term-file-prefix (getenv "TERM")))
+  #+END_EXAMPLE
+
+  You may set the =term-file-prefix= variable to =nil= in your init file if you do not wish to load the terminal-initialization file.
+
+  On MS-DOS, Emacs sets the TERM environment variable to 'internal'.
+#+END_QUOTE
+
+--- User Option: *term-file-aliases*
+
+#+BEGIN_QUOTE
+  This variable is an association list mapping terminal types to their aliases. For example, an element of the form =("vt102" . "vt100")= means to treat a terminal of type 'vt102' like one of type 'vt100'.
+#+END_QUOTE
+
+--- Variable: *tty-setup-hook*
+
+#+BEGIN_QUOTE
+  This variable is a normal hook that Emacs runs after initializing a new text terminal. (This applies when Emacs starts up in non-windowed mode, and when making a tty emacsclient connection.) The hook runs after loading your init file (if applicable) and the terminal-specific Lisp file, so you can use it to adjust the definitions made by that file.
+
+  For a related feature, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Init-File][window-setup-hook]].
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal_002dSpecific][Terminal-Specific]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Starting-Up][Starting Up]]
+
+** 40.1.4 Command-Line Arguments
+     :PROPERTIES:
+     :CUSTOM_ID: command-line-arguments
+     :END:
+
+You can use command-line arguments to request various actions when you start Emacs. Note that the recommended way of using Emacs is to start it just once, after logging in, and then do all editing in the same Emacs session (see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Entering-Emacs][Entering Emacs]]). For this reason, you might not use command-line arguments very often; nonetheless, they can be useful when invoking Emacs from session scripts or debugging Emacs. This section describes how Emacs processes command-line arguments.
+
+--- Function: *command-line*
+
+#+BEGIN_QUOTE
+  This function parses the command line that Emacs was called with, processes it, and (amongst other things) loads the user's init file and displays the startup messages.
+#+END_QUOTE
+
+--- Variable: *command-line-processed*
+
+#+BEGIN_QUOTE
+  The value of this variable is =t= once the command line has been processed.
+
+  If you redump Emacs by calling =dump-emacs= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Building-Emacs][Building Emacs]]), you may wish to set this variable to =nil= first in order to cause the new dumped Emacs to process its new command-line arguments.
+#+END_QUOTE
+
+--- Variable: *command-switch-alist*
+
+#+BEGIN_QUOTE
+  This variable is an alist of user-defined command-line options and associated handler functions. By default it is empty, but you can add elements if you wish.
+
+  A command-line option is an argument on the command line, which has the form:
+
+  #+BEGIN_EXAMPLE
+                -option
+  #+END_EXAMPLE
+
+  The elements of the =command-switch-alist= look like this:
+
+  #+BEGIN_EXAMPLE
+                (option . handler-function)
+  #+END_EXAMPLE
+
+  The car, option, is a string, the name of a command-line option (not including the initial hyphen). The handler-function is called to handle option, and receives the option name as its sole argument.
+
+  In some cases, the option is followed in the command line by an argument. In these cases, the handler-function can find all the remaining command-line arguments in the variable =command-line-args-left= (see below). (The entire list of command-line arguments is in =command-line-args=.)
+
+  The command-line arguments are parsed by the =command-line-1= function in the startup.el file. See also [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Emacs-Invocation][Command Line Arguments for Emacs Invocation]].
+#+END_QUOTE
+
+--- Variable: *command-line-args*
+
+#+BEGIN_QUOTE
+  The value of this variable is the list of command-line arguments passed to Emacs.
+#+END_QUOTE
+
+--- Variable: *command-line-args-left*
+
+#+BEGIN_QUOTE
+  The value of this variable is the list of command-line arguments that have not yet been processed.
+#+END_QUOTE
+
+--- Variable: *command-line-functions*
+
+#+BEGIN_QUOTE
+  This variable's value is a list of functions for handling an unrecognized command-line argument. Each time the next argument to be processed has no special meaning, the functions in this list are called, in order of appearance, until one of them returns a non-=nil= value.
+
+  These functions are called with no arguments. They can access the command-line argument under consideration through the variable =argi=, which is bound temporarily at this point. The remaining arguments (not including the current one) are in the variable =command-line-args-left=.
+
+  When a function recognizes and processes the argument in =argi=, it should return a non-=nil= value to say it has dealt with that argument. If it has also dealt with some of the following arguments, it can indicate that by deleting them from =command-line-args-left=.
+
+  If all of these functions return =nil=, then the argument is treated as a file name to visit.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Environment][System Environment]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Starting-Up][Starting Up]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.2 Getting Out of Emacs
+    :PROPERTIES:
+    :CUSTOM_ID: getting-out-of-emacs
+    :END:
+
+There are two ways to get out of Emacs: you can kill the Emacs job, which exits permanently, or you can suspend it, which permits you to reenter the Emacs process later. (In a graphical environment, you can of course simply switch to another application without doing anything special to Emacs, then switch back to Emacs when you want.)
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Killing-Emacs][Killing Emacs]]: Exiting Emacs irreversibly.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Suspending-Emacs][Suspending Emacs]]: Exiting Emacs reversibly.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Suspending-Emacs][Suspending Emacs]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Getting-Out][Getting Out]]
+
+** 40.2.1 Killing Emacs
+     :PROPERTIES:
+     :CUSTOM_ID: killing-emacs
+     :END:
+
+Killing Emacs means ending the execution of the Emacs process. If you started Emacs from a terminal, the parent process normally resumes control. The low-level primitive for killing Emacs is =kill-emacs=.
+
+--- Command: *kill-emacs* &optional exit-data
+
+#+BEGIN_QUOTE
+  This command calls the hook =kill-emacs-hook=, then exits the Emacs process and kills it.
+
+  If exit-data is an integer, that is used as the exit status of the Emacs process. (This is useful primarily in batch operation; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Batch-Mode][Batch Mode]].)
+
+  If exit-data is a string, its contents are stuffed into the terminal input buffer so that the shell (or whatever program next reads input) can read them.
+#+END_QUOTE
+
+The =kill-emacs= function is normally called via the higher-level command C-x C-c (=save-buffers-kill-terminal=). See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Exiting][Exiting]]. It is also called automatically if Emacs receives a =SIGTERM= or =SIGHUP= operating system signal (e.g., when the controlling terminal is disconnected), or if it receives a =SIGINT= signal while running in batch mode (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Batch-Mode][Batch Mode]]).
+
+--- Variable: *kill-emacs-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run by =kill-emacs=, before it kills Emacs.
+
+  Because =kill-emacs= can be called in situations where user interaction is impossible (e.g., when the terminal is disconnected), functions on this hook should not attempt to interact with the user. If you want to interact with the user when Emacs is shutting down, use =kill-emacs-query-functions=, described below.
+#+END_QUOTE
+
+When Emacs is killed, all the information in the Emacs process, aside from files that have been saved, is lost. Because killing Emacs inadvertently can lose a lot of work, the =save-buffers-kill-terminal= command queries for confirmation if you have buffers that need saving or subprocesses that are running. It also runs the abnormal hook =kill-emacs-query-functions=:
+
+--- User Option: *kill-emacs-query-functions*
+
+#+BEGIN_QUOTE
+  When =save-buffers-kill-terminal= is killing Emacs, it calls the functions in this hook, after asking the standard questions and before calling =kill-emacs=. The functions are called in order of appearance, with no arguments. Each function can ask for additional confirmation from the user. If any of them returns =nil=, =save-buffers-kill-emacs= does not kill Emacs, and does not run the remaining functions in this hook. Calling =kill-emacs= directly does not run this hook.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Killing-Emacs][Killing Emacs]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Getting-Out][Getting Out]]
+
+** 40.2.2 Suspending Emacs
+     :PROPERTIES:
+     :CUSTOM_ID: suspending-emacs
+     :END:
+
+On text terminals, it is possible to suspend Emacs, which means stopping Emacs temporarily and returning control to its superior process, which is usually the shell. This allows you to resume editing later in the same Emacs process, with the same buffers, the same kill ring, the same undo history, and so on. To resume Emacs, use the appropriate command in the parent shell---most likely =fg=.
+
+Suspending works only on a terminal device from which the Emacs session was started. We call that device the controlling terminal of the session. Suspending is not allowed if the controlling terminal is a graphical terminal. Suspending is usually not relevant in graphical environments, since you can simply switch to another application without doing anything special to Emacs.
+
+Some operating systems (those without =SIGTSTP=, or MS-DOS) do not support suspension of jobs; on these systems, suspension actually creates a new shell temporarily as a subprocess of Emacs. Then you would exit the shell to return to Emacs.
+
+--- Command: *suspend-emacs* &optional string
+
+#+BEGIN_QUOTE
+  This function stops Emacs and returns control to the superior process. If and when the superior process resumes Emacs, =suspend-emacs= returns =nil= to its caller in Lisp.
+
+  This function works only on the controlling terminal of the Emacs session; to relinquish control of other tty devices, use =suspend-tty= (see below). If the Emacs session uses more than one terminal, you must delete the frames on all the other terminals before suspending Emacs, or this function signals an error. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]].
+
+  If string is non-=nil=, its characters are sent to Emacs's superior shell, to be read as terminal input. The characters in string are not echoed by the superior shell; only the results appear.
+
+  Before suspending, =suspend-emacs= runs the normal hook =suspend-hook=. After the user resumes Emacs, =suspend-emacs= runs the normal hook =suspend-resume-hook=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Hooks][Hooks]].
+
+  The next redisplay after resumption will redraw the entire screen, unless the variable =no-redraw-on-reenter= is non-=nil=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Refresh-Screen][Refresh Screen]].
+
+  Here is an example of how you could use these hooks:
+
+  #+BEGIN_EXAMPLE
+                (add-hook 'suspend-hook
+                          (lambda () (or (y-or-n-p "Really suspend? ")
+                                         (error "Suspend canceled"))))
+                (add-hook 'suspend-resume-hook (lambda () (message "Resumed!")
+                                                 (sit-for 2)))
+  #+END_EXAMPLE
+
+  Here is what you would see upon evaluating =(suspend-emacs "pwd")=:
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: Minibuffer ----------
+                Really suspend? y
+                ---------- Buffer: Minibuffer ----------
+
+                ---------- Parent Shell ----------
+                bash$ /home/username
+                bash$ fg
+
+                ---------- Echo Area ----------
+                Resumed!
+  #+END_EXAMPLE
+
+  Note that 'pwd' is not echoed after Emacs is suspended. But it is read and executed by the shell.
+#+END_QUOTE
+
+--- Variable: *suspend-hook*
+
+#+BEGIN_QUOTE
+  This variable is a normal hook that Emacs runs before suspending.
+#+END_QUOTE
+
+--- Variable: *suspend-resume-hook*
+
+#+BEGIN_QUOTE
+  This variable is a normal hook that Emacs runs on resuming after a suspension.
+#+END_QUOTE
+
+--- Function: *suspend-tty* &optional tty
+
+#+BEGIN_QUOTE
+  If tty specifies a terminal device used by Emacs, this function relinquishes the device and restores it to its prior state. Frames that used the device continue to exist, but are not updated and Emacs doesn't read input from them. tty can be a terminal object, a frame (meaning the terminal for that frame), or =nil= (meaning the terminal for the selected frame). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]].
+
+  If tty is already suspended, this function does nothing.
+
+  This function runs the hook =suspend-tty-functions=, passing the terminal object as an argument to each function.
+#+END_QUOTE
+
+--- Function: *resume-tty* &optional tty
+
+#+BEGIN_QUOTE
+  This function resumes the previously suspended terminal device tty; where tty has the same possible values as it does for =suspend-tty=.
+
+  This function reopens the terminal device, re-initializes it, and redraws it with that terminal's selected frame. It then runs the hook =resume-tty-functions=, passing the terminal object as an argument to each function.
+
+  If the same device is already used by another Emacs terminal, this function signals an error. If tty is not suspended, this function does nothing.
+#+END_QUOTE
+
+--- Function: *controlling-tty-p* &optional tty
+
+#+BEGIN_QUOTE
+  This function returns non-=nil= if tty is the controlling terminal of the Emacs session; tty can be a terminal object, a frame (meaning the terminal for that frame), or =nil= (meaning the terminal for the selected frame).
+#+END_QUOTE
+
+--- Command: *suspend-frame*
+
+#+BEGIN_QUOTE
+  This command suspends a frame. For GUI frames, it calls =iconify-frame= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Visibility-of-Frames][Visibility of Frames]]); for frames on text terminals, it calls either =suspend-emacs= or =suspend-tty=, depending on whether the frame is displayed on the controlling terminal device or not.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#User-Identification][User Identification]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Getting-Out][Getting Out]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.3 Operating System Environment
+    :PROPERTIES:
+    :CUSTOM_ID: operating-system-environment
+    :END:
+
+Emacs provides access to variables in the operating system environment through various functions. These variables include the name of the system, the user's UID, and so on.
+
+--- Variable: *system-configuration*
+
+#+BEGIN_QUOTE
+  This variable holds the standard GNU configuration name for the hardware/software configuration of your system, as a string. For example, a typical value for a 64-bit GNU/Linux system is '"x86\_64-unknown-linux-gnu"'.
+#+END_QUOTE
+
+--- Variable: *system-type*
+
+#+BEGIN_QUOTE
+  The value of this variable is a symbol indicating the type of operating system Emacs is running on. The possible values are:
+
+  - =aix=
+
+    IBM's AIX.
+
+  - =berkeley-unix=
+
+    Berkeley BSD and its variants.
+
+  - =cygwin=
+
+    Cygwin, a POSIX layer on top of MS-Windows.
+
+  - =darwin=
+
+    Darwin (macOS).
+
+  - =gnu=
+
+    The GNU system (using the GNU kernel, which consists of the HURD and Mach).
+
+  - =gnu/linux=
+
+    A GNU/Linux system---that is, a variant GNU system, using the Linux kernel. (These systems are the ones people often call "Linux", but actually Linux is just the kernel, not the whole system.)
+
+  - =gnu/kfreebsd=
+
+    A GNU (glibc-based) system with a FreeBSD kernel.
+
+  - =hpux=
+
+    Hewlett-Packard HPUX operating system.
+
+  - =nacl=
+
+    Google Native Client (NaCl) sandboxing system.
+
+  - =ms-dos=
+
+    Microsoft's DOS. Emacs compiled with DJGPP for MS-DOS binds =system-type= to =ms-dos= even when you run it on MS-Windows.
+
+  - =usg-unix-v=
+
+    AT&T Unix System V.
+
+  - =windows-nt=
+
+    Microsoft Windows NT, 9X and later. The value of =system-type= is always =windows-nt=, e.g., even on Windows 10.
+
+  We do not wish to add new symbols to make finer distinctions unless it is absolutely necessary! In fact, we hope to eliminate some of these alternatives in the future. If you need to make a finer distinction than =system-type= allows for, you can test =system-configuration=, e.g., against a regexp.
+#+END_QUOTE
+
+--- Function: *system-name*
+
+#+BEGIN_QUOTE
+  This function returns the name of the machine you are running on, as a string.
+#+END_QUOTE
+
+--- User Option: *mail-host-address*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, it is used instead of =system-name= for purposes of generating email addresses. For example, it is used when constructing the default value of =user-mail-address=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#User-Identification][User Identification]].
+#+END_QUOTE
+
+--- Command: *getenv* var &optional frame
+
+#+BEGIN_QUOTE
+  This function returns the value of the environment variable var, as a string. var should be a string. If var is undefined in the environment, =getenv= returns =nil=. It returns '""' if var is set but null. Within Emacs, a list of environment variables and their values is kept in the variable =process-environment=.
+
+  #+BEGIN_EXAMPLE
+                (getenv "USER")
+                     ⇒ "lewis"
+  #+END_EXAMPLE
+
+  The shell command =printenv= prints all or part of the environment:
+
+  #+BEGIN_EXAMPLE
+                bash$ printenv
+                PATH=/usr/local/bin:/usr/bin:/bin
+                USER=lewis
+                TERM=xterm
+                SHELL=/bin/bash
+                HOME=/home/lewis
+                ...
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *setenv* variable &optional value substitute
+
+#+BEGIN_QUOTE
+  This command sets the value of the environment variable named variable to value. variable should be a string. Internally, Emacs Lisp can handle any string. However, normally variable should be a valid shell identifier, that is, a sequence of letters, digits and underscores, starting with a letter or underscore. Otherwise, errors may occur if subprocesses of Emacs try to access the value of variable. If value is omitted or =nil= (or, interactively, with a prefix argument), =setenv= removes variable from the environment. Otherwise, value should be a string.
+
+  If the optional argument substitute is non-=nil=, Emacs calls the function =substitute-env-vars= to expand any environment variables in value.
+
+  =setenv= works by modifying =process-environment=; binding that variable with =let= is also reasonable practice.
+
+  =setenv= returns the new value of variable, or =nil= if it removed variable from the environment.
+#+END_QUOTE
+
+--- Variable: *process-environment*
+
+#+BEGIN_QUOTE
+  This variable is a list of strings, each describing one environment variable. The functions =getenv= and =setenv= work by means of this variable.
+
+  #+BEGIN_EXAMPLE
+                process-environment
+                ⇒ ("PATH=/usr/local/bin:/usr/bin:/bin"
+                    "USER=lewis"
+                    "TERM=xterm"
+                    "SHELL=/bin/bash"
+                    "HOME=/home/lewis"
+                    ...)
+  #+END_EXAMPLE
+
+  If =process-environment= contains multiple elements that specify the same environment variable, the first of these elements specifies the variable, and the others are ignored.
+#+END_QUOTE
+
+--- Variable: *initial-environment*
+
+#+BEGIN_QUOTE
+  This variable holds the list of environment variables Emacs inherited from its parent process when Emacs started.
+#+END_QUOTE
+
+--- Variable: *path-separator*
+
+#+BEGIN_QUOTE
+  This variable holds a string that says which character separates directories in a search path (as found in an environment variable). Its value is =":"= for Unix and GNU systems, and =";"= for MS systems.
+#+END_QUOTE
+
+--- Function: *parse-colon-path* path
+
+#+BEGIN_QUOTE
+  This function takes a search path string such as the value of the PATH environment variable, and splits it at the separators, returning a list of directories. =nil= in this list means the current directory. Although the function's name says "colon", it actually uses the value of =path-separator=.
+
+  #+BEGIN_EXAMPLE
+                (parse-colon-path ":/foo:/bar")
+                     ⇒ (nil "/foo/" "/bar/")
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Variable: *invocation-name*
+
+#+BEGIN_QUOTE
+  This variable holds the program name under which Emacs was invoked. The value is a string, and does not include a directory name.
+#+END_QUOTE
+
+--- Variable: *invocation-directory*
+
+#+BEGIN_QUOTE
+  This variable holds the directory in which the Emacs executable was located when it was run, or =nil= if that directory cannot be determined.
+#+END_QUOTE
+
+--- Variable: *installation-directory*
+
+#+BEGIN_QUOTE
+  If non-=nil=, this is a directory within which to look for the lib-src and etc subdirectories. In an installed Emacs, it is normally =nil=. It is non-=nil= when Emacs can't find those directories in their standard installed locations, but can find them in a directory related somehow to the one containing the Emacs executable (i.e., =invocation-directory=).
+#+END_QUOTE
+
+--- Function: *load-average* &optional use-float
+
+#+BEGIN_QUOTE
+  This function returns the current 1-minute, 5-minute, and 15-minute system load averages, in a list. The load average indicates the number of processes trying to run on the system.
+
+  By default, the values are integers that are 100 times the system load averages, but if use-float is non-=nil=, then they are returned as floating-point numbers without multiplying by 100.
+
+  If it is impossible to obtain the load average, this function signals an error. On some platforms, access to load averages requires installing Emacs as setuid or setgid so that it can read kernel information, and that usually isn't advisable.
+
+  If the 1-minute load average is available, but the 5- or 15-minute averages are not, this function returns a shortened list containing the available averages.
+
+  #+BEGIN_EXAMPLE
+                (load-average)
+                     ⇒ (169 48 36)
+                (load-average t)
+                     ⇒ (1.69 0.48 0.36)
+  #+END_EXAMPLE
+
+  The shell command =uptime= returns similar information.
+#+END_QUOTE
+
+--- Function: *emacs-pid*
+
+#+BEGIN_QUOTE
+  This function returns the process ID of the Emacs process, as an integer.
+#+END_QUOTE
+
+--- Variable: *tty-erase-char*
+
+#+BEGIN_QUOTE
+  This variable holds the erase character that was selected in the system's terminal driver, before Emacs was started.
+#+END_QUOTE
+
+* 40.4 User Identification
+    :PROPERTIES:
+    :CUSTOM_ID: user-identification
+    :END:
+
+--- Variable: *init-file-user*
+
+#+BEGIN_QUOTE
+  This variable says which user's init files should be used by Emacs---or =nil= if none. =""= stands for the user who originally logged in. The value reflects command-line options such as '-q' or '-u user'.
+
+  Lisp packages that load files of customizations, or any other sort of user profile, should obey this variable in deciding where to find it. They should load the profile of the user name found in this variable. If =init-file-user= is =nil=, meaning that the '-q', '-Q', or '-batch' option was used, then Lisp packages should not load any customization files or user profile.
+#+END_QUOTE
+
+--- User Option: *user-mail-address*
+
+#+BEGIN_QUOTE
+  This holds the email address of the user who is using Emacs.
+#+END_QUOTE
+
+--- Function: *user-login-name* &optional uid
+
+#+BEGIN_QUOTE
+  This function returns the name under which the user is logged in. It uses the environment variables LOGNAME or USER if either is set. Otherwise, the value is based on the effective UID, not the real UID.
+
+  If you specify uid (a number), the result is the user name that corresponds to uid, or =nil= if there is no such user.
+#+END_QUOTE
+
+--- Function: *user-real-login-name*
+
+#+BEGIN_QUOTE
+  This function returns the user name corresponding to Emacs's real UID. This ignores the effective UID, and the environment variables LOGNAME and USER.
+#+END_QUOTE
+
+--- Function: *user-full-name* &optional uid
+
+#+BEGIN_QUOTE
+  This function returns the full name of the logged-in user---or the value of the environment variable NAME, if that is set.
+
+  If the Emacs process's user-id does not correspond to any known user (and provided =NAME= is not set), the result is ="unknown"=.
+
+  If uid is non-=nil=, then it should be a number (a user-id) or a string (a login name). Then =user-full-name= returns the full name corresponding to that user-id or login name. If you specify a user-id or login name that isn't defined, it returns =nil=.
+#+END_QUOTE
+
+The symbols =user-login-name=, =user-real-login-name= and =user-full-name= are variables as well as functions. The functions return the same values that the variables hold. These variables allow you to fake out Emacs by telling the functions what to return. The variables are also useful for constructing frame titles (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Frame-Titles][Frame Titles]]).
+
+--- Function: *user-real-uid*
+
+#+BEGIN_QUOTE
+  This function returns the real UID of the user. The value may be floating point, in the (unlikely) event that the UID is too large to fit in a Lisp integer.
+#+END_QUOTE
+
+--- Function: *user-uid*
+
+#+BEGIN_QUOTE
+  This function returns the effective UID of the user. The value may be floating point.
+#+END_QUOTE
+
+--- Function: *group-gid*
+
+#+BEGIN_QUOTE
+  This function returns the effective GID of the Emacs process. The value may be floating point.
+#+END_QUOTE
+
+--- Function: *group-real-gid*
+
+#+BEGIN_QUOTE
+  This function returns the real GID of the Emacs process. The value may be floating point.
+#+END_QUOTE
+
+--- Function: *system-users*
+
+#+BEGIN_QUOTE
+  This function returns a list of strings, listing the user names on the system. If Emacs cannot retrieve this information, the return value is a list containing just the value of =user-real-login-name=.
+#+END_QUOTE
+
+--- Function: *system-groups*
+
+#+BEGIN_QUOTE
+  This function returns a list of strings, listing the names of user groups on the system. If Emacs cannot retrieve this information, the return value is =nil=.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#User-Identification][User Identification]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.5 Time of Day
+    :PROPERTIES:
+    :CUSTOM_ID: time-of-day
+    :END:
+
+This section explains how to determine the current time and time zone.
+
+Most of these functions represent time as a list of four integers =(=sec-high sec-low microsec picosec=)=. This represents the number of seconds from the epoch (January 1, 1970 at 00:00 UTC), using the formula: high*2**16 + low + micro*10*−6 + pico*10**−12.
+# 得到: 掌握这个计算公式.
+The return value of =current-time= represents time using this form, as do the timestamps in the return values of other functions such as =file-attributes= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Definition-of-file_002dattributes][Definition of file-attributes]]). In some cases, functions may return two- or three-element lists, with omitted microsec and picosec components defaulting to zero.
+
+Function arguments, e.g., the time argument to =current-time-string=, accept a more-general time value format, which can be a list of integers as above, or a single number for seconds since the epoch, or =nil= for the current time. You can convert a time value into a human-readable string using =current-time-string= and =format-time-string=, into a list of integers using =seconds-to-time=, and into other forms using =decode-time= and =float-time=. These functions are described in the following sections.
+
+--- Function: *current-time-string* &optional time zone
+
+This function returns the current time and date as a human-readable string. The format does not vary for the initial part of the string, which contains the day of week, month, day of month, and time of day in that order: the number of characters used for these fields is always the same, so you can reliably use =substring= to extract them. You should count characters from the beginning of the string rather than from the end, as the year might not have exactly four digits, and additional information may some day be added at the end.
+
+The argument time, if given, specifies a time to format, instead of the current time. The optional argument zone defaults to the current time zone rule. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]].
+
+#+begin_src emacs-lisp :session elisp-manual :lexical t
+(current-time-string)
+#+end_src
+
+#+RESULTS:
+: Wed Mar 11 17:36:40 2020
+
+--- Function: *current-time*
+
+This function returns the current time, represented as a list of four integers =(=sec-high sec-low microsec picosec=)=. These integers have trailing zeros on systems that return time with lower resolutions. On all current machines picosec is a multiple of 1000, but this may change as higher-resolution clocks become available.
+
+
+--- Function: *float-time* &optional time
+
+
+This function returns the current time as a floating-point number of seconds since the epoch. The optional argument time, if given, specifies a time to convert instead of the current time.
+
+/Warning/: Since the result is floating point, it may not be exact. Do not use this function if precise time stamps are required.
+
+=time-to-seconds= is an alias for this function.
+
+
+--- Function: *seconds-to-time* time
+
+This function converts a time value to list-of-integer form. For example, if time is a number, =(time-to-seconds (seconds-to-time=time=))= equals the number unless overflow or rounding errors occur.
+
+#+begin_src emacs-lisp :tangle yes
+(seconds-to-time 30)
+#+end_src
+
+#+RESULTS:
+| 0 | 30 |
+
+* 40.6 Time Zone Rules
+    :PROPERTIES:
+    :CUSTOM_ID: time-zone-rules
+    :END:
+
+The default time zone is determined by the TZ environment variable. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Environment][System Environment]]. For example, you can tell Emacs to default to Universal Time with =(setenv "TZ" "UTC0")=. If TZ is not in the environment, Emacs uses system wall clock time, which is a platform-dependent default time zone.
+
+The set of supported TZ strings is system-dependent. GNU and many other systems support the tzdata database, e.g., '"America/New\_York"' specifies the time zone and daylight saving time history for locations near New York City. GNU and most other systems support POSIX-style TZ strings, e.g., '"EST+5EDT,M4.1.0/2,M10.5.0/2"' specifies the rules used in New York from 1987 through 2006. All systems support the string '"UTC0"' meaning Universal Time.
+
+Functions that convert to and from local time accept an optional time zone rule argument, which specifies the conversion's time zone and daylight saving time history. If the time zone rule is omitted or =nil=, the conversion uses Emacs's default time zone. If it is =t=, the conversion uses Universal Time. If it is =wall=, the conversion uses the system wall clock time. If it is a string, the conversion uses the time zone rule equivalent to setting TZ to that string. If it is a list (offset abbr), where offset is an integer number of seconds east of Universal Time and abbr is a string, the conversion uses a fixed time zone with the given offset and abbreviation. An integer offset is treated as if it were (offset abbr), where abbr is a numeric abbreviation on POSIX-compatible platforms and is unspecified on MS-Windows.
+
+--- Function: *current-time-zone* &optional time zone
+
+This function returns a list describing the time zone that the user is in.
+
+The value has the form =(=offset abbr=)=. Here offset is an integer giving the number of seconds ahead of Universal Time (east of Greenwich). A negative value means west of Greenwich. The second element, abbr, is a string giving an abbreviation for the time zone, e.g., '"CST"' for China Standard Time or for U.S. Central Standard Time. Both elements can change when daylight saving time begins or ends; if the user has specified a time zone that does not use a seasonal time adjustment, then the value is constant through time.
+
+If the operating system doesn't supply all the information necessary to compute the value, the unknown elements of the list are =nil=.
+
+The argument time, if given, specifies a time value to analyze instead of the current time. The optional argument zone defaults to the current time zone rule.
+
+* 40.7 Time Conversion
+    :PROPERTIES:
+    :CUSTOM_ID: time-conversion
+    :END:
+
+These functions convert time values (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]) into calendrical information and vice versa.
+
+Many 32-bit operating systems are limited to system times containing 32 bits of information in their seconds component; these systems typically handle only the times from 1901-12-13 20:45:52 through 2038-01-19 03:14:07 Universal Time. However, 64-bit and some 32-bit operating systems have larger seconds components, and can represent times far in the past or future.
+
+Time conversion functions always use the Gregorian calendar, even for dates before the Gregorian calendar was introduced. Year numbers count the number of years since the year 1 B.C., and do not skip zero as traditional Gregorian years do; for example, the year number −37 represents the Gregorian year 38 B.C.
+
+--- Function: *decode-time* &optional time zone
+
+#+BEGIN_QUOTE
+  This function converts a time value into calendrical information. If you don't specify time, it decodes the current time, and similarly zone defaults to the current time zone rule. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]]. The return value is a list of nine elements, as follows:
+
+  #+BEGIN_EXAMPLE
+                (seconds minutes hour day month year dow dst utcoff)
+  #+END_EXAMPLE
+
+  Here is what the elements mean:
+
+  - seconds
+
+    The number of seconds past the minute, as an integer between 0 and 59. On some operating systems, this is 60 for leap seconds.
+
+  - minutes
+
+    The number of minutes past the hour, as an integer between 0 and 59.
+
+  - hour
+
+    The hour of the day, as an integer between 0 and 23.
+
+  - day
+
+    The day of the month, as an integer between 1 and 31.
+
+  - month
+
+    The month of the year, as an integer between 1 and 12.
+
+  - year
+
+    The year, an integer typically greater than 1900.
+
+  - dow
+
+    The day of week, as an integer between 0 and 6, where 0 stands for Sunday.
+
+  - dst
+
+    =t= if daylight saving time is effect, otherwise =nil=.
+
+  - utcoff
+
+    An integer indicating the Universal Time offset in seconds, i.e., the number of seconds east of Greenwich.
+
+  *Common Lisp Note:* Common Lisp has different meanings for dow and utcoff.
+#+END_QUOTE
+
+--- Function: *encode-time* seconds minutes hour day month year &optional zone
+
+#+BEGIN_QUOTE
+  This function is the inverse of =decode-time=. It converts seven items of calendrical data into a list-of-integer time value. For the meanings of the arguments, see the table above under =decode-time=.
+
+  Year numbers less than 100 are not treated specially. If you want them to stand for years above 1900, or years above 2000, you must alter them yourself before you call =encode-time=.
+
+  The optional argument zone defaults to the current time zone rule. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]].
+
+  If you pass more than seven arguments to =encode-time=, the first six are used as seconds through year, the last argument is used as zone, and the arguments in between are ignored. This feature makes it possible to use the elements of a list returned by =decode-time= as the arguments to =encode-time=, like this:
+
+  #+BEGIN_EXAMPLE
+                (apply 'encode-time (decode-time ...))
+  #+END_EXAMPLE
+
+  You can perform simple date arithmetic by using out-of-range values for the seconds, minutes, hour, day, and month arguments; for example, day 0 means the day preceding the given month.
+
+  The operating system puts limits on the range of possible time values; if you try to encode a time that is out of range, an error results. For instance, years before 1970 do not work on some systems; on others, years as early as 1901 do work.
+#+END_QUOTE
+
+* 40.8 Parsing and Formatting Times
+    :PROPERTIES:
+    :CUSTOM_ID: parsing-and-formatting-times
+    :END:
+
+These functions convert time values to text in a string, and vice versa. Time values include =nil=, numbers, and lists of two to four integers (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]).
+
+--- Function: *date-to-time* string
+
+#+BEGIN_QUOTE
+  This function parses the time-string string and returns the corresponding time value. The argument string should represent a date-time, and should be in one of the forms recognized by =parse-time-string= (see below). This function assumes the GMT timezone if string lacks an explicit timezone information.
+#+END_QUOTE
+
+--- Function: *parse-time-string* string
+
+#+BEGIN_QUOTE
+  This function parses the time-string string into a list of the following form:
+
+  #+BEGIN_EXAMPLE
+                (sec min hour day mon year dow dst tz)
+  #+END_EXAMPLE
+
+  The format of this list is the same as what =decode-time= accepts (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Conversion][Time Conversion]]), and is described in more detail there. Any element that cannot be determined from the input will be set to =nil=. The argument string should resemble an RFC 822 (or later) or ISO 8601 string, like "Fri, 25 Mar 2016 16:24:56 +0100" or "1998-09-12T12:21:54-0200", but this function will attempt to parse less well-formed time strings as well.
+#+END_QUOTE
+
+--- Function: *format-time-string* format-string &optional time zone
+
+
+  This function converts time (or the current time, if time is omitted or =nil=) to a string according to format-string. The conversion uses the time zone rule zone, which defaults to the current time zone rule. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Zone-Rules][Time Zone Rules]]. The argument format-string may contain '%'-sequences which say to substitute parts of the time. Here is a table of what the '%'-sequences mean:
+# 表格总结如下:
+|-------------+----------+----------+---------------------+-----------------+-------------------+---------------------+---------------+---------|
+| 时间变量    | 1.second | 2.minute | 3.hour              | 4.day           | 5.month           | 6.weekday           | 7.week number | 8.year  |
+|-------------+----------+----------+---------------------+-----------------+-------------------+---------------------+---------------+---------|
+| 常规符号    | %S 01    | %M 01    | %H 23               | %d 01           | %m 01             | %w (0-6)            | %W            | %y 19   |
+| 简单扩展    |          |          | %I (12-hour), %p AM |                 |                   |                     |               | %Y 2019 |
+| 文字描述    |          |          |                     |                 | %b Oct, %BOctober | %a Thu, %A Thursday |               |         |
+| Obscure扩展 | %f 微秒  |          |                     | % e 1~31 %j 366 |                   | %u(1~7)             | %V %U         | %G 2019 |
+|-------------+----------+----------+---------------------+-----------------+-------------------+---------------------+---------------+---------     |
+# 洞见：合理性分析
+ %H为24小时制，与H紧挨着的I是12小时制度.
+ 只有两个变量可以表述为"文字".
+  - '%a'
+
+    This stands for the abbreviated name of the day of week.
+
+  - '%A'
+
+    This stands for the full name of the day of week.
+
+  - '%b'
+
+    This stands for the abbreviated name of the month.
+
+  - '%B'
+
+    This stands for the full name of the month.
+
+  - '%c'
+
+    This is a synonym for '%x %X'.
+
+  - '%C'
+
+    This stands for the century, that is, the year divided by 100, truncated toward zero. The default field width is 2.
+
+  - '%d'
+
+    This stands for the day of month, zero-padded.
+
+  - '%D'
+
+    This is a synonym for '%m/%d/%y'.
+
+  - '%e'
+
+    This stands for the day of month, blank-padded.
+
+  - '%F'
+
+    This stands for the ISO 8601 date format, i.e., '"%Y-%m-%d"'.
+
+  - '%g'
+
+    This stands for the year corresponding to the ISO week within the century.
+
+  - '%G'
+
+    This stands for the year corresponding to the ISO week.
+
+  - '%h'
+
+    This is a synonym for '%b'.
+
+  - '%H'
+
+    This stands for the hour (00--23).
+
+  - '%I'
+
+    This stands for the hour (01--12).
+
+  - '%j'
+
+    This stands for the day of the year (001--366).
+
+  - '%k'
+
+    This stands for the hour (0--23), blank padded.
+
+  - '%l'
+
+    This stands for the hour (1--12), blank padded.
+
+  - '%m'
+
+    This stands for the month (01--12).
+
+  - '%M'
+
+    This stands for the minute (00--59).
+
+  - '%n'
+
+    This stands for a newline.
+
+  - '%N'
+
+    This stands for the nanoseconds (000000000--999999999). To ask for fewer digits, use '%3N' for milliseconds, '%6N' for microseconds, etc. Any excess digits are discarded, without rounding.
+
+  - '%p'
+
+    This stands for 'AM' or 'PM', as appropriate.
+
+  - '%q'
+
+    This stands for the calendar quarter (1--4).
+
+  - '%r'
+
+    This is a synonym for '%I:%M:%S %p'.
+
+  - '%R'
+
+    This is a synonym for '%H:%M'.
+
+  - '%s'
+
+    This stands for the integer number of seconds since the epoch.
+
+  - '%S'
+
+    This stands for the second (00--59, or 00--60 on platforms that support leap seconds).
+
+  - '%t'
+
+    This stands for a tab character.
+
+  - '%T'
+
+    This is a synonym for '%H:%M:%S'.
+
+  - '%u'
+
+    This stands for the numeric day of week (1--7). Monday is day 1.
+
+  - '%U'
+
+    This stands for the week of the year (01--52), assuming that weeks start on Sunday.
+
+  - '%V'
+
+    This stands for the week of the year according to ISO 8601.
+
+  - '%w'
+
+    This stands for the numeric day of week (0--6). Sunday is day 0.
+
+  - '%W'
+
+    This stands for the week of the year (01--52), assuming that weeks start on Monday.
+
+  - '%x'
+
+    This has a locale-specific meaning. In the default locale (named 'C'), it is equivalent to '%D'.
+
+  - '%X'
+
+    This has a locale-specific meaning. In the default locale (named 'C'), it is equivalent to '%T'.
+
+  - '%y'
+
+    This stands for the year without century (00--99).
+
+  - '%Y'
+
+    This stands for the year with century.
+
+  - '%Z'
+
+    This stands for the time zone abbreviation (e.g., 'EST').
+
+  - '%z'
+
+    This stands for the time zone numerical offset. The 'z' can be preceded by one, two, or three colons; if plain '%z' stands for '-0500', then '%:z' stands for '-05:00', '%::z' stands for '-05:00:00', and '%:::z' is like '%::z' except it suppresses trailing instances of ':00' so it stands for '-05' in the same example.
+
+  - '%%'
+
+    This stands for a single '%'.
+
+  One or more flag characters can appear immediately after the '%'. '0' pads with zeros, ‘\_' pads with blanks, '-' suppresses padding, '\^' upper-cases letters, and '#' reverses the case of letters.
+
+  You can also specify the field width and type of padding for any of these '%'-sequences. This works as in =printf=: you write the field width as digits in a '%'-sequence, after any flags. For example, '%S' specifies the number of seconds since the minute; '%03S' means to pad this with zeros to 3 positions, ‘%\_3S' to pad with spaces to 3 positions. Plain '%3S' pads with zeros, because that is how '%S' normally pads to two positions.
+
+  The characters 'E' and 'O' act as modifiers when used after any flags and field widths in a '%'-sequence. 'E' specifies using the current locale's alternative version of the date and time. In a Japanese locale, for example, =%Ex= might yield a date format based on the Japanese Emperors' reigns. 'E' is allowed in '%Ec', '%EC', '%Ex', '%EX', '%Ey', and '%EY'.
+
+  'O' means to use the current locale's alternative representation of numbers, instead of the ordinary decimal digits. This is allowed with most letters, all the ones that output numbers.
+
+  To help debug programs, unrecognized '%'-sequences stand for themselves and are output as-is. Programs should not rely on this behavior, as future versions of Emacs may recognize new '%'-sequences as extensions.
+
+  This function uses the C library function =strftime= (see [[https://www.gnu.org/software/emacs/manual/html_mono/libc.html#Formatting-Calendar-Time][Formatting Calendar Time]]) to do most of the work. In order to communicate with that function, it first encodes its argument using the coding system specified by =locale-coding-system= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Locales][Locales]]); after =strftime= returns the resulting string, =format-time-string= decodes the string using that same coding system.
+
+
+--- Function: *format-seconds* format-string seconds
+
+#+BEGIN_QUOTE
+  This function converts its argument seconds into a string of years, days, hours, etc., according to format-string. The argument format-string may contain '%'-sequences which control the conversion. Here is a table of what the '%'-sequences mean:
+
+  - '%y'
+
+  - '%Y'
+
+    The integer number of 365-day years.
+
+  - '%d'
+
+  - '%D'
+
+    The integer number of days.
+
+  - '%h'
+
+  - '%H'
+
+    The integer number of hours.
+
+  - '%m'
+
+  - '%M'
+
+    The integer number of minutes.
+
+  - '%s'
+
+  - '%S'
+
+    The integer number of seconds.
+
+  - '%z'
+
+    Non-printing control flag. When it is used, other specifiers must be given in the order of decreasing size, i.e., years before days, hours before minutes, etc. Nothing will be produced in the result string to the left of '%z' until the first non-zero conversion is encountered. For example, the default format used by =emacs-uptime= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Processor-Run-Time][emacs-uptime]]) ="%Y, %D, %H, %M, %z%S"= means that the number of seconds will always be produced, but years, days, hours, and minutes will only be shown if they are non-zero.
+
+  - '%%'
+
+    Produces a literal '%'.
+
+  Upper-case format sequences produce the units in addition to the numbers, lower-case formats produce only the numbers.
+
+  You can also specify the field width by following the '%' with a number; shorter numbers will be padded with blanks. An optional period before the width requests zero-padding instead. For example, ="%.3Y"= might produce ="004 years"=.
+
+  /Warning:/ This function works only with values of seconds that don't exceed =most-positive-fixnum= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Integer-Basics][most-positive-fixnum]]).
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Calculations][Time Calculations]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Parsing][Time Parsing]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.9 Processor Run time
+    :PROPERTIES:
+    :CUSTOM_ID: processor-run-time
+    :END:
+
+Emacs provides several functions and primitives that return time, both elapsed and processor time, used by the Emacs process.
+
+--- Command: *emacs-uptime* &optional format
+
+#+BEGIN_QUOTE
+  This function returns a string representing the Emacs uptime---the elapsed wall-clock time this instance of Emacs is running. The string is formatted by =format-seconds= according to the optional argument format. For the available format descriptors, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Parsing][format-seconds]]. If format is =nil= or omitted, it defaults to ="%Y, %D, %H, %M, %z%S"=.
+
+  When called interactively, it prints the uptime in the echo area.
+#+END_QUOTE
+
+--- Function: *get-internal-run-time*
+
+#+BEGIN_QUOTE
+  This function returns the processor run time used by Emacs as a list of four integers: =(=sec-high sec-low microsec picosec=)=, using the same format as =current-time= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]).
+
+  Note that the time returned by this function excludes the time Emacs was not using the processor, and if the Emacs process has several threads, the returned value is the sum of the processor times used up by all Emacs threads.
+
+  If the system doesn't provide a way to determine the processor run time, =get-internal-run-time= returns the same time as =current-time=.
+#+END_QUOTE
+
+--- Command: *emacs-init-time*
+
+#+BEGIN_QUOTE
+  This function returns the duration of the Emacs initialization (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Startup-Summary][Startup Summary]]) in seconds, as a string. When called interactively, it prints the duration in the echo area.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Timers][Timers]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Processor-Run-Time][Processor Run Time]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.10 Time Calculations
+    :PROPERTIES:
+    :CUSTOM_ID: time-calculations
+    :END:
+
+These functions perform calendrical computations using time values (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]). A value of =nil= for any of their time-value arguments stands for the current system time, and a single integer number stands for the number of seconds since the epoch.
+
+--- Function: *time-less-p* t1 t2
+
+#+BEGIN_QUOTE
+  This returns =t= if time value t1 is less than time value t2.
+#+END_QUOTE
+
+--- Function: *time-subtract* t1 t2
+
+#+BEGIN_QUOTE
+  This returns the time difference t1 − t2 between two time values, as a time value. If you need the difference in units of elapsed seconds, use =float-time= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][float-time]]) to convert the result into seconds.
+#+END_QUOTE
+
+--- Function: *time-add* t1 t2
+
+#+BEGIN_QUOTE
+  This returns the sum of two time values, as a time value. One argument should represent a time difference rather than a point in time, either as a list or as a single number of elapsed seconds. Here is how to add a number of seconds to a time value:
+
+  #+BEGIN_EXAMPLE
+                (time-add time seconds)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *time-to-days* time-value
+
+#+BEGIN_QUOTE
+  This function returns the number of days between the beginning of year 1 and time-value.
+#+END_QUOTE
+
+--- Function: *time-to-day-in-year* time-value
+
+#+BEGIN_QUOTE
+  This returns the day number within the year corresponding to time-value.
+#+END_QUOTE
+
+--- Function: *date-leap-year-p* year
+
+#+BEGIN_QUOTE
+  This function returns =t= if year is a leap year.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Idle-Timers][Idle Timers]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-Calculations][Time Calculations]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.11 Timers for Delayed Execution
+    :PROPERTIES:
+    :CUSTOM_ID: timers-for-delayed-execution
+    :END:
+
+You can set up a timer to call a function at a specified future time or after a certain length of idleness. A timer is a special object that stores the information about the next invocation times and the function to invoke.
+
+--- Function: *timerp* object
+
+
+This predicate function returns non-=nil= if =object= is a timer.
+
+Emacs cannot run timers at any arbitrary point in a Lisp program; it can run them only when Emacs could accept output from a subprocess: namely, while waiting or inside certain primitive functions such as =sit-for= or =read-event= which /can/ wait. Therefore, a timer's execution may be delayed if Emacs is busy. However, the time of execution is very precise if Emacs is idle.
+
+Emacs binds =inhibit-quit= to =t= before calling the timer function, because quitting out of many timer functions can leave things in an inconsistent state. This is normally unproblematical because most timer functions don't do a lot of work. Indeed, for a timer to call a function that takes substantial time to run is likely to be annoying. If a timer function needs to allow quitting, it should use =with-local-quit= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Quitting][Quitting]]). For example, if a timer function calls =accept-process-output= to receive output from an external process, that call should be wrapped inside =with-local-quit=, to ensure that C-g works if the external process hangs.
+
+It is usually a bad idea for timer functions to alter buffer contents. When they do, they usually should call =undo-boundary= both before and after changing the buffer, to separate the timer's changes from user commands' changes and prevent a single undo entry from growing to be quite large.
+
+Timer functions should also avoid calling functions that cause Emacs to wait, such as =sit-for= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Waiting][Waiting]]). This can lead to unpredictable effects, since other timers (or even the same timer) can run while waiting. If a timer function needs to perform an action after a certain time has elapsed, it can do this by scheduling a new timer.
+
+If a timer function calls functions that can change the match data, it should save and restore the match data. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Match-Data][Saving Match Data]].
+
+--- Command: *run-at-time* time repeat function &rest args
+
+
+This sets up a timer that calls the function function with arguments args at time time. If repeat is a number (integer or floating point), the timer is scheduled to run again every repeat seconds after time. If repeat is =nil=, the timer runs only once.
+
+time may specify an absolute or a relative time.
+
+Absolute times may be specified using a string with a limited variety of formats, and are taken to be times /today/, even if already in the past. The recognized forms are 'xxxx', 'x:xx', or 'xx:xx' (military time), and 'xxam', 'xxAM', 'xxpm', 'xxPM', 'xx:xxam', 'xx:xxAM', 'xx:xxpm', or 'xx:xxPM'. A period can be used instead of a colon to separate the hour and minute parts.
+# 短评: 此处的写法真的好"草率"呀.
+# 短评: 如果时间点设置在过去, 则从现在就执行任务.
+To specify a relative time as a string, use numbers followed by units. For example:
+
+  - '1 min'
+    denotes 1 minute from now.
+
+  - '1 min 5 sec'
+    denotes 65 seconds from now.
+
+  - '1 min 2 sec 3 hour 4 day 5 week 6 fortnight 7 month 8 year'
+    denotes exactly 103 months, 123 days, and 10862 seconds from now.
+
+  For relative time values, Emacs considers a month to be exactly thirty days, and a year to be exactly 365.25 days.
+
+  Not all convenient formats are strings. If time is a number (integer or floating point), that specifies a relative time measured in seconds. The result of =encode-time= can also be used to specify an absolute value for time.
+
+  In most cases, repeat has no effect on when /first/ call takes place---time alone specifies that. There is one exception: if time is =t=, then the timer runs whenever the time is a multiple of repeat seconds after the epoch. This is useful for functions like =display-time=.
+
+  The function =run-at-time= returns a timer value that identifies the particular scheduled future action. You can use this value to call =cancel-timer= (see below).
+
+
+A repeating timer nominally ought to run every repeat seconds, but remember that any invocation of a timer can be late. Lateness of one repetition has no effect on the scheduled time of the next repetition. For instance, if Emacs is busy computing for long enough to cover three scheduled repetitions of the timer, and then starts to wait, it will immediately call the timer function three times in immediate succession (presuming no other timers trigger before or between them). If you want a timer to run again no less than n seconds after the last invocation, don't use the repeat argument. Instead, the timer function should explicitly reschedule the timer.
+
+--- User Option: *timer-max-repeats*
+
+This variable's value specifies the maximum number of times to repeat calling a timer function in a row, when many previously scheduled calls were unavoidably delayed.
+
+
+--- Macro: *with-timeout* (seconds timeout-forms...) body...
+
+Execute body, but give up after seconds seconds. If body finishes before the time is up, =with-timeout= returns the value of the last form in body. If, however, the execution of body is cut short by the timeout, then =with-timeout= executes all the timeout-forms and returns the value of the last of them.
+
+This macro works by setting a timer to run after seconds seconds. If body finishes before that time, it cancels the timer. If the timer actually runs, it terminates execution of body, then executes timeout-forms.
+
+Since timers can run within a Lisp program only when the program calls a primitive that can wait, =with-timeout= cannot stop executing body while it is in the midst of a computation---only when it calls one of those primitives. So use =with-timeout= only with a body that waits for input, not one that does a long computation.
+
+The function =y-or-n-p-with-timeout= provides a simple way to use a timer to avoid waiting too long for an answer. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Yes_002dor_002dNo-Queries][Yes-or-No Queries]].
+
+--- Function: *cancel-timer* timer
+
+
+This cancels the requested action for timer, which should be a timer---usually, one previously returned by =run-at-time= or =run-with-idle-timer=. This cancels the effect of that call to one of these functions; the arrival of the specified time will not cause anything special to happen.
+
+The =list-timers= command lists all the currently active timers. There's only one command available in the buffer displayed: c (=timer-list-cancel=) that will cancel the timer on the line under point.
+# 得到: list-timers此处很有用处.
+
+* 40.12 Idle Timers
+    :PROPERTIES:
+    :CUSTOM_ID: idle-timers
+    :END:
+
+Here is how to set up a timer that runs when Emacs is idle for a certain length of time. Aside from how to set them up, idle timers work just like ordinary timers.
+
+--- Command: *run-with-idle-timer* secs repeat function &rest args
+
+#+BEGIN_QUOTE
+  Set up a timer which runs the next time Emacs is idle for secs seconds. The value of secs may be a number or a value of the type returned by =current-idle-time=.
+
+  If repeat is =nil=, the timer runs just once, the first time Emacs remains idle for a long enough time. More often repeat is non-=nil=, which means to run the timer /each time/ Emacs remains idle for secs seconds.
+
+  The function =run-with-idle-timer= returns a timer value which you can use in calling =cancel-timer= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Timers][Timers]]).
+#+END_QUOTE
+
+Emacs becomes idle when it starts waiting for user input, and it remains idle until the user provides some input. If a timer is set for five seconds of idleness, it runs approximately five seconds after Emacs first becomes idle. Even if repeat is non-=nil=, this timer will not run again as long as Emacs remains idle, because the duration of idleness will continue to increase and will not go down to five seconds again.
+
+Emacs can do various things while idle: garbage collect, autosave or handle data from a subprocess. But these interludes during idleness do not interfere with idle timers, because they do not reset the clock of idleness to zero. An idle timer set for 600 seconds will run when ten minutes have elapsed since the last user command was finished, even if subprocess output has been accepted thousands of times within those ten minutes, and even if there have been garbage collections and autosaves.
+
+When the user supplies input, Emacs becomes non-idle while executing the input. Then it becomes idle again, and all the idle timers that are set up to repeat will subsequently run another time, one by one.
+
+Do not write an idle timer function containing a loop which does a certain amount of processing each time around, and exits when =(input-pending-p)= is non-=nil=. This approach seems very natural but has two problems:
+
+- It blocks out all process output (since Emacs accepts process output only while waiting).\\
+- It blocks out any idle timers that ought to run during that time.
+
+Similarly, do not write an idle timer function that sets up another idle timer (including the same idle timer) with secs argument less than or equal to the current idleness time. Such a timer will run almost immediately, and continue running again and again, instead of waiting for the next time Emacs becomes idle. The correct approach is to reschedule with an appropriate increment of the current value of the idleness time, as described below.
+
+--- Function: *current-idle-time*
+
+#+BEGIN_QUOTE
+  If Emacs is idle, this function returns the length of time Emacs has been idle, as a list of four integers: =(=sec-high sec-low microsec picosec=)=, using the same format as =current-time= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]).
+
+  When Emacs is not idle, =current-idle-time= returns =nil=. This is a convenient way to test whether Emacs is idle.
+#+END_QUOTE
+
+The main use of =current-idle-time= is when an idle timer function wants to "take a break" for a while. It can set up another idle timer to call the same function again, after a few seconds more idleness. Here's an example:
+
+#+BEGIN_EXAMPLE
+         (defvar my-resume-timer nil
+           "Timer for `my-timer-function' to reschedule itself, or nil.")
+
+         (defun my-timer-function ()
+           ;; If the user types a command while my-resume-timer
+           ;; is active, the next time this function is called from
+           ;; its main idle timer, deactivate my-resume-timer.
+           (when my-resume-timer
+             (cancel-timer my-resume-timer))
+           ...do the work for a while...
+           (when taking-a-break
+             (setq my-resume-timer
+                   (run-with-idle-timer
+                     ;; Compute an idle time break-length
+                     ;; more than the current value.
+                     (time-add (current-idle-time) break-length)
+                     nil
+                     'my-timer-function))))
+#+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Output][Terminal Output]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Idle-Timers][Idle Timers]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.13 Terminal Input
+    :PROPERTIES:
+    :CUSTOM_ID: terminal-input
+    :END:
+
+This section describes functions and variables for recording or manipulating terminal input. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Display][Display]], for related functions.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Input-Modes][Input Modes]]: Options for how input is processed.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Recording-Input][Recording Input]]: Saving histories of recent or all input events.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Recording-Input][Recording Input]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Input][Terminal Input]]
+
+** 40.13.1 Input Modes
+     :PROPERTIES:
+     :CUSTOM_ID: input-modes
+     :END:
+
+--- Function: *set-input-mode* interrupt flow meta &optional quit-char
+
+#+BEGIN_QUOTE
+  This function sets the mode for reading keyboard input. If interrupt is non-=nil=, then Emacs uses input interrupts. If it is =nil=, then it uses cbreak mode. The default setting is system-dependent. Some systems always use cbreak mode regardless of what is specified.
+
+  When Emacs communicates directly with X, it ignores this argument and uses interrupts if that is the way it knows how to communicate.
+
+  If flow is non-=nil=, then Emacs uses xon/xoff (C-q, C-s) flow control for output to the terminal. This has no effect except in cbreak mode.
+
+  The argument meta controls support for input character codes above 127. If meta is =t=, Emacs converts characters with the 8th bit set into Meta characters. If meta is =nil=, Emacs disregards the 8th bit; this is necessary when the terminal uses it as a parity bit. If meta is neither =t= nor =nil=, Emacs uses all 8 bits of input unchanged. This is good for terminals that use 8-bit character sets.
+
+  If quit-char is non-=nil=, it specifies the character to use for quitting. Normally this character is C-g. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Quitting][Quitting]].
+#+END_QUOTE
+
+The =current-input-mode= function returns the input mode settings Emacs is currently using.
+
+--- Function: *current-input-mode*
+
+#+BEGIN_QUOTE
+  This function returns the current mode for reading keyboard input. It returns a list, corresponding to the arguments of =set-input-mode=, of the form =(=interrupt flow meta quit=)= in which:
+
+  - interrupt
+
+    is non-=nil= when Emacs is using interrupt-driven input. If =nil=, Emacs is using cbreak mode.
+
+  - flow
+
+    is non-=nil= if Emacs uses xon/xoff (C-q, C-s) flow control for output to the terminal. This value is meaningful only when interrupt is =nil=.
+
+  - meta
+
+    is =t= if Emacs treats the eighth bit of input characters as the meta bit; =nil= means Emacs clears the eighth bit of every input character; any other value means Emacs uses all eight bits as the basic character code.
+
+  - quit
+
+    is the character Emacs currently uses for quitting, usually C-g.
+
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Input-Modes][Input Modes]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Input][Terminal Input]]
+
+** 40.13.2 Recording Input
+     :PROPERTIES:
+     :CUSTOM_ID: recording-input
+     :END:
+
+--- Function: *recent-keys*
+
+#+BEGIN_QUOTE
+  This function returns a vector containing the last 300 input events from the keyboard or mouse. All input events are included, whether or not they were used as parts of key sequences. Thus, you always get the last 300 input events, not counting events generated by keyboard macros. (These are excluded because they are less interesting for debugging; it should be enough to see the events that invoked the macros.)
+
+  A call to =clear-this-command-keys= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Command-Loop-Info][Command Loop Info]]) causes this function to return an empty vector immediately afterward.
+#+END_QUOTE
+
+--- Command: *open-dribble-file* filename
+
+#+BEGIN_QUOTE
+  This function opens a dribble file named filename. When a dribble file is open, each input event from the keyboard or mouse (but not those from keyboard macros) is written in that file. A non-character event is expressed using its printed representation surrounded by '<...>'. Be aware that sensitive information (such as passwords) may end up recorded in the dribble file.
+
+  You close the dribble file by calling this function with an argument of =nil=.
+#+END_QUOTE
+
+See also the =open-termscript= function (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Output][Terminal Output]]).
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sound-Output][Sound Output]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Input][Terminal Input]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.14 Terminal Output
+    :PROPERTIES:
+    :CUSTOM_ID: terminal-output
+    :END:
+
+The terminal output functions send output to a text terminal, or keep track of output sent to the terminal. The variable =baud-rate= tells you what Emacs thinks is the output speed of the terminal.
+
+--- User Option: *baud-rate*
+
+#+BEGIN_QUOTE
+  This variable's value is the output speed of the terminal, as far as Emacs knows. Setting this variable does not change the speed of actual data transmission, but the value is used for calculations such as padding.
+
+  It also affects decisions about whether to scroll part of the screen or repaint on text terminals. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Forcing-Redisplay][Forcing Redisplay]], for the corresponding functionality on graphical terminals.
+
+  The value is measured in baud.
+#+END_QUOTE
+
+If you are running across a network, and different parts of the network work at different baud rates, the value returned by Emacs may be different from the value used by your local terminal. Some network protocols communicate the local terminal speed to the remote machine, so that Emacs and other programs can get the proper value, but others do not. If Emacs has the wrong value, it makes decisions that are less than optimal. To fix the problem, set =baud-rate=.
+
+--- Function: *send-string-to-terminal* string &optional terminal
+
+#+BEGIN_QUOTE
+  This function sends string to terminal without alteration. Control characters in string have terminal-dependent effects. (If you need to display non-ASCII text on the terminal, encode it using one of the functions described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Explicit-Encoding][Explicit Encoding]].) This function operates only on text terminals. terminal may be a terminal object, a frame, or =nil= for the selected frame's terminal. In batch mode, string is sent to =stdout= when terminal is =nil=.
+
+  One use of this function is to define function keys on terminals that have downloadable function key definitions. For example, this is how (on certain terminals) to define function key 4 to move forward four characters (by transmitting the characters C-u C-f to the computer):
+
+  #+BEGIN_EXAMPLE
+                (send-string-to-terminal "\eF4\^U\^F")
+                     ⇒ nil
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *open-termscript* filename
+
+#+BEGIN_QUOTE
+  This function is used to open a termscript file that will record all the characters sent by Emacs to the terminal. It returns =nil=. Termscript files are useful for investigating problems where Emacs garbles the screen, problems that are due to incorrect Termcap entries or to undesirable settings of terminal options more often than to actual Emacs bugs. Once you are certain which characters were actually output, you can determine reliably whether they correspond to the Termcap specifications in use.
+
+  #+BEGIN_EXAMPLE
+                (open-termscript "../junk/termscript")
+                     ⇒ nil
+  #+END_EXAMPLE
+
+  You close the termscript file by calling this function with an argument of =nil=.
+
+  See also =open-dribble-file= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Recording-Input][Recording Input]].
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#X11-Keysyms][X11 Keysyms]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Terminal-Output][Terminal Output]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.15 Sound Output
+    :PROPERTIES:
+    :CUSTOM_ID: sound-output
+    :END:
+
+To play sound using Emacs, use the function =play-sound=. Only certain systems are supported; if you call =play-sound= on a system which cannot really do the job, it gives an error.
+
+The sound must be stored as a file in RIFF-WAVE format ('.wav') or Sun Audio format ('.au').
+
+--- Function: *play-sound* sound
+
+#+BEGIN_QUOTE
+  This function plays a specified sound. The argument, sound, has the form =(sound=properties=...)=, where the properties consist of alternating keywords (particular symbols recognized specially) and values corresponding to them.
+
+  Here is a table of the keywords that are currently meaningful in sound, and their meanings:
+
+  - =:file=file
+
+    This specifies the file containing the sound to play. If the file name is not absolute, it is expanded against the directory =data-directory=.
+
+  - =:data=data
+
+    This specifies the sound to play without need to refer to a file. The value, data, should be a string containing the same bytes as a sound file. We recommend using a unibyte string.
+
+  - =:volume=volume
+
+    This specifies how loud to play the sound. It should be a number in the range of 0 to 1. The default is to use whatever volume has been specified before.
+
+  - =:device=device
+
+    This specifies the system device on which to play the sound, as a string. The default device is system-dependent.
+
+  Before actually playing the sound, =play-sound= calls the functions in the list =play-sound-functions=. Each function is called with one argument, sound.
+#+END_QUOTE
+
+--- Command: *play-sound-file* file &optional volume device
+
+#+BEGIN_QUOTE
+  This function is an alternative interface to playing a sound file specifying an optional volume and device.
+#+END_QUOTE
+
+--- Variable: *play-sound-functions*
+
+#+BEGIN_QUOTE
+  A list of functions to be called before playing a sound. Each function is called with one argument, a property list that describes the sound.
+#+END_QUOTE
+
+* 40.16 Operating on X11 Keysyms
+    :PROPERTIES:
+    :CUSTOM_ID: operating-on-x11-keysyms
+    :END:
+
+To define system-specific X11 keysyms, set the variable =system-key-alist=.
+
+--- Variable: *system-key-alist*
+
+#+BEGIN_QUOTE
+  This variable's value should be an alist with one element for each system-specific keysym. Each element has the form =(=code=.=symbol=)=, where code is the numeric keysym code (not including the vendor-specific bit, −2**28), and symbol is the name for the function key.
+
+  For example =(168 . mute-acute)= defines a system-specific key (used by HP X servers) whose numeric code is −2**28 + 168.
+
+  It is not crucial to exclude from the alist the keysyms of other X servers; those do no harm, as long as they don't conflict with the ones used by the X server actually in use.
+
+  The variable is always local to the current terminal, and cannot be buffer-local. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]].
+#+END_QUOTE
+
+You can specify which keysyms Emacs should use for the Control, Meta, Alt, Hyper, and Super modifiers by setting these variables:
+
+--- Variable: *x-ctrl-keysym* --- Variable: *x-alt-keysym* --- Variable: *x-meta-keysym* --- Variable: *x-hyper-keysym* --- Variable: *x-super-keysym*
+
+#+BEGIN_QUOTE
+  The name of the keysym that should stand for the Control modifier (respectively, for Alt, Meta, Hyper, and Super). For example, here is how to swap the Meta and Alt modifiers within Emacs:
+
+  #+BEGIN_EXAMPLE
+                (setq x-alt-keysym 'meta)
+                (setq x-meta-keysym 'alt)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Session-Management][Session Management]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#X11-Keysyms][X11 Keysyms]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.17 Batch Mode
+    :PROPERTIES:
+    :CUSTOM_ID: batch-mode
+    :END:
+
+The command-line option '-batch' causes Emacs to run noninteractively. In this mode, Emacs does not read commands from the terminal, it does not alter the terminal modes, and it does not expect to be outputting to an erasable screen. The idea is that you specify Lisp programs to run; when they are finished, Emacs should exit. The way to specify the programs to run is with '-l file', which loads the library named file, or '-f function', which calls function with no arguments, or '--eval=form'.
+
+Any Lisp program output that would normally go to the echo area, either using =message=, or using =prin1=, etc., with =t= as the stream, goes instead to Emacs's standard descriptors when in batch mode: =message= writes to the standard error descriptor, while =prin1= and other print functions write to the standard output. Similarly, input that would normally come from the minibuffer is read from the standard input descriptor. Thus, Emacs behaves much like a noninteractive application program. (The echo area output that Emacs itself normally generates, such as command echoing, is suppressed entirely.)
+
+Non-ASCII text written to the standard output or error descriptors is by default encoded using =locale-coding-system= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Locales][Locales]]) if it is non-=nil=; this can be overridden by binding =coding-system-for-write= to a coding system of you choice (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Explicit-Encoding][Explicit Encoding]]).
+
+--- Variable: *noninteractive*
+
+#+BEGIN_QUOTE
+  This variable is non-=nil= when Emacs is running in batch mode.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Desktop-Notifications][Desktop Notifications]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Batch-Mode][Batch Mode]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.18 Session Management
+    :PROPERTIES:
+    :CUSTOM_ID: session-management
+    :END:
+
+Emacs supports the X Session Management Protocol, which is used to suspend and restart applications. In the X Window System, a program called the session manager is responsible for keeping track of the applications that are running. When the X server shuts down, the session manager asks applications to save their state, and delays the actual shutdown until they respond. An application can also cancel the shutdown.
+
+When the session manager restarts a suspended session, it directs these applications to individually reload their saved state. It does this by specifying a special command-line argument that says what saved session to restore. For Emacs, this argument is '--smid session'.
+
+--- Variable: *emacs-save-session-functions*
+
+#+BEGIN_QUOTE
+  Emacs supports saving state via a hook called =emacs-save-session-functions=. Emacs runs this hook when the session manager tells it that the window system is shutting down. The functions are called with no arguments, and with the current buffer set to a temporary buffer. Each function can use =insert= to add Lisp code to this buffer. At the end, Emacs saves the buffer in a file, called the session file.
+
+  Subsequently, when the session manager restarts Emacs, it loads the session file automatically (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Loading][Loading]]). This is performed by a function named =emacs-session-restore=, which is called during startup. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Startup-Summary][Startup Summary]].
+
+  If a function in =emacs-save-session-functions= returns non-=nil=, Emacs tells the session manager to cancel the shutdown.
+#+END_QUOTE
+
+Here is an example that just inserts some text into /scratch/ when Emacs is restarted by the session manager.
+
+#+BEGIN_EXAMPLE
+         (add-hook 'emacs-save-session-functions 'save-yourself-test)
+
+         (defun save-yourself-test ()
+           (insert "(save-current-buffer
+           (switch-to-buffer \"*scratch*\")
+           (insert \"I am restored\"))")
+           nil)
+#+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Notifications][File Notifications]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Session-Management][Session Management]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.19 Desktop Notifications
+    :PROPERTIES:
+    :CUSTOM_ID: desktop-notifications
+    :END:
+
+Emacs is able to send notifications on systems that support the freedesktop.org Desktop Notifications Specification and on MS-Windows. In order to use this functionality on POSIX hosts, Emacs must have been compiled with D-Bus support, and the =notifications= library must be loaded. See [[https://www.gnu.org/software/emacs/manual/html_mono/dbus.html#Top][D-Bus]]. The following function is supported when D-Bus support is available:
+
+--- Function: *notifications-notify* &rest params
+
+#+BEGIN_QUOTE
+  This function sends a notification to the desktop via D-Bus, consisting of the parameters specified by the params arguments. These arguments should consist of alternating keyword and value pairs. The supported keywords and values are as follows:
+
+  - =:bus=bus
+
+    The D-Bus bus. This argument is needed only if a bus other than =:session= shall be used.
+
+  - =:title=title
+
+    The notification title.
+
+  - =:body=text
+
+    The notification body text. Depending on the implementation of the notification server, the text could contain HTML markups, like '"bold text"', hyperlinks, or images. Special HTML characters must be encoded, as '"Contact <postmaster@localhost>!"'.
+
+  - =:app-name=name
+
+    The name of the application sending the notification. The default is =notifications-application-name=.
+
+  - =:replaces-id=id
+
+    The notification id that this notification replaces. id must be the result of a previous =notifications-notify= call.
+
+  - =:app-icon=icon-file
+
+    The file name of the notification icon. If set to =nil=, no icon is displayed. The default is =notifications-application-icon=.
+
+  - =:actions (=key title key title=...)=
+
+    A list of actions to be applied. key and title are both strings. The default action (usually invoked by clicking the notification) should have a key named '"default"'. The title can be anything, though implementations are free not to display it.
+
+  - =:timeout=timeout
+
+    The timeout time in milliseconds since the display of the notification at which the notification should automatically close. If −1, the notification's expiration time is dependent on the notification server's settings, and may vary for the type of notification. If 0, the notification never expires. Default value is −1.
+
+  - =:urgency=urgency
+
+    The urgency level. It can be =low=, =normal=, or =critical=.
+
+  - =:action-items=
+
+    When this keyword is given, the title string of the actions is interpreted as icon name.
+
+  - =:category=category
+
+    The type of notification this is, a string. See the [[http://developer.gnome.org/notification-spec/#categories][Desktop Notifications Specification]] for a list of standard categories.
+
+  - =:desktop-entry=filename
+
+    This specifies the name of the desktop filename representing the calling program, like '"emacs"'.
+
+  - =:image-data (=width height rowstride has-alpha bits channels data=)=
+
+    This is a raw data image format that describes the width, height, rowstride, whether there is an alpha channel, bits per sample, channels and image data, respectively.
+
+  - =:image-path=path
+
+    This is represented either as a URI ('file://' is the only URI schema supported right now) or a name in a freedesktop.org-compliant icon theme from '$XDG\_DATA\_DIRS/icons'.
+
+  - =:sound-file=filename
+
+    The path to a sound file to play when the notification pops up.
+
+  - =:sound-name=name
+
+    A themable named sound from the freedesktop.org sound naming specification from '$XDG\_DATA\_DIRS/sounds', to play when the notification pops up. Similar to the icon name, only for sounds. An example would be '"message-new-instant"'.
+
+  - =:suppress-sound=
+
+    Causes the server to suppress playing any sounds, if it has that ability.
+
+  - =:resident=
+
+    When set the server will not automatically remove the notification when an action has been invoked. The notification will remain resident in the server until it is explicitly removed by the user or by the sender. This hint is likely only useful when the server has the =:persistence= capability.
+
+  - =:transient=
+
+    When set the server will treat the notification as transient and by-pass the server's persistence capability, if it should exist.
+
+  - =:x=position
+
+  - =:y=position
+
+    Specifies the X, Y location on the screen that the notification should point to. Both arguments must be used together.
+
+  - =:on-action=function
+
+    Function to call when an action is invoked. The notification id and the key of the action are passed as arguments to the function.
+
+  - =:on-close=function
+
+    Function to call when the notification has been closed by timeout or by the user. The function receive the notification id and the closing reason as arguments: =expired= if the notification has expired =dismissed= if the notification was dismissed by the user =close-notification= if the notification was closed by a call to =notifications-close-notification= =undefined= if the notification server hasn't provided a reason
+
+  Which parameters are accepted by the notification server can be checked via =notifications-get-capabilities=.
+
+  This function returns a notification id, an integer, which can be used to manipulate the notification item with =notifications-close-notification= or the =:replaces-id= argument of another =notifications-notify= call. For example:
+
+  #+BEGIN_EXAMPLE
+                (defun my-on-action-function (id key)
+                  (message "Message %d, key \"%s\" pressed" id key))
+                     ⇒ my-on-action-function
+
+                (defun my-on-close-function (id reason)
+                  (message "Message %d, closed due to \"%s\"" id reason))
+                     ⇒ my-on-close-function
+
+                (notifications-notify
+                 :title "Title"
+                 :body "This is <b>important</b>."
+                 :actions '("Confirm" "I agree" "Refuse" "I disagree")
+                 :on-action 'my-on-action-function
+                 :on-close 'my-on-close-function)
+                     ⇒ 22
+
+                A message window opens on the desktop.  Press ``I agree''.
+                     ⇒ Message 22, key "Confirm" pressed
+                        Message 22, closed due to "dismissed"
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *notifications-close-notification* id &optional bus
+
+#+BEGIN_QUOTE
+  This function closes a notification with identifier id. bus can be a string denoting a D-Bus connection, the default is =:session=.
+#+END_QUOTE
+
+--- Function: *notifications-get-capabilities* &optional bus
+
+#+BEGIN_QUOTE
+  Returns the capabilities of the notification server, a list of symbols. bus can be a string denoting a D-Bus connection, the default is =:session=. The following capabilities can be expected:
+
+  - =:actions=
+
+    The server will provide the specified actions to the user.
+
+  - =:body=
+
+    Supports body text.
+
+  - =:body-hyperlinks=
+
+    The server supports hyperlinks in the notifications.
+
+  - =:body-images=
+
+    The server supports images in the notifications.
+
+  - =:body-markup=
+
+    Supports markup in the body text.
+
+  - =:icon-multi=
+
+    The server will render an animation of all the frames in a given image array.
+
+  - =:icon-static=
+
+    Supports display of exactly 1 frame of any given image array. This value is mutually exclusive with =:icon-multi=.
+
+  - =:persistence=
+
+    The server supports persistence of notifications.
+
+  - =:sound=
+
+    The server supports sounds on notifications.
+
+  Further vendor-specific caps start with =:x-vendor=, like =:x-gnome-foo-cap=.
+#+END_QUOTE
+
+--- Function: *notifications-get-server-information* &optional bus
+
+#+BEGIN_QUOTE
+  Return information on the notification server, a list of strings. bus can be a string denoting a D-Bus connection, the default is =:session=. The returned list is =(=name vendor version spec-version=)=.
+
+  - name
+
+    The product name of the server.
+
+  - vendor
+
+    The vendor name. For example, '"KDE"', '"GNOME"'.
+
+  - version
+
+    The server's version number.
+
+  - spec-version
+
+    The specification version the server is compliant with.
+
+  If spec\_version is =nil=, the server supports a specification prior to '"1.0"'.
+#+END_QUOTE
+
+When Emacs runs on MS-Windows as a GUI session, it supports a small subset of the D-Bus notifications functionality via a native primitive:
+
+--- Function: *w32-notification-notify* &rest params
+
+#+BEGIN_QUOTE
+  This function displays an MS-Windows tray notification as specified by params. MS-Windows tray notifications are displayed in a balloon from an icon in the notification area of the taskbar.
+
+  Value is the integer unique ID of the notification that can be used to remove the notification using =w32-notification-close=, described below. If the function fails, the return value is =nil=.
+
+  The arguments params are specified as keyword/value pairs. All the parameters are optional, but if no parameters are specified, the function will do nothing and return =nil=.
+
+  The following parameters are supported:
+
+  - =:icon=icon
+
+    Display icon in the system tray. If icon is a string, it should specify a file name from which to load the icon; the specified file should be a .ico Windows icon file. If icon is not a string, or if this parameter is not specified, the standard Emacs icon will be used.
+
+  - =:tip=tip
+
+    Use tip as the tooltip for the notification. If tip is a string, this is the text of a tooltip that will be shown when the mouse pointer hovers over the tray icon added by the notification. If tip is not a string, or if this parameter is not specified, the default tooltip text is 'Emacs notification'. The tooltip text can be up to 127 characters long (63 on Windows versions before W2K). Longer strings will be truncated.
+
+  - =:level=level
+
+    Notification severity level, one of =info=, =warning=, or =error=. If given, the value determines the icon displayed to the left of the notification title, but only if the =:title= parameter (see below) is also specified and is a string.
+
+  - =:title=title
+
+    The title of the notification. If title is a string, it is displayed in a larger font immediately above the body text. The title text can be up to 63 characters long; longer text will be truncated.
+
+  - =:body=body
+
+    The body of the notification. If body is a string, it specifies the text of the notification message. Use embedded newlines to control how the text is broken into lines. The body text can be up to 255 characters long, and will be truncated if it's longer. Unlike with D-Bus, the body text should be plain text, with no markup.
+
+  Note that versions of Windows before W2K support only =:icon= and =:tip=. The other parameters can be passed, but they will be ignored on those old systems.
+
+  There can be at most one active notification at any given time. An active notification must be removed by calling =w32-notification-close= before a new one can be shown.
+#+END_QUOTE
+
+To remove the notification and its icon from the taskbar, use the following function:
+
+--- Function: *w32-notification-close* id
+
+#+BEGIN_QUOTE
+  This function removes the tray notification given by its unique id.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Libraries][Dynamic Libraries]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Desktop-Notifications][Desktop Notifications]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.20 Notifications on File Changes
+    :PROPERTIES:
+    :CUSTOM_ID: notifications-on-file-changes
+    :END:
+
+Several operating systems support watching of filesystems for changes of files. If configured properly, Emacs links a respective library like inotify, kqueue, gfilenotify, or w32notify statically. These libraries enable watching of filesystems on the local machine.
+
+It is also possible to watch filesystems on remote machines, see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Remote-Files][Remote Files]] This does not depend on one of the libraries linked to Emacs.
+
+Since all these libraries emit different events on notified file changes, there is the Emacs library =filenotify= which provides a unified interface. Lisp programs that want to receive file notifications should always use this library in preference to the native ones.
+
+--- Function: *file-notify-add-watch* file flags callback
+
+#+BEGIN_QUOTE
+  Add a watch for filesystem events pertaining to file. This arranges for filesystem events pertaining to file to be reported to Emacs.
+
+  The returned value is a descriptor for the added watch. Its type depends on the underlying library, it cannot be assumed to be an integer as in the example below. It should be used for comparison by =equal= only.
+
+  If the file cannot be watched for some reason, this function signals a =file-notify-error= error.
+
+  Sometimes, mounted filesystems cannot be watched for file changes. This is not detected by this function, a non-=nil= return value does not guarantee that changes on file will be notified.
+
+  flags is a list of conditions to set what will be watched for. It can include the following symbols:
+
+  - =change=
+
+    watch for file changes
+
+  - =attribute-change=
+
+    watch for file attribute changes, like permissions or modification time
+
+  If file is a directory, changes for all files in that directory will be notified. This does not work recursively.
+
+  When any event happens, Emacs will call the callback function passing it a single argument event, which is of the form
+
+  #+BEGIN_EXAMPLE
+                (descriptor action file [file1])
+  #+END_EXAMPLE
+
+  descriptor is the same object as the one returned by this function. action is the description of the event. It could be any one of the following symbols:
+
+  - =created=
+
+    file was created
+
+  - =deleted=
+
+    file was deleted
+
+  - =changed=
+
+    file's contents has changed; with w32notify library, reports attribute changes as well
+
+  - =renamed=
+
+    file has been renamed to file1
+
+  - =attribute-changed=
+
+    a file attribute was changed
+
+  - =stopped=
+
+    watching file has been stopped
+
+  Note that the w32notify library does not report =attribute-changed= events. When some file's attribute, like permissions or modification time, has changed, this library reports a =changed= event. Likewise, the kqueue library does not report reliably file attribute changes when watching a directory.
+
+  The =stopped= event reports, that watching the file has been stopped. This could be because =file-notify-rm-watch= was called (see below), or because the file being watched was deleted, or due to another error reported from the underlying library.
+
+  file and file1 are the name of the file(s) whose event is being reported. For example:
+
+  #+BEGIN_EXAMPLE
+                (require 'filenotify)
+                     ⇒ filenotify
+
+                (defun my-notify-callback (event)
+                  (message "Event %S" event))
+                     ⇒ my-notify-callback
+
+                (file-notify-add-watch
+                  "/tmp" '(change attribute-change) 'my-notify-callback)
+                     ⇒ 35025468
+
+                (write-region "foo" nil "/tmp/foo")
+                     ⇒ Event (35025468 created "/tmp/.#foo")
+                        Event (35025468 created "/tmp/foo")
+                        Event (35025468 changed "/tmp/foo")
+                        Event (35025468 deleted "/tmp/.#foo")
+
+                (write-region "bla" nil "/tmp/foo")
+                     ⇒ Event (35025468 created "/tmp/.#foo")
+                        Event (35025468 changed "/tmp/foo")
+                        Event (35025468 deleted "/tmp/.#foo")
+
+                (set-file-modes "/tmp/foo" (default-file-modes))
+                     ⇒ Event (35025468 attribute-changed "/tmp/foo")
+  #+END_EXAMPLE
+
+  Whether the action =renamed= is returned, depends on the used watch library. Otherwise, the actions =deleted= and =created= could be returned in a random order.
+
+  #+BEGIN_EXAMPLE
+                (rename-file "/tmp/foo" "/tmp/bla")
+                     ⇒ Event (35025468 renamed "/tmp/foo" "/tmp/bla")
+
+                (delete-file "/tmp/bla")
+                     ⇒ Event (35025468 deleted "/tmp/bla")
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *file-notify-rm-watch* descriptor
+
+#+BEGIN_QUOTE
+  Removes an existing file watch specified by its descriptor. descriptor should be an object returned by =file-notify-add-watch=.
+#+END_QUOTE
+
+--- Function: *file-notify-valid-p* descriptor
+
+#+BEGIN_QUOTE
+  Checks a watch specified by its descriptor for validity. descriptor should be an object returned by =file-notify-add-watch=.
+
+  A watch can become invalid if the file or directory it watches is deleted, or if the watcher thread exits abnormally for any other reason. Removing the watch by calling =file-notify-rm-watch= also makes it invalid.
+
+  #+BEGIN_EXAMPLE
+                (make-directory "/tmp/foo")
+                     ⇒ Event (35025468 created "/tmp/foo")
+
+                (setq desc
+                      (file-notify-add-watch
+                        "/tmp/foo" '(change) 'my-notify-callback))
+                     ⇒ 11359632
+
+                (file-notify-valid-p desc)
+                     ⇒ t
+
+                (write-region "bla" nil "/tmp/foo/bla")
+                     ⇒ Event (11359632 created "/tmp/foo/.#bla")
+                        Event (11359632 created "/tmp/foo/bla")
+                        Event (11359632 changed "/tmp/foo/bla")
+                        Event (11359632 deleted "/tmp/foo/.#bla")
+
+                ;; Deleting a file in the directory doesn't invalidate the watch.
+                (delete-file "/tmp/foo/bla")
+                     ⇒ Event (11359632 deleted "/tmp/foo/bla")
+
+                (write-region "bla" nil "/tmp/foo/bla")
+                     ⇒ Event (11359632 created "/tmp/foo/.#bla")
+                        Event (11359632 created "/tmp/foo/bla")
+                        Event (11359632 changed "/tmp/foo/bla")
+                        Event (11359632 deleted "/tmp/foo/.#bla")
+
+                ;; Deleting the directory invalidates the watch.
+                ;; Events arrive for different watch descriptors.
+                (delete-directory "/tmp/foo" 'recursive)
+                     ⇒ Event (35025468 deleted "/tmp/foo")
+                        Event (11359632 deleted "/tmp/foo/bla")
+                        Event (11359632 deleted "/tmp/foo")
+                        Event (11359632 stopped "/tmp/foo")
+
+                (file-notify-valid-p desc)
+                     ⇒ nil
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Security-Considerations][Security Considerations]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Notifications][File Notifications]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.21 Dynamically Loaded Libraries
+    :PROPERTIES:
+    :CUSTOM_ID: dynamically-loaded-libraries
+    :END:
+
+A dynamically loaded library is a library that is loaded on demand, when its facilities are first needed. Emacs supports such on-demand loading of support libraries for some of its features.
+
+--- Variable: *dynamic-library-alist*
+
+#+BEGIN_QUOTE
+  This is an alist of dynamic libraries and external library files implementing them.
+
+  Each element is a list of the form =(=library==files=...)=, where the =car= is a symbol representing a supported external library, and the rest are strings giving alternate filenames for that library.
+
+  Emacs tries to load the library from the files in the order they appear in the list; if none is found, the Emacs session won't have access to that library, and the features it provides will be unavailable.
+
+  Image support on some platforms uses this facility. Here's an example of setting this variable for supporting images on MS-Windows:
+
+  #+BEGIN_EXAMPLE
+                (setq dynamic-library-alist
+                      '((xpm "libxpm.dll" "xpm4.dll" "libXpm-nox4.dll")
+                        (png "libpng12d.dll" "libpng12.dll" "libpng.dll"
+                             "libpng13d.dll" "libpng13.dll")
+                        (jpeg "jpeg62.dll" "libjpeg.dll" "jpeg-62.dll"
+                              "jpeg.dll")
+                        (tiff "libtiff3.dll" "libtiff.dll")
+                        (gif "giflib4.dll" "libungif4.dll" "libungif.dll")
+                        (svg "librsvg-2-2.dll")
+                        (gdk-pixbuf "libgdk_pixbuf-2.0-0.dll")
+                        (glib "libglib-2.0-0.dll")
+                        (gobject "libgobject-2.0-0.dll")))
+  #+END_EXAMPLE
+
+  Note that image types =pbm= and =xbm= do not need entries in this variable because they do not depend on external libraries and are always available in Emacs.
+
+  Also note that this variable is not meant to be a generic facility for accessing external libraries; only those already known by Emacs can be loaded through it.
+
+  This variable is ignored if the given library is statically linked into Emacs.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Libraries][Dynamic Libraries]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Interface][System Interface]]
+* 40.22 Security Considerations
+    :PROPERTIES:
+    :CUSTOM_ID: security-considerations
+    :END:
+
+Like any application, Emacs can be run in a secure environment, where the operating system enforces rules about access and the like. With some care, Emacs-based applications can also be part of a security perimeter that checks such rules. Although the default settings for Emacs work well for a typical software development environment, they may require adjustment in environments containing untrusted users that may include attackers. Here is a compendium of security issues that may be helpful if you are developing such applications. It is by no means complete; it is intended to give you an idea of the security issues involved, rather than to be a security checklist.
+
+- File local variables
+
+  A file that Emacs visits can contain variable settings that affect the buffer visiting that file; See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]. Similarly, a directory can specify local variable values common to all files in that directory; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Directory-Local-Variables][Directory Local Variables]]. Although Emacs takes some effort to protect against misuse of these variables, a security hole can be created merely by a package setting =safe-local-variable= too optimistically, a problem that is all too common. To disable this feature for both files and directories, set =enable-local-variables= to =nil=.
+
+- Access control
+
+  Although Emacs normally respects access permissions of the underlying operating system, in some cases it handles accesses specially. For example, file names can have handlers that treat the files specially, with their own access checking. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Magic-File-Names][Magic File Names]]. Also, a buffer can be read-only even if the corresponding file is writable, and vice versa, which can result in messages such as 'File passwd is write-protected; try to save anyway? (yes or no)'. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Read-Only-Buffers][Read Only Buffers]].
+
+- Authentication
+
+  Emacs has several functions that deal with passwords, e.g., =read-passwd=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Reading-a-Password][Reading a Password]]. Although these functions do not attempt to broadcast passwords to the world, their implementations are not proof against determined attackers with access to Emacs internals. For example, even if Elisp code uses =clear-string= to scrub a password from its memory after using it, remnants of the password may still reside in the garbage-collected free list. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Modifying-Strings][Modifying Strings]].
+
+- Code injection
+
+  Emacs can send commands to many other applications, and applications should take care that strings sent as operands of these commands are not misinterpreted as directives. For example, when using a shell command to rename a file a to b, do not simply use the string =mv=a b, because either file name might start with '-', or might contain shell metacharacters like ';'. Although functions like =shell-quote-argument= can help avoid this sort of problem, they are not panaceas; for example, on a POSIX platform =shell-quote-argument= quotes shell metacharacters but not leading '-'. On MS-Windows, quoting for '%' assumes none of the environment variables have '\^' in their name. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Shell-Arguments][Shell Arguments]]. Typically it is safer to use =call-process= than a subshell. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Synchronous-Processes][Synchronous Processes]]. And it is safer yet to use builtin Emacs functions; for example, use =(rename-file "=a=" "=b=" t)= instead of invoking mv. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Changing-Files][Changing Files]].
+
+- Coding systems
+
+  Emacs attempts to infer the coding systems of the files and network connections it accesses. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Coding-Systems][Coding Systems]]. If Emacs infers incorrectly, or if the other parties to the network connection disagree with Emacs's inferences, the resulting system could be unreliable. Also, even when it infers correctly, Emacs often can use bytes that other programs cannot. For example, although to Emacs the null byte is just a character like any other, many other applications treat it as a string terminator and mishandle strings or files containing null bytes.
+
+- Environment and configuration variables
+
+  POSIX specifies several environment variables that can affect how Emacs behaves. Any environment variable whose name consists entirely of uppercase ASCII letters, digits, and the underscore may affect the internal behavior of Emacs. Emacs uses several such variables, e.g., EMACSLOADPATH. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Library-Search][Library Search]]. On some platforms some environment variables (e.g., PATH, POSIXLY\_CORRECT, SHELL, TMPDIR) need to have properly-configured values in order to get standard behavior for any utility Emacs might invoke. Even seemingly-benign variables like TZ may have security implications. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#System-Environment][System Environment]]. Emacs has customization and other variables with similar considerations. For example, if the variable =shell-file-name= specifies a shell with nonstandard behavior, an Emacs-based application may misbehave.
+
+- Installation
+
+  When Emacs is installed, if the installation directory hierarchy can be modified by untrusted users, the application cannot be trusted. This applies also to the directory hierarchies of the programs that Emacs uses, and of the files that Emacs reads and writes.
+
+- Network access
+
+  Emacs often accesses the network, and you may want to configure it to avoid network accesses that it would normally do. For example, unless you set =tramp-mode= to =nil=, file names using a certain syntax are interpreted as being network files, and are retrieved across the network. See [[https://www.gnu.org/software/emacs/manual/html_mono/tramp.html#Top][The Tramp Manual]].
+
+- Race conditions
+
+  Emacs applications have the same sort of race-condition issues that other applications do. For example, even when =(file-readable-p "foo.txt")= returns =t=, it could be that foo.txt is unreadable because some other program changed the file's permissions between the call to =file-readable-p= and now. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Testing-Accessibility][Testing Accessibility]].
+
+- Resource limits
+
+  When Emacs exhausts memory or other operating system resources, its behavior can be less reliable, in that computations that ordinarily run to completion may abort back to the top level. This may cause Emacs to neglect operations that it normally would have done.
+* Applications
+#+begin_src emacs-lisp :session elisp-manual :lexical t
+(defun announce-time ()
+  (message (format "It's %s" (format-time-string "%H:%M" (current-time)))))
+(run-at-time "07:00pm" 3600 #'announce-time)
+#+end_src
+
+#+RESULTS:
+: [nil 24168 50352 0 3600 announce-time nil nil 0]
+
+#+begin_src emacs-lisp :tangle yes
+(defun announce-time ()
+  (message-box (format "It's %s" (format-time-string "%I:%M %p" (current-time)))))
+
+(let ((next-hour
+        (number-to-string
+         (+ (string-to-number
+             (format-time-string "%H" (current-time)))
+            1))))
+  (run-at-time (concat next-hour ":00") 3600 #'announce-time))
+#+end_src
+
+#+RESULTS:
+: [nil 24169 42416 0 3600 announce-time nil nil 0]
+
+
+
+#+begin_src emacs-lisp :session elisp-manual :lexical t
+(message-or-box "testing")
+
+#+end_src
+#+RESULTS:
+: testing
+
+#+begin_src emacs-lisp :tangle yes
+(defun popuptesting-new-message (msg)
+  (interactive
+   (let ((buffer (generate-new-buffer "pop-message")))
+     (with-current-buffer buffer
+       (insert msg))
+     (display-buffer "pop-message" '(display-buffer-at-bottom . nil)))
+   ))
+(popup-new-message "time")
+#+end_src
+
+#+RESULTS:
+
+#+begin_src emacs-lisp :tangle yes
+
+#+end_src
+
+#+RESULTS:
+: #<buffer testing>
+
+#+begin_src emacs-lisp :tangle yes
+(message-box (format "It's %s" (format-time-string "%H:%M %p" (current-time))))
+#+end_src
+
+#+RESULTS:
+: It’s 10:11 AM
+
+#+begin_src emacs-lisp :tangle yes
+(display-buffer "ORG" '(display-buffer-at-bottom . nil))
+#+end_src
+
+#+RESULTS:
+: #<window 34>
+
+#+begin_src emacs-lisp :tangle yes
+(let ((buffer (generate-new-buffer "pop-message")))
+  (print buffer))
+#+end_src
+
+#+RESULTS:
+: #<buffer pop-message<2>>

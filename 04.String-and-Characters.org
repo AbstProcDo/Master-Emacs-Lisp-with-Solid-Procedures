@@ -1,0 +1,618 @@
+#+TITLE: 04.String-and-Characters
+* 4 Strings and Characters
+   :PROPERTIES:
+   :CUSTOM_ID: strings-and-characters
+   :END:
+
+A string in Emacs Lisp is an array that contains an ordered sequence of characters.
+# 洞见: a string is an array
+Strings are used as names of symbols, buffers, and files; to send messages to users; to hold text being copied between buffers; and for many other purposes. Because strings are so important, Emacs Lisp has many functions expressly for manipulating them. Emacs Lisp programs use strings more often than individual characters.
+
+See [[file:21.Command-Loop.org::21.7 Input Events][21.7 Input Events]], for special considerations for strings of keyboard character events.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Basics][Basics]]: Basic properties of strings and characters.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Predicates-for-Strings][Predicates for Strings]]: Testing whether an object is a string or char.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Strings][Creating Strings]]: Functions to allocate new strings.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Modifying-Strings][Modifying Strings]]: Altering the contents of an existing string.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Comparison][Text Comparison]]: Comparing characters or strings.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Conversion][String Conversion]]: Converting to and from characters and strings.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Formatting-Strings][Formatting Strings]]: =format=: Emacs's analogue of =printf=.
+8) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Case-Conversion][Case Conversion]]: Case conversion functions.
+9) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Case-Tables][Case Tables]]: Customizing case conversion.
+
+* 4.1 String and Character Basics
+    :PROPERTIES:
+    :CUSTOM_ID: string-and-character-basics
+    :END:
+
+A character is a Lisp object which represents a single character of text. In Emacs Lisp, characters are simply integers; whether an integer is a character or not is determined only by how it is used. See [[file:33.Non-ASCII-Characters.org::33.5 Character Codes][33.5 Character Codes]]x, for details about character representation in Emacs.
+
+A string is a fixed sequence of characters. It is a type of sequence called A array, meaning that its length is fixed and cannot be altered once it is created (see ).
+# 洞见: python也是此特性.
+Unlike in C, Emacs Lisp strings are /not/ terminated by a distinguished character code.
+
+Since strings are arrays, and therefore sequences as well, you can operate on them with the general array and sequence functions documented in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sequences-Arrays-Vectors][06.Sequences Arrays Vectors]]. For example, you can access or change individual characters in a string using the functions =aref= and =aset= (see [[file:06.Sequences-Arrays-and-Vectors.org][6.3 Functions that Operate on Arrays]]). However, note that =length= should /not/ be used for computing the width of a string on display; use =string-width= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Size-of-Displayed-Text][Size of Displayed Text]]) instead.
+
+There are two text representations for non-ASCII characters in Emacs strings (and in buffers): unibyte and multibyte. For most Lisp programming, you don't need to be concerned with these two representations. See [[file:33.Non-ASCII-Characters.org][33.1 Text Representations]], for details.
+
+Sometimes key sequences are represented as unibyte strings. When a unibyte string is a key sequence, string elements in the range 128 to 255 represent meta characters (which are large integers) rather than character codes in the range 128 to 255. Strings cannot hold characters that have the hyper, super or alt modifiers; they can hold ASCII control characters, but no other control characters. They do not distinguish case in ASCII control characters. If you want to store such characters in a sequence, such as a key sequence, you must use a vector instead of a string. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Type][Character Type]], for more information about keyboard input characters.
+
+Strings are useful for holding regular expressions. You can also match regular expressions against strings with =string-match= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][34.4.Regexp Search]]). The functions =match-string= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Simple-Match-Data][Simple Match Data]]) and =replace-match= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Replacing-Match][Replacing Match]]) are useful for decomposing and modifying strings after matching regular expressions against them.
+
+Like a buffer, a string can contain text properties for the characters in it, as well as the characters themselves. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Properties][Text Properties]]. All the Lisp primitives that copy text from strings to buffers or other strings also copy the properties of the characters being copied.
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text][32.Text]], for information about functions that display strings or copy them into buffers. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Type][Character Type]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Type][String Type]], for information about the syntax of characters and strings. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Non_002dASCII-Characters][Non-ASCII Characters]], for functions to convert between text representations and to encode and decode character codes.
+
+* 4.2 Predicates for Strings
+    :PROPERTIES:
+    :CUSTOM_ID: predicates-for-strings
+    :END:
+
+For more information about general sequence and array predicates, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sequences-Arrays-Vectors][Sequences Arrays Vectors]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Arrays][Arrays]].
+
+--- Function: *stringp* object
+
+
+  This function returns =t= if object is a string, =nil= otherwise.
+
+
+--- Function: *string-or-null-p* object
+
+
+  This function returns =t= if object is a string or =nil=. It returns =nil= otherwise.
+
+--- Function: *char-or-string-p* object
+
+
+  This function returns =t= if object is a string or a character (i.e., an integer), =nil= otherwise.
+
+* 4.3 Creating Strings
+    :PROPERTIES:
+    :CUSTOM_ID: creating-strings
+    :END:
+
+The following functions create strings, either from scratch, or by putting strings together, or by taking them apart.
+
+--- Function: *make-string* count character
+
+
+  This function returns a string made up of count repetitions of character. If count is negative, an error is signaled.
+
+  #+begin_src elisp
+                (make-string 5 ?x)
+                     ⇒ "xxxxx"
+                (make-string 0 ?x)
+                     ⇒ ""
+  #+end_src
+
+  Other functions to compare with this one include =make-vector= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Vectors][Vectors]]) and =make-list= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Building-Lists][Building Lists]]).
+
+
+--- Function: *string* &rest characters
+
+
+  This returns a string containing the characters characters.
+
+  #+begin_src elisp
+                (string ?a ?b ?c)
+                     ⇒ "abc"
+  #+end_src
+
+
+--- Function: *substring* string &optional start end
+
+
+  This function returns a new string which consists of those characters from string in the range from (and including) the character at the index start up to (but excluding) the character at the index end. The first character is at index zero. With one argument, this function just copies string.
+
+  #+begin_src elisp
+                (substring "abcdefg" 0 3)
+                     ⇒ "abc"
+  #+end_src
+
+  In the above example, the index for 'a' is 0, the index for 'b' is 1, and the index for 'c' is 2. The index 3---which is the fourth character in the string---marks the character position up to which the substring is copied. Thus, 'abc' is copied from the string ="abcdefg"=.
+
+  A negative number counts from the end of the string, so that −1 signifies the index of the last character of the string. For example:
+
+  #+begin_src elisp
+                (substring "abcdefg" -3 -1)
+                     ⇒ "ef"
+  #+end_src
+
+  In this example, the index for 'e' is −3, the index for 'f' is −2, and the index for 'g' is −1. Therefore, 'e' and 'f' are included, and 'g' is excluded.
+
+  When =nil= is used for end, it stands for the length of the string. Thus,
+
+  #+begin_src elisp
+                (substring "abcdefg" -3 nil)
+                     ⇒ "efg"
+  #+end_src
+
+  Omitting the argument end is equivalent to specifying =nil=. It follows that =(substring=string=0)= returns a copy of all of string.
+
+  #+begin_src elisp
+                (substring "abcdefg" 0)
+                     ⇒ "abcdefg"
+  #+end_src
+
+  But we recommend =copy-sequence= for this purpose (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sequence-Functions][Sequence Functions]]).
+
+  If the characters copied from string have text properties, the properties are copied into the new string also. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Properties][Text Properties]].
+
+  =substring= also accepts a vector for the first argument. For example:
+
+  #+begin_src elisp
+                (substring [a b (c) "d"] 1 3)
+                     ⇒ [b (c)]
+  #+end_src
+
+  A =wrong-type-argument= error is signaled if start is not an integer or if end is neither an integer nor =nil=. An =args-out-of-range= error is signaled if start indicates a character following end, or if either integer is out of range for string.
+
+  Contrast this function with =buffer-substring= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-Contents][Buffer Contents]]), which returns a string containing a portion of the text in the current buffer. The beginning of a string is at index 0, but the beginning of a buffer is at index 1.
+
+
+--- Function: *substring-no-properties* string &optional start end
+
+
+  This works like =substring= but discards all text properties from the value. Also, start may be omitted or =nil=, which is equivalent to 0. Thus, =(substring-no-properties=string=)= returns a copy of string, with all text properties removed.
+
+
+--- Function: *concat* &rest sequences
+
+
+  This function returns a new string consisting of the characters in the arguments passed to it (along with their text properties, if any). The arguments may be strings, lists of numbers, or vectors of numbers; they are not themselves changed. If =concat= receives no arguments, it returns an empty string.
+
+  #+begin_src elisp
+(concat "abc" "-def")
+⇒ "abc-def"
+(concat "abc" (list 120 121) [122])
+⇒ "abcxyz"
+;; nil is an empty sequence.
+(concat "abc" nil "-def")
+⇒ "abc-def"
+(concat "The " "quick brown " "fox.")
+⇒ "The quick brown fox."
+(concat)
+⇒ ""
+  #+end_src
+
+  This function always constructs a new string that is not =eq= to any existing string, except when the result is the empty string (to save space, Emacs makes only one empty multibyte string).
+
+  For information about other concatenation functions, see the description of =mapconcat= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Mapping-Functions][Mapping Functions]], =vconcat= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Vector-Functions][Vector Functions]], and =append= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Building-Lists][Building Lists]]. For concatenating individual command-line arguments into a string to be used as a shell command, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Shell-Arguments][combine-and-quote-strings]].
+
+
+--- Function: *split-string* string &optional separators omit-nulls trim
+
+
+  This function splits string into substrings based on the regular expression separators (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]). Each match for separators defines a splitting point; the substrings between splitting points are made into a list, which is returned.
+
+  If separators is =nil= (or omitted), the default is the value of =split-string-default-separators= and the function behaves as if omit-nulls were =t=.
+
+  If omit-nulls is =nil= (or omitted), the result contains null strings whenever there are two consecutive matches for separators, or a match is adjacent to the beginning or end of string. If omit-nulls is =t=, these null strings are omitted from the result.
+
+  If the optional argument trim is non-=nil=, it should be a regular expression to match text to trim from the beginning and end of each substring. If trimming makes the substring empty, it is treated as null.
+
+  If you need to split a string into a list of individual command-line arguments suitable for =call-process= or =start-process=, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Shell-Arguments][split-string-and-unquote]].
+
+  Examples:
+
+  #+begin_src elisp
+                (split-string "  two words ")
+                     ⇒ ("two" "words")
+  #+end_src
+
+  The result is not =("" "two" "words" "")=, which would rarely be useful. If you need such a result, use an explicit value for separators:
+
+  #+begin_src elisp
+                (split-string "  two words "
+                              split-string-default-separators)
+                     ⇒ ("" "two" "words" "")
+                (split-string "Soup is good food" "o")
+                     ⇒ ("S" "up is g" "" "d f" "" "d")
+                (split-string "Soup is good food" "o" t)
+                     ⇒ ("S" "up is g" "d f" "d")
+                (split-string "Soup is good food" "o+")
+                     ⇒ ("S" "up is g" "d f" "d")
+  #+end_src
+
+  Empty matches do count, except that =split-string= will not look for a final empty match when it already reached the end of the string using a non-empty match or when string is empty:
+
+  #+begin_src elisp
+(split-string "aooob" "o*")
+⇒ ("" "a" "" "b" "")
+(split-string "ooaboo" "o*")
+⇒ ("" "" "a" "b" "")
+(split-string "" "")
+⇒ ("")
+  #+end_src
+# 短评: 还有这些骚操作呢? 
+  However, when separators can match the empty string, omit-nulls is usually =t=, so that the subtleties in the three previous examples are rarely relevant:
+
+  #+begin_src elisp
+(split-string "Soup is good food" "o*" t)
+⇒ ("S" "u" "p" " " "i" "s" " " "g" "d" " " "f" "d")
+(split-string "Nice doggy!" "" t)
+⇒ ("N" "i" "c" "e" " " "d" "o" "g" "g" "y" "!")
+(split-string "" "" t)
+⇒ nil
+  #+end_src
+
+  Somewhat odd, but predictable, behavior can occur for certain "non-greedy" values of separators that can prefer empty matches over non-empty matches. Again, such values rarely occur in practice:
+
+  #+begin_src elisp
+                (split-string "ooo" "o*" t)
+                     ⇒ nil
+                (split-string "ooo" "\\|o+" t)
+                     ⇒ ("o" "o" "o")
+  #+end_src
+
+
+--- Variable: *split-string-default-separators*
+
+
+  The default value of separators for =split-string=. Its usual value is ="[ \f\t\n\r\v]+"=.
+
+* 4.4 Modifying Strings
+    :PROPERTIES:
+    :CUSTOM_ID: modifying-strings
+    :END:
+
+The most basic way to alter the contents of an existing string is with =aset= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Array-Functions][Array Functions]]). =(aset=string idx char=)= stores char into string at index idx. Each character occupies one or more bytes, and if char needs a different number of bytes from the character already present at that index, =aset= signals an error.
+
+A more powerful function is =store-substring=:
+
+--- Function: *store-substring* string idx obj
+
+
+  This function alters part of the contents of the string string, by storing obj starting at index idx. The argument obj may be either a character or a (smaller) string.
+
+  Since it is impossible to change the length of an existing string, it is an error if obj doesn't fit within string's actual length, or if any new character requires a different number of bytes from the character currently present at that point in string.
+
+
+To clear out a string that contained a password, use =clear-string=:
+
+--- Function: *clear-string* string
+
+
+  This makes string a unibyte string and clears its contents to zeros. It may also change string's length.
+
+* 4.5 Comparison of Characters and Strings
+    :PROPERTIES:
+    :CUSTOM_ID: comparison-of-characters-and-strings
+    :END:
+
+--- Function: *char-equal* character1 character2
+
+# 短评: 似乎没有什么多大的用处.
+  This function returns =t= if the arguments represent the same character, =nil= otherwise. This function ignores differences in case if =case-fold-search= is non-=nil=.
+
+  #+begin_src elisp
+                (char-equal ?x ?x)
+                     ⇒ t
+                (let ((case-fold-search nil))
+                  (char-equal ?x ?X))
+                     ⇒ nil
+  #+end_src
+
+
+--- Function: *string=* string1 string2
+
+
+  This function returns =t= if the characters of the two strings match exactly. Symbols are also allowed as arguments, in which case the symbol names are used. Case is always significant, regardless of =case-fold-search=.
+
+  This function is equivalent to =equal= for comparing two strings (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Equality-Predicates][Equality Predicates]]). In particular, the text properties of the two strings are ignored; use =equal-including-properties= if you need to distinguish between strings that differ only in their text properties. However, unlike =equal=, if either argument is not a string or symbol, =string== signals an error.
+
+  #+begin_src elisp
+                (string= "abc" "abc")
+                     ⇒ t
+                (string= "abc" "ABC")
+                     ⇒ nil
+                (string= "ab" "ABC")
+                     ⇒ nil
+  #+end_src
+
+  For technical reasons, a unibyte and a multibyte string are =equal= if and only if they contain the same sequence of character codes and all these codes are either in the range 0 through 127 (ASCII) or 160 through 255 (=eight-bit-graphic=). However, when a unibyte string is converted to a multibyte string, all characters with codes in the range 160 through 255 are converted to characters with higher codes, whereas ASCII characters remain unchanged. Thus, a unibyte string and its conversion to multibyte are only =equal= if the string is all ASCII. Character codes 160 through 255 are not entirely proper in multibyte text, even though they can occur. As a consequence, the situation where a unibyte and a multibyte string are =equal= without both being all ASCII is a technical oddity that very few Emacs Lisp programmers ever get confronted with. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]].
+
+
+--- Function: *string-equal* string1 string2
+
+
+  =string-equal= is another name for =string==.
+
+
+--- Function: *string-collate-equalp* string1 string2 &optional locale ignore-case
+
+
+  This function returns =t= if string1 and string2 are equal with respect to collation rules. A collation rule is not only determined by the lexicographic order of the characters contained in string1 and string2, but also further rules about relations between these characters. Usually, it is defined by the locale environment Emacs is running with.
+
+  For example, characters with different coding points but the same meaning might be considered as equal, like different grave accent Unicode characters:
+
+  #+begin_src elisp
+                (string-collate-equalp (string ?\uFF40) (string ?\u1FEF))
+                     ⇒ t
+  #+end_src
+
+  The optional argument locale, a string, overrides the setting of your current locale identifier for collation. The value is system dependent; a locale ="en_US.UTF-8"= is applicable on POSIX systems, while it would be, e.g., ="enu_USA.1252"= on MS-Windows systems.
+
+  If ignore-case is non-=nil=, characters are converted to lower-case before comparing them.
+
+  To emulate Unicode-compliant collation on MS-Windows systems, bind =w32-collate-ignore-punctuation= to a non-=nil= value, since the codeset part of the locale cannot be ="UTF-8"= on MS-Windows.
+
+  If your system does not support a locale environment, this function behaves like =string-equal=.
+
+  Do /not/ use this function to compare file names for equality, as filesystems generally don't honor linguistic equivalence of strings that collation implements.
+
+
+--- Function: *string<* string1 string2
+
+
+  This function compares two strings a character at a time. It scans both the strings at the same time to find the first pair of corresponding characters that do not match. If the lesser character of these two is the character from string1, then string1 is less, and this function returns =t=. If the lesser character is the one from string2, then string1 is greater, and this function returns =nil=. If the two strings match entirely, the value is =nil=.
+
+  Pairs of characters are compared according to their character codes. Keep in mind that lower case letters have higher numeric values in the ASCII character set than their upper case counterparts; digits and many punctuation characters have a lower numeric value than upper case letters. An ASCII character is less than any non-ASCII character; a unibyte non-ASCII character is always less than any multibyte non-ASCII character (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]]).
+
+  #+begin_src elisp
+                (string< "abc" "abd")
+                     ⇒ t
+                (string< "abd" "abc")
+                     ⇒ nil
+                (string< "123" "abc")
+                     ⇒ t
+  #+end_src
+
+  When the strings have different lengths, and they match up to the length of string1, then the result is =t=. If they match up to the length of string2, the result is =nil=. A string of no characters is less than any other string.
+
+  #+begin_src elisp
+                (string< "" "abc")
+                     ⇒ t
+                (string< "ab" "abc")
+                     ⇒ t
+                (string< "abc" "")
+                     ⇒ nil
+                (string< "abc" "ab")
+                     ⇒ nil
+                (string< "" "")
+                     ⇒ nil
+  #+end_src
+
+  Symbols are also allowed as arguments, in which case their print names are compared.
+
+
+--- Function: *string-lessp* string1 string2
+
+
+  =string-lessp= is another name for =string<=.
+
+
+--- Function: *string-greaterp* string1 string2
+
+
+  This function returns the result of comparing string1 and string2 in the opposite order, i.e., it is equivalent to calling =(string-lessp=string2 string1=)=.
+
+
+--- Function: *string-collate-lessp* string1 string2 &optional locale ignore-case
+
+
+  This function returns =t= if string1 is less than string2 in collation order. A collation order is not only determined by the lexicographic order of the characters contained in string1 and string2, but also further rules about relations between these characters. Usually, it is defined by the locale environment Emacs is running with.
+
+  For example, punctuation and whitespace characters might be ignored for sorting (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sequence-Functions][Sequence Functions]]):
+
+  #+begin_src elisp
+                (sort '("11" "12" "1 1" "1 2" "1.1" "1.2") 'string-collate-lessp)
+                     ⇒ ("11" "1 1" "1.1" "12" "1 2" "1.2")
+  #+end_src
+
+  This behavior is system-dependent; e.g., punctuation and whitespace are never ignored on Cygwin, regardless of locale.
+
+  The optional argument locale, a string, overrides the setting of your current locale identifier for collation. The value is system dependent; a locale ="en_US.UTF-8"= is applicable on POSIX systems, while it would be, e.g., ="enu_USA.1252"= on MS-Windows systems. The locale value of ="POSIX"= or ="C"= lets =string-collate-lessp= behave like =string-lessp=:
+
+  #+begin_src elisp
+                (sort '("11" "12" "1 1" "1 2" "1.1" "1.2")
+                      (lambda (s1 s2) (string-collate-lessp s1 s2 "POSIX")))
+                     ⇒ ("1 1" "1 2" "1.1" "1.2" "11" "12")
+  #+end_src
+
+  If ignore-case is non-=nil=, characters are converted to lower-case before comparing them.
+
+  To emulate Unicode-compliant collation on MS-Windows systems, bind =w32-collate-ignore-punctuation= to a non-=nil= value, since the codeset part of the locale cannot be ="UTF-8"= on MS-Windows.
+
+  If your system does not support a locale environment, this function behaves like =string-lessp=.
+
+
+--- Function: *string-version-lessp* string1 string2
+
+
+  This function compares strings lexicographically, except it treats sequences of numerical characters as if they comprised a base-ten number, and then compares the numbers. So 'foo2.png' is "smaller" than 'foo12.png' according to this predicate, even if '12' is lexicographically "smaller" than '2'.
+
+
+--- Function: *string-prefix-p* string1 string2 &optional ignore-case
+
+
+  This function returns non-=nil= if string1 is a prefix of string2; i.e., if string2 starts with string1. If the optional argument ignore-case is non-=nil=, the comparison ignores case differences.
+
+
+--- Function: *string-suffix-p* suffix string &optional ignore-case
+
+
+  This function returns non-=nil= if suffix is a suffix of string; i.e., if string ends with suffix. If the optional argument ignore-case is non-=nil=, the comparison ignores case differences.
+
+
+--- Function: *compare-strings* string1 start1 end1 string2 start2 end2 &optional ignore-case
+
+
+  This function compares a specified part of string1 with a specified part of string2. The specified part of string1 runs from index start1 (inclusive) up to index end1 (exclusive); =nil= for start1 means the start of the string, while =nil= for end1 means the length of the string. Likewise, the specified part of string2 runs from index start2 up to index end2.
+
+  The strings are compared by the numeric values of their characters. For instance, str1 is considered less than str2 if its first differing character has a smaller numeric value. If ignore-case is non-=nil=, characters are converted to upper-case before comparing them. Unibyte strings are converted to multibyte for comparison (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]]), so that a unibyte string and its conversion to multibyte are always regarded as equal.
+
+  If the specified portions of the two strings match, the value is =t=. Otherwise, the value is an integer which indicates how many leading characters agree, and which string is less. Its absolute value is one plus the number of characters that agree at the beginning of the two strings. The sign is negative if string1 (or its specified portion) is less.
+
+
+--- Function: *assoc-string* key alist &optional case-fold
+
+
+  This function works like =assoc=, except that key must be a string or symbol, and comparison is done using =compare-strings=. Symbols are converted to strings before testing. If case-fold is non-=nil=, key and the elements of alist are converted to upper-case before comparison. Unlike =assoc=, this function can also match elements of the alist that are strings or symbols rather than conses. In particular, alist can be a list of strings or symbols rather than an actual alist. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Association-Lists][Association Lists]].
+
+
+See also the function =compare-buffer-substrings= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Comparing-Text][Comparing Text]], for a way to compare text in buffers. The function =string-match=, which matches a regular expression against a string, can be used for a kind of string comparison; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]].
+
+ftq x "try-string")
+(upcase x)
+(print x)
+  #+end_src
+
+  #+RESULTS:
+  : try-string
+
+3. --- Function: *capitalize* string-or-char
+
+
+  This function capitalizes strings or characters. If string-or-char is a string, the function returns a new string whose contents are a copy of string-or-char in which each word has been capitalized. This means that the first character of each word is converted to upper case, and the rest are converted to lower case.
+
+  The definition of a word is any sequence of consecutive characters that are assigned to the word constituent syntax class in the current syntax table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]]).
+
+  When string-or-char is a character, this function does the same thing as =upcase=.
+
+  #+begin_src elisp
+                (capitalize "The cat in the hat")
+                     ⇒ "The Cat In The Hat"
+
+                (capitalize "THE 77TH-HATTED CAT")
+                     ⇒ "The 77th-Hatted Cat"
+
+                (capitalize ?x)
+                     ⇒ 88
+  #+end_src
+
+
+4. --- Function: *upcase-initials* string-or-char
+
+
+  If string-or-char is a string, this function capitalizes the initials of the words in string-or-char, without altering any letters other than the initials. It returns a new string whose contents are a copy of string-or-char, in which each word has had its initial letter converted to upper case.
+
+  The definition of a word is any sequence of consecutive characters that are assigned to the word constituent syntax class in the current syntax table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]]).
+
+  When the argument to =upcase-initials= is a character, =upcase-initials= has the same result as =upcase=.
+
+  #+begin_src elisp
+                (upcase-initials "The CAT in the hAt")
+                     ⇒ "The CAT In The HAt"
+  #+end_src
+
+
+Note that case conversion is not a one-to-one mapping of codepoints and length of the result may differ from length of the argument. Furthermore, because passing a character forces return type to be a character, functions are unable to perform proper substitution and result may differ compared to treating a one-character string. For example:
+
+#+begin_src elisp
+         (upcase "ﬁ")  ; note: single character, ligature "fi"
+              ⇒ "FI"
+         (upcase ?ﬁ)
+              ⇒ 64257  ; i.e. ?ﬁ
+#+end_src
+
+To avoid this, a character must first be converted into a string, using =string= function, before being passed to one of the casing functions. Of course, no assumptions on the length of the result may be made.
+
+Mapping for such special cases are taken from =special-uppercase=, =special-lowercase= and =special-titlecase= See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]].
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Comparison][Text Comparison]], for functions that compare strings; some of them ignore case differences, or can optionally ignore case differences.
+
+* 4.9 The Case Table
+    :PROPERTIES:
+    :CUSTOM_ID: the-case-table
+    :END:
+
+You can customize case conversion by installing a special case table. A case table specifies the mapping between upper case and lower case letters. It affects both the case conversion functions for Lisp objects (see the previous section) and those that apply to text in the buffer (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Case-Changes][32.18.Case Changes]]). Each buffer has a case table; there is also a standard case table which is used to initialize the case table of new buffers.
+
+A case table is a char-table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char_002dTables][Char-Tables]]) whose subtype is =case-table=. This char-table maps each character into the corresponding lower case character. It has three extra slots, which hold related tables:
+
+- upcase
+
+  The upcase table maps each character into the corresponding upper case character.
+
+- canonicalize
+
+  The canonicalize table maps all of a set of case-related characters into a particular member of that set.
+
+- equivalences
+
+  The equivalences table maps each one of a set of case-related characters into the next character in that set.
+
+In simple cases, all you need to specify is the mapping to lower-case; the three related tables will be calculated automatically from that one.
+
+For some languages, upper and lower case letters are not in one-to-one correspondence. There may be two different lower case letters with the same upper case equivalent. In these cases, you need to specify the maps for both lower case and upper case.
+
+The extra table canonicalize maps each character to a canonical equivalent; any two characters that are related by case-conversion have the same canonical equivalent character. For example, since 'a' and 'A' are related by case-conversion, they should have the same canonical equivalent character (which should be either 'a' for both of them, or 'A' for both of them).
+
+The extra table equivalences is a map that cyclically permutes each equivalence class (of characters with the same canonical equivalent). (For ordinary ASCII, this would map 'a' into 'A' and 'A' into 'a', and likewise for each set of equivalent characters.)
+
+When constructing a case table, you can provide =nil= for canonicalize; then Emacs fills in this slot from the lower case and upper case mappings. You can also provide =nil= for equivalences; then Emacs fills in this slot from canonicalize. In a case table that is actually in use, those components are non-=nil=. Do not try to specify equivalences without also specifying canonicalize.
+
+Here are the functions for working with case tables:
+
+--- Function: *case-table-p* object
+
+
+  This predicate returns non-=nil= if object is a valid case table.
+
+
+--- Function: *set-standard-case-table* table
+
+
+  This function makes table the standard case table, so that it will be used in any buffers created subsequently.
+
+
+--- Function: *standard-case-table*
+
+
+  This returns the standard case table.
+
+
+--- Function: *current-case-table*
+
+
+  This function returns the current buffer's case table.
+
+
+--- Function: *set-case-table* table
+
+
+  This sets the current buffer's case table to table.
+
+
+--- Macro: *with-case-table* table body...
+
+
+  The =with-case-table= macro saves the current case table, makes table the current case table, evaluates the body forms, and finally restores the case table. The return value is the value of the last form in body. The case table is restored even in case of an abnormal exit via =throw= or error (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Nonlocal-Exits][Nonlocal Exits]]).
+
+
+Some language environments modify the case conversions of ASCII characters; for example, in the Turkish language environment, the ASCII capital I is downcased into a Turkish dotless i ('ı'). This can interfere with code that requires ordinary ASCII case conversion, such as implementations of ASCII-based network protocols. In that case, use the =with-case-table= macro with the variable ascii-case-table, which stores the unmodified case table for the ASCII character set.
+
+--- Variable: *ascii-case-table*
+
+
+  The case table for the ASCII character set. This should not be modified by any language environment settings.
+
+
+The following three functions are convenient subroutines for packages that define non-ASCII character sets. They modify the specified case table case-table; they also modify the standard syntax table. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]]. Normally you would use these functions to change the standard case table.
+
+--- Function: *set-case-syntax-pair* uc lc case-table
+
+
+  This function specifies a pair of corresponding letters, one upper case and one lower case.
+
+
+--- Function: *set-case-syntax-delims* l r case-table
+
+
+  This function makes characters l and r a matching pair of case-invariant delimiters.
+
+
+--- Function: *set-case-syntax* char syntax case-table
+
+
+  This function makes char case-invariant, with syntax syntax.
+
+
+--- Command: *describe-buffer-case-table*
+
+
+  This command displays a description of the contents of the current buffer's case table.
+
+* 总结:
+基础知识: string的物理结构是array. 

@@ -1,0 +1,678 @@
+#+TITLE:30.Positions
+* 30 Positions
+   :PROPERTIES:
+   :CUSTOM_ID: positions
+   :END:
+
+A position is the index of a character in the text of a buffer. More precisely, a position identifies the place between two characters (or before the first character, or after the last character), so we can speak of the character before or after a given position. However, we often speak of the character "at" a position, meaning the character after that position.
+
+Positions are usually represented as integers starting from 1, but can also be represented as markers---special objects that relocate automatically when text is inserted or deleted so they stay with the surrounding characters. Functions that expect an argument to be a position (an integer), but accept a marker as a substitute, normally ignore which buffer the marker points into; they convert the marker to an integer, and use that integer, exactly as if you had passed the integer as the argument, even if the marker points to the wrong buffer. A marker that points nowhere cannot convert to an integer; using it instead of an integer causes an error. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Markers][Markers]].
+
+See also the field feature (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Fields][Fields]]), which provides functions that are used by many cursor-motion commands.
+
+1. [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Point][Point]]: The special position where editing takes place.
+2. [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]: Changing point.
+3. [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Excursions][Excursions]]: Temporary motion and buffer changes.
+4. [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]]: Restricting editing to a portion of the buffer.
+
+
+
+* 30.1 Point
+    :PROPERTIES:
+    :CUSTOM_ID: point
+    :END:
+
+Point is a special buffer position used by many editing commands, including the self-inserting typed characters and text insertion functions. Other commands move point through the text to allow editing and insertion at different places.
+
+Like other positions, point designates a place between two characters (or before the first character, or after the last character), rather than a particular character. Usually terminals display the cursor over the character that immediately follows point; point is actually before the character on which the cursor sits.
+
+The value of point is a number no less than 1, and no greater than the buffer size plus 1. If narrowing is in effect (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]]), then point is constrained to fall within the accessible portion of the buffer (possibly at one end of it).
+
+Each buffer has its own value of point, which is independent of the value of point in other buffers. Each window also has a value of point, which is independent of the value of point in other windows on the same buffer. This is why point can have different values in various windows that display the same buffer. When a buffer appears in only one window, the buffer's point and the window's point normally have the same value, so the distinction is rarely important. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Window-Point][Window Point]], for more details.
+
+--- Function: *point*
+
+#+BEGIN_QUOTE
+  This function returns the value of point in the current buffer, as an integer.
+
+  #+BEGIN_EXAMPLE
+                (point)
+                     ⇒ 175
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *point-min*
+
+#+BEGIN_QUOTE
+  This function returns the minimum accessible value of point in the current buffer. This is normally 1, but if narrowing is in effect, it is the position of the start of the region that you narrowed to. (See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]].)
+#+END_QUOTE
+
+--- Function: *point-max*
+
+#+BEGIN_QUOTE
+  This function returns the maximum accessible value of point in the current buffer. This is =(1+ (buffer-size))=, unless narrowing is in effect, in which case it is the position of the end of the region that you narrowed to. (See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]].)
+#+END_QUOTE
+
+--- Function: *buffer-end* flag
+
+#+BEGIN_QUOTE
+  This function returns =(point-max)= if flag is greater than 0, =(point-min)= otherwise. The argument flag must be a number.
+#+END_QUOTE
+
+--- Function: *buffer-size* &optional buffer
+
+#+BEGIN_QUOTE
+  This function returns the total number of characters in the current buffer. In the absence of any narrowing (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]]), =point-max= returns a value one larger than this.
+
+  If you specify a buffer, buffer, then the value is the size of buffer.
+
+  #+BEGIN_EXAMPLE
+                (buffer-size)
+                     ⇒ 35
+                (point-max)
+                     ⇒ 36
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Excursions][Excursions]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Point][Point]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Positions][Positions]]
+
+* 30.2 Motion
+    :PROPERTIES:
+    :CUSTOM_ID: motion
+    :END:
+
+Motion functions change the value of point, either relative to the current value of point, relative to the beginning or end of the buffer, or relative to the edges of the selected window. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Point][Point]].
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Motion][Character Motion]]: Moving in terms of characters.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Word-Motion][Word Motion]]: Moving in terms of words.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-End-Motion][Buffer End Motion]]: Moving to the beginning or end of the buffer.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Lines][Text Lines]]: Moving in terms of lines of text.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Screen-Lines][Screen Lines]]: Moving in terms of lines as displayed.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#List-Motion][List Motion]]: Moving by parsing lists and sexps.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Skipping-Characters][Skipping Characters]]: Skipping characters belonging to a certain set.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Word-Motion][Word Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.1 Motion by Characters
+     :PROPERTIES:
+     :CUSTOM_ID: motion-by-characters
+     :END:
+
+These functions move point based on a count of characters. =goto-char= is the fundamental primitive; the other functions use that.
+
+--- Command: *goto-char* position
+
+#+BEGIN_QUOTE
+  This function sets point in the current buffer to the value position.
+
+  If narrowing is in effect, position still counts from the beginning of the buffer, but point cannot go outside the accessible portion. If position is out of range, =goto-char= moves point to the beginning or the end of the accessible portion.
+
+  When this function is called interactively, position is the numeric prefix argument, if provided; otherwise it is read from the minibuffer.
+
+  =goto-char= returns position.
+#+END_QUOTE
+
+--- Command: *forward-char* &optional count
+
+#+BEGIN_QUOTE
+  This function moves point count characters forward, towards the end of the buffer (or backward, towards the beginning of the buffer, if count is negative). If count is =nil=, the default is 1.
+
+  If this attempts to move past the beginning or end of the buffer (or the limits of the accessible portion, when narrowing is in effect), it signals an error with error symbol =beginning-of-buffer= or =end-of-buffer=.
+
+  In an interactive call, count is the numeric prefix argument.
+#+END_QUOTE
+
+--- Command: *backward-char* &optional count
+
+#+BEGIN_QUOTE
+  This is just like =forward-char= except that it moves in the opposite direction.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-End-Motion][Buffer End Motion]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Motion][Character Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.2 Motion by Words
+     :PROPERTIES:
+     :CUSTOM_ID: motion-by-words
+     :END:
+
+The functions for parsing words described below use the syntax table and =char-script-table= to decide whether a given character is part of a word. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]], and see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]].
+
+--- Command: *forward-word* &optional count
+
+#+BEGIN_QUOTE
+  This function moves point forward count words (or backward if count is negative). If count is omitted or =nil=, it defaults to 1. In an interactive call, count is specified by the numeric prefix argument.
+
+  "Moving one word" means moving until point crosses a word-constituent character, which indicates the beginning of a word, and then continue moving until the word ends. By default, characters that begin and end words, known as word boundaries, are defined by the current buffer's syntax table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]]), but modes can override that by setting up a suitable =find-word-boundary-function-table=, described below. Characters that belong to different scripts (as defined by =char-script-table=), also define a word boundary (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]]). In any case, this function cannot move point past the boundary of the accessible portion of the buffer, or across a field boundary (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Fields][Fields]]). The most common case of a field boundary is the end of the prompt in the minibuffer.
+
+  If it is possible to move count words, without being stopped prematurely by the buffer boundary or a field boundary, the value is =t=. Otherwise, the return value is =nil= and point stops at the buffer boundary or field boundary.
+
+  If =inhibit-field-text-motion= is non-=nil=, this function ignores field boundaries.
+#+END_QUOTE
+
+--- Command: *backward-word* &optional count
+
+#+BEGIN_QUOTE
+  This function is just like =forward-word=, except that it moves backward until encountering the front of a word, rather than forward.
+#+END_QUOTE
+
+--- User Option: *words-include-escapes*
+
+#+BEGIN_QUOTE
+  This variable affects the behavior of =forward-word= and =backward-word=, and everything that uses them. If it is non-=nil=, then characters in the escape and character-quote syntax classes count as part of words. Otherwise, they do not.
+#+END_QUOTE
+
+--- Variable: *inhibit-field-text-motion*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, certain motion functions including =forward-word=, =forward-sentence=, and =forward-paragraph= ignore field boundaries.
+#+END_QUOTE
+
+--- Variable: *find-word-boundary-function-table*
+
+#+BEGIN_QUOTE
+  This variable affects the behavior of =forward-word= and =backward-word=, and everything that uses them. Its value is a char-table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char_002dTables][Char-Tables]]) of functions to search for word boundaries. If a character has a non-=nil= entry in this table, then when a word starts or ends with that character, the corresponding function will be called with 2 arguments: pos and limit. The function should return the position of the other word boundary. Specifically, if pos is smaller than limit, then pos is at the beginning of a word, and the function should return the position after the last character of the word; otherwise, pos is at the last character of a word, and the function should return the position of that word's first character.
+#+END_QUOTE
+
+--- Function: *forward-word-strictly* &optional count
+
+#+BEGIN_QUOTE
+  This function is like =forward-word=, but it is not affected by =find-word-boundary-function-table=. Lisp programs that should not change behavior when word movement is modified by modes which set that table, such as =subword-mode=, should use this function instead of =forward-word=.
+#+END_QUOTE
+
+--- Function: *backward-word-strictly* &optional count
+
+#+BEGIN_QUOTE
+  This function is like =backward-word=, but it is not affected by =find-word-boundary-function-table=. Like with =forward-word-strictly=, use this function instead of =backward-word= when movement by words should only consider syntax tables.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Lines][Text Lines]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Word-Motion][Word Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.3 Motion to an End of the Buffer
+     :PROPERTIES:
+     :CUSTOM_ID: motion-to-an-end-of-the-buffer
+     :END:
+
+To move point to the beginning of the buffer, write:
+
+#+BEGIN_EXAMPLE
+         (goto-char (point-min))
+#+END_EXAMPLE
+
+Likewise, to move to the end of the buffer, use:
+
+#+BEGIN_EXAMPLE
+         (goto-char (point-max))
+#+END_EXAMPLE
+
+Here are two commands that users use to do these things. They are documented here to warn you not to use them in Lisp programs, because they set the mark and display messages in the echo area.
+
+--- Command: *beginning-of-buffer* &optional n
+
+#+BEGIN_QUOTE
+  This function moves point to the beginning of the buffer (or the limits of the accessible portion, when narrowing is in effect), setting the mark at the previous position (except in Transient Mark mode, if the mark is already active, it does not set the mark.)
+
+  If n is non-=nil=, then it puts point n tenths of the way from the beginning of the accessible portion of the buffer. In an interactive call, n is the numeric prefix argument, if provided; otherwise n defaults to =nil=.
+
+  *Warning:* Don't use this function in Lisp programs!
+#+END_QUOTE
+
+--- Command: *end-of-buffer* &optional n
+
+#+BEGIN_QUOTE
+  This function moves point to the end of the buffer (or the limits of the accessible portion, when narrowing is in effect), setting the mark at the previous position (except in Transient Mark mode when the mark is already active). If n is non-=nil=, then it puts point n tenths of the way from the end of the accessible portion of the buffer.
+
+  In an interactive call, n is the numeric prefix argument, if provided; otherwise n defaults to =nil=.
+
+  *Warning:* Don't use this function in Lisp programs!
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Screen-Lines][Screen Lines]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-End-Motion][Buffer End Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.4 Motion by Text Lines
+     :PROPERTIES:
+     :CUSTOM_ID: motion-by-text-lines
+     :END:
+
+Text lines are portions of the buffer delimited by newline characters, which are regarded as part of the previous line. The first text line begins at the beginning of the buffer, and the last text line ends at the end of the buffer whether or not the last character is a newline. The division of the buffer into text lines is not affected by the width of the window, by line continuation in display, or by how tabs and control characters are displayed.
+
+--- Command: *beginning-of-line* &optional count
+
+#+BEGIN_QUOTE
+  This function moves point to the beginning of the current line. With an argument count not =nil= or 1, it moves forward count−1 lines and then to the beginning of the line.
+
+  This function does not move point across a field boundary (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Fields][Fields]]) unless doing so would move beyond there to a different line; therefore, if count is =nil= or 1, and point starts at a field boundary, point does not move. To ignore field boundaries, either bind =inhibit-field-text-motion= to =t=, or use the =forward-line= function instead. For instance, =(forward-line 0)= does the same thing as =(beginning-of-line)=, except that it ignores field boundaries.
+
+  If this function reaches the end of the buffer (or of the accessible portion, if narrowing is in effect), it positions point there. No error is signaled.
+#+END_QUOTE
+
+--- Function: *line-beginning-position* &optional count
+
+#+BEGIN_QUOTE
+  Return the position that =(beginning-of-line=count=)= would move to.
+#+END_QUOTE
+
+--- Command: *end-of-line* &optional count
+
+#+BEGIN_QUOTE
+  This function moves point to the end of the current line. With an argument count not =nil= or 1, it moves forward count−1 lines and then to the end of the line.
+
+  This function does not move point across a field boundary (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Fields][Fields]]) unless doing so would move beyond there to a different line; therefore, if count is =nil= or 1, and point starts at a field boundary, point does not move. To ignore field boundaries, bind =inhibit-field-text-motion= to =t=.
+
+  If this function reaches the end of the buffer (or of the accessible portion, if narrowing is in effect), it positions point there. No error is signaled.
+#+END_QUOTE
+
+--- Function: *line-end-position* &optional count
+
+#+BEGIN_QUOTE
+  Return the position that =(end-of-line=count=)= would move to.
+#+END_QUOTE
+
+--- Command: *forward-line* &optional count
+
+#+BEGIN_QUOTE
+  This function moves point forward count lines, to the beginning of the line following that. If count is negative, it moves point −count lines backward, to the beginning of a line preceding that. If count is zero, it moves point to the beginning of the current line. If count is =nil=, that means 1.
+
+  If =forward-line= encounters the beginning or end of the buffer (or of the accessible portion) before finding that many lines, it sets point there. No error is signaled.
+
+  =forward-line= returns the difference between count and the number of lines actually moved. If you attempt to move down five lines from the beginning of a buffer that has only three lines, point stops at the end of the last line, and the value will be 2. As an explicit exception, if the last accessible line is non-empty, but has no newline (e.g., if the buffer ends without a newline), the function sets point to the end of that line, and the value returned by the function counts that line as one line successfully moved.
+
+  In an interactive call, count is the numeric prefix argument.
+#+END_QUOTE
+
+--- Function: *count-lines* start end
+
+#+BEGIN_QUOTE
+  This function returns the number of lines between the positions start and end in the current buffer. If start and end are equal, then it returns 0. Otherwise it returns at least 1, even if start and end are on the same line. This is because the text between them, considered in isolation, must contain at least one line unless it is empty.
+#+END_QUOTE
+
+--- Command: *count-words* start end
+
+#+BEGIN_QUOTE
+  This function returns the number of words between the positions start and end in the current buffer.
+
+  This function can also be called interactively. In that case, it prints a message reporting the number of lines, words, and characters in the buffer, or in the region if the region is active.
+#+END_QUOTE
+
+--- Function: *line-number-at-pos* &optional pos absolute
+
+#+BEGIN_QUOTE
+  This function returns the line number in the current buffer corresponding to the buffer position pos. If pos is =nil= or omitted, the current buffer position is used. If absolute is =nil=, the default, counting starts at =(point-min)=, so the value refers to the contents of the accessible portion of the (potentially narrowed) buffer. If absolute is non-=nil=, ignore any narrowing and return the absolute line number.
+#+END_QUOTE
+
+Also see the functions =bolp= and =eolp= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Near-Point][Near Point]]. These functions do not move point, but test whether it is already at the beginning or end of a line.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#List-Motion][List Motion]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Lines][Text Lines]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.5 Motion by Screen Lines
+     :PROPERTIES:
+     :CUSTOM_ID: motion-by-screen-lines
+     :END:
+
+The line functions in the previous section count text lines, delimited only by newline characters. By contrast, these functions count screen lines, which are defined by the way the text appears on the screen. A text line is a single screen line if it is short enough to fit the width of the selected window, but otherwise it may occupy several screen lines.
+
+In some cases, text lines are truncated on the screen rather than continued onto additional screen lines. In these cases, =vertical-motion= moves point much like =forward-line=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Truncation][Truncation]].
+
+Because the width of a given string depends on the flags that control the appearance of certain characters, =vertical-motion= behaves differently, for a given piece of text, depending on the buffer it is in, and even on the selected window (because the width, the truncation flag, and display table may vary between windows). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Usual-Display][Usual Display]].
+
+These functions scan text to determine where screen lines break, and thus take time proportional to the distance scanned.
+
+--- Function: *vertical-motion* count &optional window cur-col
+
+#+BEGIN_QUOTE
+  This function moves point to the start of the screen line count screen lines down from the screen line containing point. If count is negative, it moves up instead.
+
+  The count argument can be a cons cell, =(=cols=.=lines=)=, instead of an integer. Then the function moves by lines screen lines, and puts point cols columns from the visual start of that screen line. Note that cols are counted from the /visual/ start of the line; if the window is scrolled horizontally (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Horizontal-Scrolling][Horizontal Scrolling]]), the column on which point will end is in addition to the number of columns by which the text is scrolled.
+
+  The return value is the number of screen lines over which point was moved. The value may be less in absolute value than count if the beginning or end of the buffer was reached.
+
+  The window window is used for obtaining parameters such as the width, the horizontal scrolling, and the display table. But =vertical-motion= always operates on the current buffer, even if window currently displays some other buffer.
+
+  The optional argument cur-col specifies the current column when the function is called. This is the window-relative horizontal coordinate of point, measured in units of font width of the frame's default face. Providing it speeds up the function, especially in very long lines, because the function doesn't have to go back in the buffer in order to determine the current column. Note that cur-col is also counted from the visual start of the line.
+#+END_QUOTE
+
+--- Function: *count-screen-lines* &optional beg end count-final-newline window
+
+#+BEGIN_QUOTE
+  This function returns the number of screen lines in the text from beg to end. The number of screen lines may be different from the number of actual lines, due to line continuation, the display table, etc. If beg and end are =nil= or omitted, they default to the beginning and end of the accessible portion of the buffer.
+
+  If the region ends with a newline, that is ignored unless the optional third argument count-final-newline is non-=nil=.
+
+  The optional fourth argument window specifies the window for obtaining parameters such as width, horizontal scrolling, and so on. The default is to use the selected window's parameters.
+
+  Like =vertical-motion=, =count-screen-lines= always uses the current buffer, regardless of which buffer is displayed in window. This makes possible to use =count-screen-lines= in any buffer, whether or not it is currently displayed in some window.
+#+END_QUOTE
+
+--- Command: *move-to-window-line* count
+
+#+BEGIN_QUOTE
+  This function moves point with respect to the text currently displayed in the selected window. It moves point to the beginning of the screen line count screen lines from the top of the window; zero means the topmost line. If count is negative, that specifies a position −count lines from the bottom (or the last line of the buffer, if the buffer ends above the specified screen position); thus, count of −1 specifies the last fully visible screen line of the window.
+
+  If count is =nil=, then point moves to the beginning of the line in the middle of the window. If the absolute value of count is greater than the size of the window, then point moves to the place that would appear on that screen line if the window were tall enough. This will probably cause the next redisplay to scroll to bring that location onto the screen.
+
+  In an interactive call, count is the numeric prefix argument.
+
+  The value returned is the screen line number point has moved to, relative to the top line of the window.
+#+END_QUOTE
+
+--- Function: *move-to-window-group-line* count
+
+#+BEGIN_QUOTE
+  This function is like =move-to-window-line=, except that when the selected window is a part of a group of windows (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Window-Group][Window Group]]), =move-to-window-group-line= will move to a position with respect to the entire group, not just the single window. This condition holds when the buffer local variable =move-to-window-group-line-function= is set to a function. In this case, =move-to-window-group-line= calls the function with the argument count, then returns its result.
+#+END_QUOTE
+
+--- Function: *compute-motion* from frompos to topos width offsets window
+
+#+BEGIN_QUOTE
+  This function scans the current buffer, calculating screen positions. It scans the buffer forward from position from, assuming that is at screen coordinates frompos, to position to or coordinates topos, whichever comes first. It returns the ending buffer position and screen coordinates.
+
+  The coordinate arguments frompos and topos are cons cells of the form =(=hpos=.=vpos=)=.
+
+  The argument width is the number of columns available to display text; this affects handling of continuation lines. =nil= means the actual number of usable text columns in the window, which is equivalent to the value returned by =(window-width window)=.
+
+  The argument offsets is either =nil= or a cons cell of the form =(=hscroll=.=tab-offset=)=. Here hscroll is the number of columns not being displayed at the left margin; most callers get this by calling =window-hscroll=. Meanwhile, tab-offset is the offset between column numbers on the screen and column numbers in the buffer. This can be nonzero in a continuation line, when the previous screen lines' widths do not add up to a multiple of =tab-width=. It is always zero in a non-continuation line.
+
+  The window window serves only to specify which display table to use. =compute-motion= always operates on the current buffer, regardless of what buffer is displayed in window.
+
+  The return value is a list of five elements:
+
+  #+BEGIN_EXAMPLE
+                (pos hpos vpos prevhpos contin)
+  #+END_EXAMPLE
+
+  Here pos is the buffer position where the scan stopped, vpos is the vertical screen position, and hpos is the horizontal screen position.
+
+  The result prevhpos is the horizontal position one character back from pos. The result contin is =t= if the last line was continued after (or within) the previous character.
+
+  For example, to find the buffer position of column col of screen line line of a certain window, pass the window's display start location as from and the window's upper-left coordinates as frompos. Pass the buffer's =(point-max)= as to, to limit the scan to the end of the accessible portion of the buffer, and pass line and col as topos. Here's a function that does this:
+
+  #+BEGIN_EXAMPLE
+                (defun coordinates-of-position (col line)
+                  (car (compute-motion (window-start)
+                                       '(0 . 0)
+                                       (point-max)
+                                       (cons col line)
+                                       (window-width)
+                                       (cons (window-hscroll) 0)
+                                       (selected-window))))
+  #+END_EXAMPLE
+
+  When you use =compute-motion= for the minibuffer, you need to use =minibuffer-prompt-width= to get the horizontal position of the beginning of the first screen line. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Minibuffer-Contents][Minibuffer Contents]].
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Skipping-Characters][Skipping Characters]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Screen-Lines][Screen Lines]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.6 Moving over Balanced Expressions
+     :PROPERTIES:
+     :CUSTOM_ID: moving-over-balanced-expressions
+     :END:
+
+Here are several functions concerned with balanced-parenthesis expressions (also called sexps in connection with moving across them in Emacs). The syntax table controls how these functions interpret various characters; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]]. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Parsing-Expressions][Parsing Expressions]], for lower-level primitives for scanning sexps or parts of sexps. For user-level commands, see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Parentheses][Commands for Editing with Parentheses]].
+
+--- Command: *forward-list* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves forward across arg (default 1) balanced groups of parentheses. (Other syntactic entities such as words or paired string quotes are ignored.)
+#+END_QUOTE
+
+--- Command: *backward-list* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves backward across arg (default 1) balanced groups of parentheses. (Other syntactic entities such as words or paired string quotes are ignored.)
+#+END_QUOTE
+
+--- Command: *up-list* &optional arg escape-strings no-syntax-crossing
+
+#+BEGIN_QUOTE
+  This function moves forward out of arg (default 1) levels of parentheses. A negative argument means move backward but still to a less deep spot. If escape-strings is non-=nil= (as it is interactively), move out of enclosing strings as well. If no-syntax-crossing is non-=nil= (as it is interactively), prefer to break out of any enclosing string instead of moving to the start of a list broken across multiple strings. On error, location of point is unspecified.
+#+END_QUOTE
+
+--- Command: *backward-up-list* &optional arg escape-strings no-syntax-crossing
+
+#+BEGIN_QUOTE
+  This function is just like =up-list=, but with a negated argument.
+#+END_QUOTE
+
+--- Command: *down-list* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves forward into arg (default 1) levels of parentheses. A negative argument means move backward but still go deeper in parentheses (−arg levels).
+#+END_QUOTE
+
+--- Command: *forward-sexp* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves forward across arg (default 1) balanced expressions. Balanced expressions include both those delimited by parentheses and other kinds, such as words and string constants. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Parsing-Expressions][Parsing Expressions]]. For example,
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                (concat-!- "foo " (car x) y z)
+                ---------- Buffer: foo ----------
+
+                (forward-sexp 3)
+                     ⇒ nil
+
+                ---------- Buffer: foo ----------
+                (concat "foo " (car x) y-!- z)
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *backward-sexp* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves backward across arg (default 1) balanced expressions.
+#+END_QUOTE
+
+--- Command: *beginning-of-defun* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves back to the argth beginning of a defun. If arg is negative, this actually moves forward, but it still moves to the beginning of a defun, not to the end of one. arg defaults to 1.
+#+END_QUOTE
+
+--- Command: *end-of-defun* &optional arg
+
+#+BEGIN_QUOTE
+  This function moves forward to the argth end of a defun. If arg is negative, this actually moves backward, but it still moves to the end of a defun, not to the beginning of one. arg defaults to 1.
+#+END_QUOTE
+
+--- User Option: *defun-prompt-regexp*
+
+#+BEGIN_QUOTE
+  If non-=nil=, this buffer-local variable holds a regular expression that specifies what text can appear before the open-parenthesis that starts a defun. That is to say, a defun begins on a line that starts with a match for this regular expression, followed by a character with open-parenthesis syntax.
+#+END_QUOTE
+
+--- User Option: *open-paren-in-column-0-is-defun-start*
+
+#+BEGIN_QUOTE
+  If this variable's value is non-=nil=, an open parenthesis in column 0 is considered to be the start of a defun. If it is =nil=, an open parenthesis in column 0 has no special meaning. The default is =t=. If a string literal happens to have a parenthesis in column 0, escape it with a backslash to avoid a false positive. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Left-Margin-Paren][Left Margin Convention]].
+#+END_QUOTE
+
+--- Variable: *beginning-of-defun-function*
+
+#+BEGIN_QUOTE
+  If non-=nil=, this variable holds a function for finding the beginning of a defun. The function =beginning-of-defun= calls this function instead of using its normal method, passing it its optional argument. If the argument is non-=nil=, the function should move back by that many functions, like =beginning-of-defun= does.
+#+END_QUOTE
+
+--- Variable: *end-of-defun-function*
+
+#+BEGIN_QUOTE
+  If non-=nil=, this variable holds a function for finding the end of a defun. The function =end-of-defun= calls this function instead of using its normal method.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#List-Motion][List Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]]
+
+** 30.2.7 Skipping Characters
+     :PROPERTIES:
+     :CUSTOM_ID: skipping-characters
+     :END:
+
+The following two functions move point over a specified set of characters. For example, they are often used to skip whitespace. For related functions, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion-and-Syntax][Motion and Syntax]].
+
+These functions convert the set string to multibyte if the buffer is multibyte, and they convert it to unibyte if the buffer is unibyte, as the search functions do (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]).
+
+--- Function: *skip-chars-forward* character-set &optional limit
+
+#+BEGIN_QUOTE
+  This function moves point in the current buffer forward, skipping over a given set of characters. It examines the character following point, then advances point if the character matches character-set. This continues until it reaches a character that does not match. The function returns the number of characters moved over.
+
+  The argument character-set is a string, like the inside of a '[...]' in a regular expression except that ']' does not terminate it, and '' quotes ‘\^', '-' or ‘'. Thus, ="a-zA-Z"= skips over all letters, stopping before the first nonletter, and ="^a-zA-Z"= skips nonletters stopping before the first letter (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]). Character classes can also be used, e.g., ="[:alnum:]"= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]]).
+
+  If limit is supplied (it must be a number or a marker), it specifies the maximum position in the buffer that point can be skipped to. Point will stop at or before limit.
+
+  In the following example, point is initially located directly before the 'T'. After the form is evaluated, point is located at the end of that line (between the 't' of 'hat' and the newline). The function skips all letters and spaces, but not newlines.
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                I read "-!-The cat in the hat
+                comes back" twice.
+                ---------- Buffer: foo ----------
+
+                (skip-chars-forward "a-zA-Z ")
+                     ⇒ 18
+
+                ---------- Buffer: foo ----------
+                I read "The cat in the hat-!-
+                comes back" twice.
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *skip-chars-backward* character-set &optional limit
+
+#+BEGIN_QUOTE
+  This function moves point backward, skipping characters that match character-set, until limit. It is just like =skip-chars-forward= except for the direction of motion.
+
+  The return value indicates the distance traveled. It is an integer that is zero or less.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Narrowing][Narrowing]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Motion][Motion]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Positions][Positions]]
+
+* 30.3 Excursions
+    :PROPERTIES:
+    :CUSTOM_ID: excursions
+    :END:
+
+It is often useful to move point temporarily within a localized portion of the program. This is called an excursion, and it is done with the =save-excursion= special form. This construct remembers the initial identity of the current buffer, and its value of point, and restores them after the excursion completes. It is the standard way to move point within one part of a program and avoid affecting the rest of the program, and is used thousands of times in the Lisp sources of Emacs.
+
+If you only need to save and restore the identity of the current buffer, use =save-current-buffer= or =with-current-buffer= instead (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Current-Buffer][Current Buffer]]). If you need to save or restore window configurations, see the forms described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Window-Configurations][Window Configurations]] and in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Frame-Configurations][Frame Configurations]].
+
+--- Special Form: *save-excursion* body...
+
+#+BEGIN_QUOTE
+  This special form saves the identity of the current buffer and the value of point in it, evaluates body, and finally restores the buffer and its saved value of point. Both saved values are restored even in case of an abnormal exit via =throw= or error (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Nonlocal-Exits][Nonlocal Exits]]).
+
+  The value returned by =save-excursion= is the result of the last form in body, or =nil= if no body forms were given.
+#+END_QUOTE
+
+Because =save-excursion= only saves point for the buffer that was current at the start of the excursion, any changes made to point in other buffers, during the excursion, will remain in effect afterward. This frequently leads to unintended consequences, so the byte compiler warns if you call =set-buffer= during an excursion:
+
+#+BEGIN_EXAMPLE
+         Warning: Use ‘with-current-buffer’ rather than
+                  save-excursion+set-buffer
+#+END_EXAMPLE
+
+To avoid such problems, you should call =save-excursion= only after setting the desired current buffer, as in the following example:
+
+#+BEGIN_EXAMPLE
+         (defun append-string-to-buffer (string buffer)
+           "Append STRING to the end of BUFFER."
+           (with-current-buffer buffer
+             (save-excursion
+               (goto-char (point-max))
+               (insert string))))
+#+END_EXAMPLE
+
+Likewise, =save-excursion= does not restore window-buffer correspondences altered by functions such as =switch-to-buffer=.
+
+*Warning:* Ordinary insertion of text adjacent to the saved point value relocates the saved value, just as it relocates all markers. More precisely, the saved value is a marker with insertion type =nil=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Marker-Insertion-Types][Marker Insertion Types]]. Therefore, when the saved point value is restored, it normally comes before the inserted text.
+
+--- Macro: *save-mark-and-excursion* body...
+
+#+BEGIN_QUOTE
+  This macro is like =save-excursion=, but also saves and restores the mark location and =mark-active=. This macro does what =save-excursion= did before Emacs 25.1.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Excursions][Excursions]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Positions][Positions]]
+
+* 30.4 Narrowing
+    :PROPERTIES:
+    :CUSTOM_ID: narrowing
+    :END:
+
+Narrowing means limiting the text addressable by Emacs editing commands to a limited range of characters in a buffer. The text that remains addressable is called the accessible portion of the buffer.
+
+Narrowing is specified with two buffer positions, which become the beginning and end of the accessible portion. For most editing commands and primitives, these positions replace the values of the beginning and end of the buffer. While narrowing is in effect, no text outside the accessible portion is displayed, and point cannot move outside the accessible portion. Note that narrowing does not alter actual buffer positions (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Point][Point]]); it only determines which positions are considered the accessible portion of the buffer. Most functions refuse to operate on text that is outside the accessible portion.
+
+Commands for saving buffers are unaffected by narrowing; they save the entire buffer regardless of any narrowing.
+
+If you need to display in a single buffer several very different types of text, consider using an alternative facility described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Swapping-Text][Swapping Text]].
+
+--- Command: *narrow-to-region* start end
+
+#+BEGIN_QUOTE
+  This function sets the accessible portion of the current buffer to start at start and end at end. Both arguments should be character positions.
+
+  In an interactive call, start and end are set to the bounds of the current region (point and the mark, with the smallest first).
+#+END_QUOTE
+
+--- Command: *narrow-to-page* &optional move-count
+
+#+BEGIN_QUOTE
+  This function sets the accessible portion of the current buffer to include just the current page. An optional first argument move-count non-=nil= means to move forward or backward by move-count pages and then narrow to one page. The variable =page-delimiter= specifies where pages start and end (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Regexps][Standard Regexps]]).
+
+  In an interactive call, move-count is set to the numeric prefix argument.
+#+END_QUOTE
+
+--- Command: *widen*
+
+#+BEGIN_QUOTE
+  This function cancels any narrowing in the current buffer, so that the entire contents are accessible. This is called widening. It is equivalent to the following expression:
+
+  #+BEGIN_EXAMPLE
+                (narrow-to-region 1 (1+ (buffer-size)))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *buffer-narrowed-p*
+
+#+BEGIN_QUOTE
+  This function returns non-=nil= if the buffer is narrowed, and =nil= otherwise.
+#+END_QUOTE
+
+--- Special Form: *save-restriction* body...
+
+#+BEGIN_QUOTE
+  This special form saves the current bounds of the accessible portion, evaluates the body forms, and finally restores the saved bounds, thus restoring the same state of narrowing (or absence thereof) formerly in effect. The state of narrowing is restored even in the event of an abnormal exit via =throw= or error (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Nonlocal-Exits][Nonlocal Exits]]). Therefore, this construct is a clean way to narrow a buffer temporarily.
+
+  The value returned by =save-restriction= is that returned by the last form in body, or =nil= if no body forms were given.
+
+  *Caution:* it is easy to make a mistake when using the =save-restriction= construct. Read the entire description here before you try it.
+
+  If body changes the current buffer, =save-restriction= still restores the restrictions on the original buffer (the buffer whose restrictions it saved from), but it does not restore the identity of the current buffer.
+
+  =save-restriction= does /not/ restore point; use =save-excursion= for that. If you use both =save-restriction= and =save-excursion= together, =save-excursion= should come first (on the outside). Otherwise, the old point value would be restored with temporary narrowing still in effect. If the old point value were outside the limits of the temporary narrowing, this would fail to restore it accurately.
+
+  Here is a simple example of correct use of =save-restriction=:
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                This is the contents of foo
+                This is the contents of foo
+                This is the contents of foo-!-
+                ---------- Buffer: foo ----------
+
+                (save-excursion
+                  (save-restriction
+                    (goto-char 1)
+                    (forward-line 2)
+                    (narrow-to-region 1 (point))
+                    (goto-char (point-min))
+                    (replace-string "foo" "bar")))
+
+                ---------- Buffer: foo ----------
+                This is the contents of bar
+                This is the contents of bar
+                This is the contents of foo-!-
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+#+END_QUOTE

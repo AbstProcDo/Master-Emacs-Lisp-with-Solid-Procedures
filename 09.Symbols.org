@@ -1,0 +1,427 @@
+#+TITLE: 09.Symbols
+* 9 Symbols
+   :PROPERTIES:
+   :CUSTOM_ID: symbols
+   :END:
+
+A symbol is an object with a unique name. This chapter describes symbols, their components, their property lists, and how they are created and interned. Separate chapters describe the use of symbols as variables and as function names; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][12.Variables]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Functions][13.Functions]]. For the precise read syntax for symbols, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Type][2.3.4 Symbol Type]].
+
+You can test whether an arbitrary Lisp object is a symbol with =symbolp=:
+
+--- Function: *symbolp* object
+
+
+  This function returns =t= if object is a symbol, =nil= otherwise.
+
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Components][Symbol Components]]: Symbols have names, values, function definitions and property lists.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Definitions][Definitions]]: A definition says how a symbol will be used.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Symbols][Creating Symbols]]: How symbols are kept unique.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Properties][Symbol Properties]]: Each symbol has a property list for recording miscellaneous information.
+
+* 9.1 Symbol Components
+    :PROPERTIES:
+    :CUSTOM_ID: symbol-components
+    :END:
+
+Each symbol has four components (or "cells"), each of which references another object:
+
+- Print name
+
+  The symbol's name.
+
+- Value
+
+  The symbol's current value as a variable.
+
+- Function
+
+  The symbol's function definition. It can also hold a symbol, a keymap, or a keyboard macro.
+
+- Property list
+
+  The symbol's property list.
+
+The print name cell always holds a string, and cannot be changed. Each of the other three cells can be set to any Lisp object.
+
+The print name cell holds the string that is the name of a symbol. Since symbols are represented textually by their names, it is important not to have two symbols with the same name. The Lisp reader ensures this: every time it reads a symbol, it looks for an existing symbol with the specified name before it creates a new one. To get a symbol's name, use the function =symbol-name= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Symbols][9.3 Creating Symbols]]).
+
+The value cell holds a symbol's value as a variable, which is what you get if the symbol itself is evaluated as a Lisp expression. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]], for details about how values are set and retrieved, including complications such as local bindings and scoping rules. Most symbols can have any Lisp object as a value, but certain special symbols have values that cannot be changed; these include =nil= and =t=, and any symbol whose name starts with ':' (those are called keywords). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Constant-Variables][Constant Variables]].
+
+The function cell holds a symbol's function definition. Often, we refer to "the function =foo=" when we really mean the function stored in the function cell of =foo=; we make the distinction explicit only when necessary. Typically, the function cell is used to hold a function (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Functions][Functions]]) or a macro (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Macros][Macros]]). However, it can also be used to hold a symbol (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Function-Indirection][Function Indirection]]), keyboard macro (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Keyboard-Macros][Keyboard Macros]]), keymap (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Keymaps][Keymaps]]), or autoload object (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Autoloading][Autoloading]]). To get the contents of a symbol's function cell, use the function =symbol-function= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Function-Cells][Function Cells]]).
+
+The property list cell normally should hold a correctly formatted property list. To get a symbol's property list, use the function =symbol-plist=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Properties][Symbol Properties]].
+
+The function cell or the value cell may be void, which means that the cell does not reference any object. (This is not the same thing as holding the symbol =void=, nor the same as holding the symbol =nil=.) Examining a function or value cell that is void results in an error, such as 'Symbol's value as variable is void'.
+
+Because each symbol has separate value and function cells, variables names and function names do not conflict. For example, the symbol =buffer-file-name= has a value (the name of the file being visited in the current buffer) as well as a function definition (a primitive function that returns the name of the file):
+
+#+begin_src elisp
+         buffer-file-name
+              ⇒ "/gnu/elisp/symbols.texi"
+         (symbol-function 'buffer-file-name)
+              ⇒ #<subr buffer-file-name>
+#+END_EXAMPLE
+
+#+begin_src emacs-lisp :tangle yes
+(print buffer-file-name)
+#+end_src
+
+#+RESULTS:
+: /home/gaowei/Documents/OrgMode/ORG/Manuals/emacslisp/09.Symbols.org
+# 短评: 原来在这里呀.
+
+* 9.2 Defining Symbols
+    :PROPERTIES:
+    :CUSTOM_ID: defining-symbols
+    :END:
+
+A definition is a special kind of Lisp expression that announces your intention to use a symbol in a particular way. It typically specifies a value or meaning for the symbol for one kind of use, plus documentation for its meaning when used in this way. Thus, when you define a symbol as a variable, you can supply an initial value for the variable, plus documentation for the variable.
+
+=defvar= and =defconst= are special forms that define a symbol as a global variable---a variable that can be accessed at any point in a Lisp program. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][12.Variables]], for details about variables. To define a customizable variable, use the =defcustom= macro, which also calls =defvar= as a subroutine (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Customization][15.Customization]]).
+
+In principle, you can assign a variable value to any symbol with =setq=, whether not it has first been defined as a variable. However, you ought to write a variable definition for each global variable that you want to use; otherwise, your Lisp program may not act correctly if it is evaluated with lexical scoping enabled (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][12.10 Variable Scoping]]).
+
+=defun= defines a symbol as a function, creating a lambda expression and storing it in the function cell of the symbol. This lambda expression thus becomes the function definition of the symbol. (The term "function definition", meaning the contents of the function cell, is derived from the idea that =defun= gives the symbol its definition as a function.) =defsubst= and =defalias= are two other ways of defining a function. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Functions][13.Functions]].
+
+=defmacro= defines a symbol as a macro. It creates a macro object and stores it in the function cell of the symbol. Note that a given symbol can be a macro or a function, but not both at once, because both macro and function definitions are kept in the function cell, and that cell can hold only one Lisp object at any given time. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Macros][Macros]].
+
+As previously noted, Emacs Lisp allows the same symbol to be defined both as a variable (e.g., with =defvar=) and as a function or macro (e.g., with =defun=). Such definitions do not conflict.
+
+These definitions also act as guides for programming tools. For example, the C-h f and C-h v commands create help buffers containing links to the relevant variable, function, or macro definitions. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Name-Help][10.3 Name Help]].
+
+* 9.3 Creating and Interning Symbols
+    :PROPERTIES:
+    :CUSTOM_ID: creating-and-interning-symbols
+    :END:
+
+To understand how symbols are created in GNU Emacs Lisp, you must know how Lisp reads them. Lisp must ensure that it finds the same symbol every time it reads the same set of characters. Failure to do so would cause complete confusion.
+
+When the Lisp reader encounters a symbol, it reads all the characters of the name. Then it hashes those characters to find an index in a table called an obarray.
+# 洞见, obarray是hash table.
+Hashing is an efficient method of looking something up. For example, instead of searching a telephone book cover to cover when looking up Jan Jones, you start with the J's and go from there. That is a simple version of hashing. Each element of the obarray is a bucket which holds all the symbols with a given hash code; to look for a given name, it is sufficient to look through all the symbols in the bucket for that name's hash code. (The same idea is used for general Emacs hash tables, but they are a different data type; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Hash-Tables][Hash Tables]].)
+
+If a symbol with the desired name is found, the reader uses that symbol. If the obarray does not contain a symbol with that name, the reader makes a new symbol and adds it to the obarray. Finding or adding a symbol with a certain name is called interning it, and the symbol is then called an interned symbol.
+
+Interning ensures that each obarray has just one symbol with any particular name. Other like-named symbols may exist, but not in the same obarray. Thus, the reader gets the same symbols for the same names, as long as you keep reading with the same obarray.
+
+Interning usually happens automatically in the reader, but sometimes other programs need to do it. For example, after the M-x command obtains the command name as a string using the minibuffer, it then interns the string, to get the interned symbol with that name.
+
+No obarray contains all symbols; in fact, some symbols are not in any obarray. They are called uninterned symbols. An uninterned symbol has the same four cells as other symbols; however, the only way to gain access to it is by finding it in some other object or as the value of a variable.
+
+Creating an uninterned symbol is useful in generating Lisp code, because an uninterned symbol used as a variable in the code you generate cannot clash with any variables used in other Lisp programs.
+
+In Emacs Lisp, an obarray is actually a vector. Each element of the vector is a bucket; its value is either an interned symbol whose name hashes to that bucket, or 0 if the bucket is empty. Each interned symbol has an internal link (invisible to the user) to the next symbol in the bucket. Because these links are invisible, there is no way to find all the symbols in an obarray except using =mapatoms= (below). The order of symbols in a bucket is not significant.
+
+In an empty obarray, every element is 0, so you can create an obarray with =(make-vector=length=0)=. *This is the only valid way to create an obarray.* Prime numbers as lengths tend to result in good hashing; lengths one less than a power of two are also good.
+
+*Do not try to put symbols in an obarray yourself.* This does not work---only =intern= can enter a symbol in an obarray properly.
+
+
+  *Common Lisp note:* Unlike Common Lisp, Emacs Lisp does not provide for interning a single symbol in several obarrays.
+
+
+Most of the functions below take a name and sometimes an obarray as arguments. A =wrong-type-argument= error is signaled if the name is not a string, or if the obarray is not a vector.
+
+--- Function: *symbol-name* symbol
+
+
+  This function returns the string that is symbol's name. For example:
+
+  #+begin_src elisp
+                (symbol-name 'foo)
+                     ⇒ "foo"
+  #+END_EXAMPLE
+
+  *Warning:* Changing the string by substituting characters does change the name of the symbol, but fails to update the obarray, so don't do it!
+
+
+--- Function: *make-symbol* name
+
+
+  This function returns a newly-allocated, uninterned symbol whose name is name (which must be a string). Its value and function definition are void, and its property list is =nil=. In the example below, the value of =sym= is not =eq= to =foo= because it is a distinct uninterned symbol whose name is also 'foo'.
+
+  #+begin_src elisp
+                (setq sym (make-symbol "foo"))
+                     ⇒ foo
+                (eq sym 'foo)
+                     ⇒ nil
+  #+END_EXAMPLE
+
+
+--- Function: *gensym* &optional prefix
+
+
+  This function returns a symbol using =make-symbol=, whose name is made by appending =gensym-counter= to prefix. The prefix defaults to ="g"=.
+
+
+--- Function: *intern* name &optional obarray
+
+
+  This function returns the interned symbol whose name is name. If there is no such symbol in the obarray obarray, =intern= creates a new one, adds it to the obarray, and returns it. If obarray is omitted, the value of the global variable =obarray= is used.
+
+  #+begin_src elisp
+                (setq sym (intern "foo"))
+                     ⇒ foo
+                (eq sym 'foo)
+                     ⇒ t
+
+                (setq sym1 (intern "foo" other-obarray))
+                     ⇒ foo
+                (eq sym1 'foo)
+                     ⇒ nil
+  #+END_EXAMPLE
+
+
+
+  *Common Lisp note:* In Common Lisp, you can intern an existing symbol in an obarray. In Emacs Lisp, you cannot do this, because the argument to =intern= must be a string, not a symbol.
+
+
+--- Function: *intern-soft* name &optional obarray
+
+
+  This function returns the symbol in obarray whose name is name, or =nil= if obarray has no symbol with that name. Therefore, you can use =intern-soft= to test whether a symbol with a given name is already interned. If obarray is omitted, the value of the global variable =obarray= is used.
+
+  The argument name may also be a symbol; in that case, the function returns name if name is interned in the specified obarray, and otherwise =nil=.
+
+  #+begin_src elisp
+                (intern-soft "frazzle")        ; No such symbol exists.
+                     ⇒ nil
+                (make-symbol "frazzle")        ; Create an uninterned one.
+                     ⇒ frazzle
+                (intern-soft "frazzle")        ; That one cannot be found.
+                     ⇒ nil
+                (setq sym (intern "frazzle"))  ; Create an interned one.
+                     ⇒ frazzle
+                (intern-soft "frazzle")        ; That one can be found!
+                     ⇒ frazzle
+                (eq sym 'frazzle)              ; And it is the same one.
+                     ⇒ t
+  #+END_EXAMPLE
+
+
+--- Variable: *obarray*
+
+
+  This variable is the standard obarray for use by =intern= and =read=.
+
+
+--- Function: *mapatoms* function &optional obarray
+
+
+  This function calls function once with each symbol in the obarray obarray. Then it returns =nil=. If obarray is omitted, it defaults to the value of =obarray=, the standard obarray for ordinary symbols.
+
+  #+begin_src elisp
+                (setq count 0)
+                     ⇒ 0
+                (defun count-syms (s)
+                  (setq count (1+ count)))
+                     ⇒ count-syms
+                (mapatoms 'count-syms)
+                     ⇒ nil
+                count
+                     ⇒ 1871
+  #+END_EXAMPLE
+
+  See =documentation= in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Documentation][Accessing Documentation]], for another example using =mapatoms=.
+
+
+--- Function: *unintern* symbol obarray
+
+
+  This function deletes symbol from the obarray obarray. If =symbol= is not actually in the obarray, =unintern= does nothing. If obarray is =nil=, the current obarray is used.
+
+  If you provide a string instead of a symbol as symbol, it stands for a symbol name. Then =unintern= deletes the symbol (if any) in the obarray which has that name. If there is no such symbol, =unintern= does nothing.
+
+  If =unintern= does delete a symbol, it returns =t=. Otherwise it returns =nil=.
+
+
+
+* 9.4 Symbol Properties
+    :PROPERTIES:
+    :CUSTOM_ID: symbol-properties
+    :END:
+
+A symbol may possess any number of symbol properties, which can be used to record miscellaneous information about the symbol. For example, when a symbol has a =risky-local-variable= property with a non-=nil= value, that means the variable which the symbol names is a risky file-local variable (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]).
+
+Each symbol's properties and property values are stored in the symbol's property list cell (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Components][Symbol Components]]), in the form of a property list (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Property-Lists][Property Lists]]).
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Plists][Symbol Plists]]: Accessing symbol properties.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Properties][Standard Properties]]: Standard meanings of symbol properties.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Properties][Standard Properties]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Properties][Symbol Properties]]
+
+** 9.4.1 Accessing Symbol Properties
+     :PROPERTIES:
+     :CUSTOM_ID: accessing-symbol-properties
+     :END:
+
+The following functions can be used to access symbol properties.
+
+--- Function: *get* symbol property
+
+
+  This function returns the value of the property named property in symbol's property list. If there is no such property, it returns =nil=. Thus, there is no distinction between a value of =nil= and the absence of the property.
+
+  The name property is compared with the existing property names using =eq=, so any object is a legitimate property.
+
+  See =put= for an example.
+
+
+--- Function: *put* symbol property value
+
+
+  This function puts value onto symbol's property list under the property name property, replacing any previous property value. The =put= function returns value.
+
+  #+begin_src elisp
+                (put 'fly 'verb 'transitive)
+                     ⇒'transitive
+                (put 'fly 'noun '(a buzzing little bug))
+                     ⇒ (a buzzing little bug)
+                (get 'fly 'verb)
+                     ⇒ transitive
+                (symbol-plist 'fly)
+                     ⇒ (verb transitive noun (a buzzing little bug))
+  #+END_EXAMPLE
+
+
+--- Function: *symbol-plist* symbol
+
+
+  This function returns the property list of symbol.
+
+
+--- Function: *setplist* symbol plist
+
+
+  This function sets symbol's property list to plist. Normally, plist should be a well-formed property list, but this is not enforced. The return value is plist.
+
+  #+begin_src elisp
+                (setplist 'foo '(a 1 b (2 3) c nil))
+                     ⇒ (a 1 b (2 3) c nil)
+                (symbol-plist 'foo)
+                     ⇒ (a 1 b (2 3) c nil)
+  #+END_EXAMPLE
+
+  For symbols in special obarrays, which are not used for ordinary purposes, it may make sense to use the property list cell in a nonstandard fashion; in fact, the abbrev mechanism does so (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Abbrevs][Abbrevs]]).
+
+  You could define =put= in terms of =setplist= and =plist-put=, as follows:
+
+  #+begin_src elisp
+                (defun put (symbol prop value)
+                  (setplist symbol
+                            (plist-put (symbol-plist symbol) prop value)))
+  #+end_src
+
+
+--- Function: *function-get* symbol property &optional autoload
+
+
+  This function is identical to =get=, except that if symbol is the name of a function alias, it looks in the property list of the symbol naming the actual function. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Functions][Defining Functions]]. If the optional argument autoload is non-=nil=, and symbol is auto-loaded, this function will try to autoload it, since autoloading might set property of symbol. If autoload is the symbol =macro=, only try autoloading if symbol is an auto-loaded macro.
+
+
+--- Function: *function-put* function property value
+
+
+  This function sets property of function to value. function should be a symbol. This function is preferred to calling =put= for setting properties of a function, because it will allow us some day to implement remapping of old properties to new ones.
+
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Plists][Symbol Plists]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Properties][Symbol Properties]]
+
+** 9.4.2 Standard Symbol Properties
+     :PROPERTIES:
+     :CUSTOM_ID: standard-symbol-properties
+     :END:
+
+Here, we list the symbol properties which are used for special purposes in Emacs. In the following table, whenever we say "the named function", that means the function whose name is the relevant symbol; similarly for "the named variable" etc.
+
+- =:advertised-binding=
+
+  This property value specifies the preferred key binding, when showing documentation, for the named function. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Keys-in-Documentation][Keys in Documentation]].
+
+- =char-table-extra-slots=
+
+  The value, if non-=nil=, specifies the number of extra slots in the named char-table type. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char_002dTables][Char-Tables]].
+
+- =customized-face=
+
+- =face-defface-spec=
+
+- =saved-face=
+
+- =theme-face=
+
+  These properties are used to record a face's standard, saved, customized, and themed face specs. Do not set them directly; they are managed by =defface= and related functions. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Faces][Defining Faces]].
+
+- =customized-value=
+
+- =saved-value=
+
+- =standard-value=
+
+- =theme-value=
+
+  These properties are used to record a customizable variable's standard value, saved value, customized-but-unsaved value, and themed values. Do not set them directly; they are managed by =defcustom= and related functions. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Definitions][Variable Definitions]].
+
+- =disabled=
+
+  If the value is non-=nil=, the named function is disabled as a command. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Disabling-Commands][Disabling Commands]].
+
+- =face-documentation=
+
+  The value stores the documentation string of the named face. This is set automatically by =defface=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Faces][Defining Faces]].
+
+- =history-length=
+
+  The value, if non-=nil=, specifies the maximum minibuffer history length for the named history list variable. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Minibuffer-History][Minibuffer History]].
+
+- =interactive-form=
+
+  The value is an interactive form for the named function. Normally, you should not set this directly; use the =interactive= special form instead. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Interactive-Call][Interactive Call]].
+
+- =menu-enable=
+
+  The value is an expression for determining whether the named menu item should be enabled in menus. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Simple-Menu-Items][Simple Menu Items]].
+
+- =mode-class=
+
+  If the value is =special=, the named major mode is special. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Major-Mode-Conventions][Major Mode Conventions]].
+
+- =permanent-local=
+
+  If the value is non-=nil=, the named variable is a buffer-local variable whose value should not be reset when changing major modes. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Buffer_002dLocal][Creating Buffer-Local]].
+
+- =permanent-local-hook=
+
+  If the value is non-=nil=, the named function should not be deleted from the local value of a hook variable when changing major modes. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Hooks][Setting Hooks]].
+
+- =pure=
+
+  If the value is non-=nil=, the named function is considered to be pure (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#What-Is-a-Function][What Is a Function]]). Calls with constant arguments can be evaluated at compile time. This may shift run time errors to compile time. Not to be confused with pure storage (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Pure-Storage][Pure Storage]]).
+
+- =risky-local-variable=
+
+  If the value is non-=nil=, the named variable is considered risky as a file-local variable. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]].
+
+- =safe-function=
+
+  If the value is non-=nil=, the named function is considered generally safe for evaluation. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Function-Safety][Function Safety]].
+
+- =safe-local-eval-function=
+
+  If the value is non-=nil=, the named function is safe to call in file-local evaluation forms. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]].
+
+- =safe-local-variable=
+
+  The value specifies a function for determining safe file-local values for the named variable. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]].
+
+- =side-effect-free=
+
+  A non-=nil= value indicates that the named function is free of side effects (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#What-Is-a-Function][What Is a Function]]), so the byte compiler may ignore a call whose value is unused. If the property's value is =error-free=, the byte compiler may even delete such unused calls. In addition to byte compiler optimizations, this property is also used for determining function safety (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Function-Safety][Function Safety]]).
+
+- =variable-documentation=
+
+  If non-=nil=, this specifies the named variable's documentation string. This is set automatically by =defvar= and related functions. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Faces][Defining Faces]].
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Control-Structures][Control Structures]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbols][Symbols]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Top][Top]]
+

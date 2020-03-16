@@ -1,0 +1,4 @@
+#+TITLE: 00.elisp-navigation
+- https://masteringemacs.org/article/evaluating-elisp-emacs
+# How can I start learning Emacs Lisp?
+- https://emacs.stackexchange.com/questions/47318/how-can-i-start-learning-emacs-lisp

@@ -1,0 +1,512 @@
+#+TITLE: 17.Byte Compilation
+* 17 Byte Compilation
+   :PROPERTIES:
+   :CUSTOM_ID: byte-compilation
+   :END:
+
+Emacs Lisp has a compiler that translates functions written in Lisp into a special representation called byte-code that can be executed more efficiently. The compiler replaces Lisp function definitions with byte-code. When a byte-code function is called, its definition is evaluated by the byte-code interpreter.
+
+Because the byte-compiled code is evaluated by the byte-code interpreter, instead of being executed directly by the machine's hardware (as true compiled code is), byte-code is completely transportable from machine to machine without recompilation. It is not, however, as fast as true compiled code.
+
+In general, any version of Emacs can run byte-compiled code produced by recent earlier versions of Emacs, but the reverse is not true.
+
+If you do not want a Lisp file to be compiled, ever, put a file-local variable binding for =no-byte-compile= into it, like this:
+
+#+BEGIN_EXAMPLE
+         ;; -*-no-byte-compile: t; -*-
+#+END_EXAMPLE
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Speed-of-Byte_002dCode][Speed of Byte-Code]]: An example of speedup from byte compilation.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compilation-Functions][Compilation Functions]]: Byte compilation functions.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Docs-and-Compilation][Docs and Compilation]]: Dynamic loading of documentation strings.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Loading][Dynamic Loading]]: Dynamic loading of individual functions.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval-During-Compile][Eval During Compile]]: Code to be evaluated when you compile.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiler-Errors][Compiler Errors]]: Handling compiler error messages.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte_002dCode-Objects][Byte-Code Objects]]: The data type used for byte-compiled functions.
+8) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Disassembly][Disassembly]]: Disassembling byte-code; how to read byte-code.
+
+
+* 17.1 Performance of Byte-Compiled Code
+    :PROPERTIES:
+    :CUSTOM_ID: performance-of-byte-compiled-code
+    :END:
+
+A byte-compiled function is not as efficient as a primitive function written in C, but runs much faster than the version written in Lisp. Here is an example:
+
+#+BEGIN_EXAMPLE
+         (defun silly-loop (n)
+           "Return the time, in seconds, to run N iterations of a loop."
+           (let ((t1 (float-time)))
+             (while (> (setq n (1- n)) 0))
+             (- (float-time) t1)))
+         ⇒ silly-loop
+
+         (silly-loop 50000000)
+         ⇒ 10.235304117202759
+
+         (byte-compile 'silly-loop)
+         ⇒ [Compiled code not shown]
+
+         (silly-loop 50000000)
+         ⇒ 3.705854892730713
+#+END_EXAMPLE
+
+In this example, the interpreted code required 10 seconds to run, whereas the byte-compiled code required less than 4 seconds. These results are representative, but actual results may vary.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Docs-and-Compilation][Docs and Compilation]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Speed-of-Byte_002dCode][Speed of Byte-Code]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.2 Byte-Compilation Functions
+    :PROPERTIES:
+    :CUSTOM_ID: byte-compilation-functions
+    :END:
+
+You can byte-compile an individual function or macro definition with the =byte-compile= function. You can compile a whole file with =byte-compile-file=, or several files with =byte-recompile-directory= or =batch-byte-compile=.
+
+Sometimes, the byte compiler produces warning and/or error messages (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiler-Errors][Compiler Errors]], for details). These messages are normally recorded in a buffer called /Compile-Log/, which uses Compilation mode. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Compilation-Mode][Compilation Mode]]. However, if the variable =byte-compile-debug= is non-=nil=, error messages will be signaled as Lisp errors instead (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Errors][Errors]]).
+
+Be careful when writing macro calls in files that you intend to byte-compile. Since macro calls are expanded when they are compiled, the macros need to be loaded into Emacs or the byte compiler will not do the right thing. The usual way to handle this is with =require= forms which specify the files containing the needed macro definitions (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Named-Features][Named Features]]). Normally, the byte compiler does not evaluate the code that it is compiling, but it handles =require= forms specially, by loading the specified libraries. To avoid loading the macro definition files when someone /runs/ the compiled program, write =eval-when-compile= around the =require= calls (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval-During-Compile][Eval During Compile]]). For more details, See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiling-Macros][Compiling Macros]].
+
+Inline (=defsubst=) functions are less troublesome; if you compile a call to such a function before its definition is known, the call will still work right, it will just run slower.
+
+--- Function: *byte-compile* symbol
+
+#+BEGIN_QUOTE
+  This function byte-compiles the function definition of symbol, replacing the previous definition with the compiled one. The function definition of symbol must be the actual code for the function; =byte-compile= does not handle function indirection. The return value is the byte-code function object which is the compiled definition of symbol (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte_002dCode-Objects][Byte-Code Objects]]).
+
+  #+BEGIN_EXAMPLE
+                (defun factorial (integer)
+                  "Compute factorial of INTEGER."
+                  (if (= 1 integer) 1
+                    (* integer (factorial (1- integer)))))
+                ⇒ factorial
+
+                (byte-compile 'factorial)
+                ⇒
+                #[(integer)
+                  "^H\301U\203^H^@\301\207\302^H\303^HS!\"\207"
+                  [integer 1 * factorial]
+                  4 "Compute factorial of INTEGER."]
+  #+END_EXAMPLE
+
+  If symbol's definition is a byte-code function object, =byte-compile= does nothing and returns =nil=. It does not compile the symbol's definition again, since the original (non-compiled) code has already been replaced in the symbol's function cell by the byte-compiled code.
+
+  The argument to =byte-compile= can also be a =lambda= expression. In that case, the function returns the corresponding compiled code but does not store it anywhere.
+#+END_QUOTE
+
+--- Command: *compile-defun* &optional arg
+
+#+BEGIN_QUOTE
+  This command reads the defun containing point, compiles it, and evaluates the result. If you use this on a defun that is actually a function definition, the effect is to install a compiled version of that function.
+
+  =compile-defun= normally displays the result of evaluation in the echo area, but if arg is non-=nil=, it inserts the result in the current buffer after the form it has compiled.
+#+END_QUOTE
+
+--- Command: *byte-compile-file* filename &optional load
+
+#+BEGIN_QUOTE
+  This function compiles a file of Lisp code named filename into a file of byte-code. The output file's name is made by changing the '.el' suffix into '.elc'; if filename does not end in '.el', it adds '.elc' to the end of filename.
+
+  Compilation works by reading the input file one form at a time. If it is a definition of a function or macro, the compiled function or macro definition is written out. Other forms are batched together, then each batch is compiled, and written so that its compiled code will be executed when the file is read. All comments are discarded when the input file is read.
+
+  This command returns =t= if there were no errors and =nil= otherwise. When called interactively, it prompts for the file name.
+
+  If load is non-=nil=, this command loads the compiled file after compiling it. Interactively, load is the prefix argument.
+
+  #+BEGIN_EXAMPLE
+                $ ls -l push*
+                -rw-r--r-- 1 lewis lewis 791 Oct  5 20:31 push.el
+
+                (byte-compile-file "~/emacs/push.el")
+                     ⇒ t
+
+                $ ls -l push*
+                -rw-r--r-- 1 lewis lewis 791 Oct  5 20:31 push.el
+                -rw-rw-rw- 1 lewis lewis 638 Oct  8 20:25 push.elc
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *byte-recompile-directory* directory &optional flag force
+
+#+BEGIN_QUOTE
+  This command recompiles every '.el' file in directory (or its subdirectories) that needs recompilation. A file needs recompilation if a '.elc' file exists but is older than the '.el' file.
+
+  When a '.el' file has no corresponding '.elc' file, flag says what to do. If it is =nil=, this command ignores these files. If flag is 0, it compiles them. If it is neither =nil= nor 0, it asks the user whether to compile each such file, and asks about each subdirectory as well.
+
+  Interactively, =byte-recompile-directory= prompts for directory and flag is the prefix argument.
+
+  If force is non-=nil=, this command recompiles every '.el' file that has a '.elc' file.
+
+  The returned value is unpredictable.
+#+END_QUOTE
+
+--- Function: *batch-byte-compile* &optional noforce
+
+#+BEGIN_QUOTE
+  This function runs =byte-compile-file= on files specified on the command line. This function must be used only in a batch execution of Emacs, as it kills Emacs on completion. An error in one file does not prevent processing of subsequent files, but no output file will be generated for it, and the Emacs process will terminate with a nonzero status code.
+
+  If noforce is non-=nil=, this function does not recompile files that have an up-to-date '.elc' file.
+
+  #+BEGIN_EXAMPLE
+                $ emacs -batch -f batch-byte-compile *.el
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Loading][Dynamic Loading]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compilation-Functions][Compilation Functions]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.3 Documentation Strings and Compilation
+    :PROPERTIES:
+    :CUSTOM_ID: documentation-strings-and-compilation
+    :END:
+
+When Emacs loads functions and variables from a byte-compiled file, it normally does not load their documentation strings into memory. Each documentation string is dynamically loaded from the byte-compiled file only when needed. This saves memory, and speeds up loading by skipping the processing of the documentation strings.
+
+This feature has a drawback: if you delete, move, or alter the compiled file (such as by compiling a new version), Emacs may no longer be able to access the documentation string of previously-loaded functions or variables. Such a problem normally only occurs if you build Emacs yourself, and happen to edit and/or recompile the Lisp source files. To solve it, just reload each file after recompilation.
+
+Dynamic loading of documentation strings from byte-compiled files is determined, at compile time, for each byte-compiled file. It can be disabled via the option =byte-compile-dynamic-docstrings=.
+
+--- User Option: *byte-compile-dynamic-docstrings*
+
+#+BEGIN_QUOTE
+  If this is non-=nil=, the byte compiler generates compiled files that are set up for dynamic loading of documentation strings.
+
+  To disable the dynamic loading feature for a specific file, set this option to =nil= in its header line (see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#File-Variables][Local Variables in Files]]), like this:
+
+  #+BEGIN_EXAMPLE
+                -*-byte-compile-dynamic-docstrings: nil;-*-
+  #+END_EXAMPLE
+
+  This is useful mainly if you expect to change the file, and you want Emacs sessions that have already loaded it to keep working when the file changes.
+#+END_QUOTE
+
+Internally, the dynamic loading of documentation strings is accomplished by writing compiled files with a special Lisp reader construct, '#@count'. This construct skips the next count characters. It also uses the '#$' construct, which stands for the name of this file, as a string. Do not use these constructs in Lisp source files; they are not designed to be clear to humans reading the file.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval-During-Compile][Eval During Compile]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Docs-and-Compilation][Docs and Compilation]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.4 Dynamic Loading of Individual Functions
+    :PROPERTIES:
+    :CUSTOM_ID: dynamic-loading-of-individual-functions
+    :END:
+
+When you compile a file, you can optionally enable the dynamic function loading feature (also known as lazy loading). With dynamic function loading, loading the file doesn't fully read the function definitions in the file. Instead, each function definition contains a place-holder which refers to the file. The first time each function is called, it reads the full definition from the file, to replace the place-holder.
+
+The advantage of dynamic function loading is that loading the file becomes much faster. This is a good thing for a file which contains many separate user-callable functions, if using one of them does not imply you will probably also use the rest. A specialized mode which provides many keyboard commands often has that usage pattern: a user may invoke the mode, but use only a few of the commands it provides.
+
+The dynamic loading feature has certain disadvantages:
+
+- If you delete or move the compiled file after loading it, Emacs can no longer load the remaining function definitions not already loaded.\\
+- If you alter the compiled file (such as by compiling a new version), then trying to load any function not already loaded will usually yield nonsense results.
+
+These problems will never happen in normal circumstances with installed Emacs files. But they are quite likely to happen with Lisp files that you are changing. The easiest way to prevent these problems is to reload the new compiled file immediately after each recompilation.
+
+The byte compiler uses the dynamic function loading feature if the variable =byte-compile-dynamic= is non-=nil= at compilation time. Do not set this variable globally, since dynamic loading is desirable only for certain files. Instead, enable the feature for specific source files with file-local variable bindings. For example, you could do it by writing this text in the source file's first line:
+
+#+BEGIN_EXAMPLE
+         -*-byte-compile-dynamic: t;-*-
+#+END_EXAMPLE
+
+--- Variable: *byte-compile-dynamic*
+
+#+BEGIN_QUOTE
+  If this is non-=nil=, the byte compiler generates compiled files that are set up for dynamic function loading.
+#+END_QUOTE
+
+--- Function: *fetch-bytecode* function
+
+#+BEGIN_QUOTE
+  If function is a byte-code function object, this immediately finishes loading the byte code of function from its byte-compiled file, if it is not fully loaded already. Otherwise, it does nothing. It always returns function.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiler-Errors][Compiler Errors]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Loading][Dynamic Loading]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.5 Evaluation During Compilation
+    :PROPERTIES:
+    :CUSTOM_ID: evaluation-during-compilation
+    :END:
+
+These features permit you to write code to be evaluated during compilation of a program.
+
+--- Special Form: *eval-and-compile* body...
+
+#+BEGIN_QUOTE
+  This form marks body to be evaluated both when you compile the containing code and when you run it (whether compiled or not).
+
+  You can get a similar result by putting body in a separate file and referring to that file with =require=. That method is preferable when body is large. Effectively =require= is automatically =eval-and-compile=, the package is loaded both when compiling and executing.
+
+  =autoload= is also effectively =eval-and-compile= too. It's recognized when compiling, so uses of such a function don't produce "not known to be defined" warnings.
+
+  Most uses of =eval-and-compile= are fairly sophisticated.
+
+  If a macro has a helper function to build its result, and that macro is used both locally and outside the package, then =eval-and-compile= should be used to get the helper both when compiling and then later when running.
+
+  If functions are defined programmatically (with =fset= say), then =eval-and-compile= can be used to have that done at compile-time as well as run-time, so calls to those functions are checked (and warnings about "not known to be defined" suppressed).
+#+END_QUOTE
+
+--- Special Form: *eval-when-compile* body...
+
+#+BEGIN_QUOTE
+  This form marks body to be evaluated at compile time but not when the compiled program is loaded. The result of evaluation by the compiler becomes a constant which appears in the compiled program. If you load the source file, rather than compiling it, body is evaluated normally.
+
+  If you have a constant that needs some calculation to produce, =eval-when-compile= can do that at compile-time. For example,
+
+  #+BEGIN_EXAMPLE
+                (defvar my-regexp
+                  (eval-when-compile (regexp-opt '("aaa" "aba" "abb"))))
+  #+END_EXAMPLE
+
+  If you're using another package, but only need macros from it (the byte compiler will expand those), then =eval-when-compile= can be used to load it for compiling, but not executing. For example,
+
+  #+BEGIN_EXAMPLE
+                (eval-when-compile
+                  (require 'my-macro-package))
+  #+END_EXAMPLE
+
+  The same sort of thing goes for macros and =defsubst= functions defined locally and only for use within the file. They are needed for compiling the file, but in most cases they are not needed for execution of the compiled file. For example,
+
+  #+BEGIN_EXAMPLE
+                (eval-when-compile
+                  (unless (fboundp 'some-new-thing)
+                    (defmacro 'some-new-thing ()
+                      (compatibility code))))
+  #+END_EXAMPLE
+
+  This is often good for code that's only a fallback for compatibility with other versions of Emacs.
+
+  *Common Lisp Note:* At top level, =eval-when-compile= is analogous to the Common Lisp idiom =(eval-when (compile eval) ...)=. Elsewhere, the Common Lisp '#.' reader macro (but not when interpreting) is closer to what =eval-when-compile= does.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte_002dCode-Objects][Byte-Code Objects]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval-During-Compile][Eval During Compile]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.6 Compiler Errors
+    :PROPERTIES:
+    :CUSTOM_ID: compiler-errors
+    :END:
+
+Error and warning messages from byte compilation are printed in a buffer named /Compile-Log/. These messages include file names and line numbers identifying the location of the problem. The usual Emacs commands for operating on compiler output can be used on these messages.
+
+When an error is due to invalid syntax in the program, the byte compiler might get confused about the error's exact location. One way to investigate is to switch to the buffer /Compiler Input/. (This buffer name starts with a space, so it does not show up in the Buffer Menu.) This buffer contains the program being compiled, and point shows how far the byte compiler was able to read; the cause of the error might be nearby. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Errors][Syntax Errors]], for some tips for locating syntax errors.
+
+A common type of warning issued by the byte compiler is for functions and variables that were used but not defined. Such warnings report the line number for the end of the file, not the locations where the missing functions or variables were used; to find these, you must search the file manually.
+
+If you are sure that a warning message about a missing function or variable is unjustified, there are several ways to suppress it:
+
+- You can suppress the warning for a specific call to a function
+
+  func
+
+  by conditionalizing it on an
+
+  #+BEGIN_EXAMPLE
+      fboundp
+  #+END_EXAMPLE
+
+  test, like this:
+
+  #+BEGIN_EXAMPLE
+                (if (fboundp 'func) ...(func ...)...)
+  #+END_EXAMPLE
+
+  The call to func must be in the then-form of the =if=, and func must appear quoted in the call to =fboundp=. (This feature operates for =cond= as well.)
+
+- Likewise, you can suppress the warning for a specific use of a variable
+
+  variable
+
+  by conditionalizing it on a
+
+  #+BEGIN_EXAMPLE
+      boundp
+  #+END_EXAMPLE
+
+  test:
+
+  #+BEGIN_EXAMPLE
+                (if (boundp 'variable) ...variable...)
+  #+END_EXAMPLE
+
+  The reference to variable must be in the then-form of the =if=, and variable must appear quoted in the call to =boundp=.
+
+- You can tell the compiler that a function is defined using =declare-function=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Declaring-Functions][Declaring Functions]].
+
+- Likewise, you can tell the compiler that a variable is defined using =defvar= with no initial value. (Note that this marks the variable as special, i.e. dynamically bound, but only within the current lexical scope, or file if at top-level.) See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]].
+
+You can also suppress any and all compiler warnings within a certain expression using the construct =with-no-warnings=:
+
+--- Special Form: *with-no-warnings* body...
+
+#+BEGIN_QUOTE
+  In execution, this is equivalent to =(progn=body=...)=, but the compiler does not issue warnings for anything that occurs inside body.
+
+  We recommend that you use this construct around the smallest possible piece of code, to avoid missing possible warnings other than one you intend to suppress.
+#+END_QUOTE
+
+Byte compiler warnings can be controlled more precisely by setting the variable =byte-compile-warnings=. See its documentation string for details.
+
+Sometimes you may wish the byte-compiler warnings to be reported using =error=. If so, set =byte-compile-error-on-warn= to a non-=nil= value.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Disassembly][Disassembly]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiler-Errors][Compiler Errors]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.7 Byte-Code Function Objects
+    :PROPERTIES:
+    :CUSTOM_ID: byte-code-function-objects
+    :END:
+
+Byte-compiled functions have a special data type: they are byte-code function objects. Whenever such an object appears as a function to be called, Emacs uses the byte-code interpreter to execute the byte-code.
+
+Internally, a byte-code function object is much like a vector; its elements can be accessed using =aref=. Its printed representation is like that for a vector, with an additional '#' before the opening '['. It must have at least four elements; there is no maximum number, but only the first six elements have any normal use. They are:
+
+- argdesc
+
+  The descriptor of the arguments. This can either be a list of arguments, as described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Argument-List][Argument List]], or an integer encoding the required number of arguments. In the latter case, the value of the descriptor specifies the minimum number of arguments in the bits zero to 6, and the maximum number of arguments in bits 8 to 14. If the argument list uses =&rest=, then bit 7 is set; otherwise it's cleared. If argdesc is a list, the arguments will be dynamically bound before executing the byte code. If argdesc is an integer, the arguments will be instead pushed onto the stack of the byte-code interpreter, before executing the code.
+
+- byte-code
+
+  The string containing the byte-code instructions.
+
+- constants
+
+  The vector of Lisp objects referenced by the byte code. These include symbols used as function names and variable names.
+
+- stacksize
+
+  The maximum stack size this function needs.
+
+- docstring
+
+  The documentation string (if any); otherwise, =nil=. The value may be a number or a list, in case the documentation string is stored in a file. Use the function =documentation= to get the real documentation string (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Documentation][Accessing Documentation]]).
+
+- interactive
+
+  The interactive spec (if any). This can be a string or a Lisp expression. It is =nil= for a function that isn't interactive.
+
+Here's an example of a byte-code function object, in printed representation. It is the definition of the command =backward-sexp=.
+
+#+BEGIN_EXAMPLE
+         #[256
+           "\211\204^G^@\300\262^A\301^A[!\207"
+           [1 forward-sexp]
+           3
+           1793299
+           "^p"]
+#+END_EXAMPLE
+
+The primitive way to create a byte-code object is with =make-byte-code=:
+
+--- Function: *make-byte-code* &rest elements
+
+#+BEGIN_QUOTE
+  This function constructs and returns a byte-code function object with elements as its elements.
+#+END_QUOTE
+
+You should not try to come up with the elements for a byte-code function yourself, because if they are inconsistent, Emacs may crash when you call the function. Always leave it to the byte compiler to create these objects; it makes the elements consistent (we hope).
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte_002dCode-Objects][Byte-Code Objects]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]
+
+* 17.8 Disassembled Byte-Code
+    :PROPERTIES:
+    :CUSTOM_ID: disassembled-byte-code
+    :END:
+
+People do not write byte-code; that job is left to the byte compiler. But we provide a disassembler to satisfy a cat-like curiosity. The disassembler converts the byte-compiled code into human-readable form.
+
+The byte-code interpreter is implemented as a simple stack machine. It pushes values onto a stack of its own, then pops them off to use them in calculations whose results are themselves pushed back on the stack. When a byte-code function returns, it pops a value off the stack and returns it as the value of the function.
+
+In addition to the stack, byte-code functions can use, bind, and set ordinary Lisp variables, by transferring values between variables and the stack.
+
+--- Command: *disassemble* object &optional buffer-or-name
+
+#+BEGIN_QUOTE
+  This command displays the disassembled code for object. In interactive use, or if buffer-or-name is =nil= or omitted, the output goes in a buffer named /Disassemble/. If buffer-or-name is non-=nil=, it must be a buffer or the name of an existing buffer. Then the output goes there, at point, and point is left before the output.
+
+  The argument object can be a function name, a lambda expression (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lambda-Expressions][Lambda Expressions]]), or a byte-code object (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte_002dCode-Objects][Byte-Code Objects]]). If it is a lambda expression, =disassemble= compiles it and disassembles the resulting compiled code.
+#+END_QUOTE
+
+Here are two examples of using the =disassemble= function. We have added explanatory comments to help you relate the byte-code to the Lisp source; these do not appear in the output of =disassemble=.
+
+#+BEGIN_EXAMPLE
+         (defun factorial (integer)
+           "Compute factorial of an integer."
+           (if (= 1 integer) 1
+             (* integer (factorial (1- integer)))))
+              ⇒ factorial
+
+         (factorial 4)
+              ⇒ 24
+
+         (disassemble 'factorial)
+              -| byte-code for factorial:
+          doc: Compute factorial of an integer.
+          args: (integer)
+
+         0   varref   integer      ; Get the value of integer and
+                                   ;   push it onto the stack.
+         1   constant 1            ; Push 1 onto stack.
+         2   eqlsign               ; Pop top two values off stack, compare
+                                   ;   them, and push result onto stack.
+         3   goto-if-nil 1         ; Pop and test top of stack;
+                                   ;   if nil, go to 1, else continue.
+         6   constant 1            ; Push 1 onto top of stack.
+         7   return                ; Return the top element of the stack.
+         8:1 varref   integer      ; Push value of integer onto stack.
+         9   constant factorial    ; Push factorial onto stack.
+         10  varref   integer      ; Push value of integer onto stack.
+         11  sub1                  ; Pop integer, decrement value,
+                                   ;   push new value onto stack.
+         12  call     1            ; Call function factorial using first
+                                   ;   (i.e., top) stack element as argument;
+                                   ;   push returned value onto stack.
+         13 mult                   ; Pop top two values off stack, multiply
+                                   ;   them, and push result onto stack.
+         14 return                 ; Return the top element of the stack.
+#+END_EXAMPLE
+
+The =silly-loop= function is somewhat more complex:
+
+#+BEGIN_EXAMPLE
+         (defun silly-loop (n)
+           "Return time before and after N iterations of a loop."
+           (let ((t1 (current-time-string)))
+             (while (> (setq n (1- n))
+                       0))
+             (list t1 (current-time-string))))
+              ⇒ silly-loop
+
+         (disassemble 'silly-loop)
+              -| byte-code for silly-loop:
+          doc: Return time before and after N iterations of a loop.
+          args: (n)
+
+         0   constant current-time-string  ; Push current-time-string
+                                           ;   onto top of stack.
+         1   call     0            ; Call current-time-string with no
+                                   ;   argument, push result onto stack.
+         2   varbind  t1           ; Pop stack and bind t1 to popped value.
+         3:1 varref   n            ; Get value of n from the environment
+                                   ;   and push the value on the stack.
+         4   sub1                  ; Subtract 1 from top of stack.
+         5   dup                   ; Duplicate top of stack; i.e., copy the top
+                                   ;   of the stack and push copy onto stack.
+         6   varset   n            ; Pop the top of the stack,
+                                   ;   and bind n to the value.
+
+         ;; (In effect, the sequence dup varset copies the top of the stack
+         ;; into the value of n without popping it.)
+
+         7   constant 0            ; Push 0 onto stack.
+         8   gtr                   ; Pop top two values off stack,
+                                   ;   test if n is greater than 0
+                                   ;   and push result onto stack.
+         9   goto-if-not-nil 1     ; Goto 1 if n > 0
+                                   ;   (this continues the while loop)
+                                   ;   else continue.
+         12  varref   t1           ; Push value of t1 onto stack.
+         13  constant current-time-string  ; Push current-time-string
+                                           ;   onto the top of the stack.
+         14  call     0            ; Call current-time-string again.
+         15  unbind   1            ; Unbind t1 in local environment.
+         16  list2                 ; Pop top two elements off stack, create a
+                                   ;   list of them, and push it onto stack.
+         17  return                ; Return value of the top of stack.
+#+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Read-and-Print][Read and Print]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Top][Top]]
+

@@ -1,0 +1,351 @@
+#+TITLE: 01.Introduction
+* 1 Introduction
+   :PROPERTIES:
+   :CUSTOM_ID: introduction
+   :END:
+   :LOGBOOK:
+   CLOCK: [2020-03-14 Sat 07:19]--[2020-03-14 Sat 08:08] =>  0:49
+   :END:
+
+Most of the GNU Emacs text editor is written in the programming language called Emacs Lisp. You can write new code in Emacs Lisp and install it as an extension to the editor. However, Emacs Lisp is more than a mere extension language; it is a full computer programming language in its own right. You can use it as you would any other programming language.
+
+Because Emacs Lisp is designed for use in an editor, it has special features for scanning and parsing text as well as features for handling files, buffers, displays, subprocesses, and so on. Emacs Lisp is closely integrated with the editing facilities; thus, editing commands are functions that can also conveniently be called from Lisp programs, and parameters for customization are ordinary Lisp variables.
+
+This manual attempts to be a full description of Emacs Lisp. For a beginner's introduction to Emacs Lisp, see An Introduction to Emacs Lisp Programming, by Bob Chassell, also published by the Free Software Foundation. This manual presumes considerable familiarity with the use of Emacs for editing; see The GNU Emacs Manual for this basic information.
+
+Generally speaking, the earlier chapters describe features of Emacs Lisp that have counterparts in many programming languages, and later chapters describe features that are peculiar to Emacs Lisp or relate specifically to editing.
+
+This is the GNU Emacs Lisp Reference Manual, corresponding to Emacs version 26.3.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Caveats][Caveats]]: Flaws and a request for help.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lisp-History][Lisp History]]: Emacs Lisp is descended from Maclisp.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Conventions][Conventions]]: How the manual is formatted.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Version-Info][Version Info]]: Which Emacs version is running?
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Acknowledgments][Acknowledgments]]: The authors, editors, and sponsors of this manual.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lisp-History][Lisp History]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Introduction][Introduction]]
+
+* 1.1 Caveats
+    :PROPERTIES:
+    :CUSTOM_ID: caveats
+    :END:
+
+This manual has gone through numerous drafts. It is nearly complete but not flawless. There are a few topics that are not covered, either because we consider them secondary (such as most of the individual modes) or because they are yet to be written. Because we are not able to deal with them completely, we have left out several parts intentionally.
+
+The manual should be fully correct in what it does cover, and it is therefore open to criticism on anything it says---from specific examples and descriptive text, to the ordering of chapters and sections. If something is confusing, or you find that you have to look at the sources or experiment to learn something not covered in the manual, then perhaps the manual should be fixed. Please let us know.
+
+As you use this manual, we ask that you send corrections as soon as you find them. If you think of a simple, real life example for a function or group of functions, please make an effort to write it up and send it in. Please reference any comments to the node name and function or variable name, as appropriate. Also state the number of the edition you are criticizing.
+
+Please send comments and corrections using M-x report-emacs-bug.
+
+* 1.2 Lisp History
+    :PROPERTIES:
+    :CUSTOM_ID: lisp-history
+    :END:
+
+Lisp (LISt Processing language) was first developed in the late 1950s at the Massachusetts Institute of Technology for research in artificial intelligence. The great power of the Lisp language makes it ideal for other purposes as well, such as writing editing commands.
+
+~Dozens~ of Lisp implementations have been built over the years, each with its own ~idiosyncrasies~. Many of them were inspired by Maclisp, which was written in the 1960s at MIT's Project MAC. Eventually the implementers of the descendants of Maclisp came together and developed a standard for Lisp systems, called Common Lisp. In the meantime, Gerry Sussman and Guy Steele at MIT developed a simplified but very powerful dialect of Lisp, called Scheme.
+
+GNU Emacs Lisp is largely inspired by Maclisp, and a little by Common Lisp. If you know Common Lisp, you will notice many similarities. However, many features of Common Lisp have been omitted or simplified in order to reduce the memory requirements of GNU Emacs. Sometimes the simplifications are so drastic that a Common Lisp user might be very confused. We will occasionally point out how GNU Emacs Lisp differs from Common Lisp. If you don't know Common Lisp, don't worry about it; this manual is self-contained.
+
+A certain amount of Common Lisp emulation is available via the cl-lib library. See [[https://www.gnu.org/software/emacs/manual/html_mono/cl.html#Top][Overview]].
+
+Emacs Lisp is not at all influenced by Scheme; but the GNU project has an implementation of Scheme, called Guile. We use it in all new GNU software that calls for extensibility.
+
+* 1.3 Conventions
+    :PROPERTIES:
+    :CUSTOM_ID: conventions
+    :END:
+
+This section explains the notational conventions that are used in this manual. You may want to skip this section and refer back to it later.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Some-Terms][Some Terms]]: Explanation of terms we use in this manual.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#nil-and-t][nil and t]]: How the symbols =nil= and =t= are used.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Evaluation-Notation][Evaluation Notation]]: The format we use for examples of evaluation.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Printing-Notation][Printing Notation]]: The format we use when examples print text.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Error-Messages][Error Messages]]: The format we use for examples of errors.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-Text-Notation][Buffer Text Notation]]: The format we use for buffer contents in examples.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Format-of-Descriptions][Format of Descriptions]]: Notation for describing functions, variables, etc.
+
+
+** 1.3.1 Some Terms
+     :PROPERTIES:
+     :CUSTOM_ID: some-terms
+     :END:
+
+Throughout this manual, the phrases "the Lisp reader" and "the Lisp printer" refer to those routines in Lisp that convert textual representations of Lisp objects into actual Lisp objects, and vice versa. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Printed-Representation][Printed Representation]], for more details. You, the person reading this manual, are thought of as the programmer and are addressed as "you". The user is the person who uses Lisp programs, including those you write.
+
+Examples of Lisp code are formatted like this: =(list 1 2 3)=. Names that represent metasyntactic variables, or arguments to a function being described, are formatted like this: first-number.
+
+# 得到: 我的教程中, 也应该使用"你"
+
+** 1.3.2 =nil= and =t=
+     :PROPERTIES:
+     :CUSTOM_ID: nil-and-t
+     :END:
+
+In Emacs Lisp, the symbol =nil= has three separate meanings: it is a symbol with the name 'nil'; it is the logical truth value false; and it is the empty list---the list of zero elements. When used as a variable, =nil= always has the value =nil=.
+
+As far as the Lisp reader is concerned, '()' and 'nil' are identical: they stand for the same object, the symbol =nil=. The different ways of writing the symbol are intended entirely for human readers. After the Lisp reader has read either '()' or 'nil', there is no way to determine which representation was actually written by the programmer.
+
+In this manual, we write =()= when we wish to emphasize that it means the empty list, and we write =nil= when we wish to emphasize that it means the truth value false. That is a good convention to use in Lisp programs also.
+
+#+BEGIN_SRC elisp
+         (cons 'foo ())                ; Emphasize the empty list
+         (setq foo-flag nil)           ; Emphasize the truth value false
+#+END_SRC
+
+In contexts where a truth value is expected, any =non-nil= value is considered to be true. However, =t= is the preferred way to represent the truth value true. When you need to choose a value that represents true, and there is no other basis for choosing, use =t=. The symbol =t= always has the value =t=.
+
+In Emacs Lisp, =nil= and =t= are special symbols that always evaluate to themselves. This is so that you do not need to quote them to use them as constants in a program. An attempt to change their values ~results in~ a =setting-constant= error. See [[file:12.Variables.org::12.2 Variables that Never Change][12.2 Constant Variables]]
+.
+# 得到-词汇: result in 用得好.
+--- Function: *booleanp* object
+
+#+BEGIN_QUOTE
+  Return =non-nil= if object is one of the two canonical boolean values: =t= or =nil=.
+#+END_QUOTE
+
+** 1.3.3 Evaluation Notation
+     :PROPERTIES:
+     :CUSTOM_ID: evaluation-notation
+     :END:
+
+A Lisp expression that you can evaluate is called a form. Evaluating a form always produces a result, which is a Lisp object. In the examples in this manual, this is indicated with '⇒':
+
+#+BEGIN_SRC elisp
+         (car '(1 2))
+              ⇒ 1
+#+END_SRC
+
+You can read this as "=(car '(1 2))= evaluates to 1".
+
+When a form is a macro call, it expands into a new form for Lisp to evaluate. We show the result of the expansion with '==>'. We may or may not show the result of the evaluation of the expanded form.
+
+#+BEGIN_SRC elisp
+         (third '(a b c))
+              ==> (car (cdr (cdr '(a b c))))
+              ⇒ c
+#+END_SRC
+
+To help describe one form, we sometimes show another form that produces identical results. The exact equivalence of two forms is indicated with '=='.
+
+#+BEGIN_SRC elisp
+         (make-sparse-keymap) == (list 'keymap)
+#+END_SRC
+
+
+** 1.3.4 Printing Notation
+     :PROPERTIES:
+     :CUSTOM_ID: printing-notation
+     :END:
+
+Many of the examples in this manual print text when they are evaluated. If you execute example code in a Lisp Interaction buffer (such as the buffer /scratch/), the printed text is inserted into the buffer. If you execute the example by other means (such as by evaluating the function =eval-region=), the printed text is displayed in the echo area.
+
+Examples in this manual indicate printed text with '-|', irrespective of where that text goes. The value returned by evaluating the form follows on a separate line with '⇒'.
+
+#+BEGIN_SRC elisp
+         (progn (prin1 'foo) (princ "\n") (prin1 'bar))
+              -| foo
+              -| bar
+              ⇒ bar
+#+END_SRC
+
+** 1.3.5 Error Messages
+     :PROPERTIES:
+     :CUSTOM_ID: error-messages
+     :END:
+
+Some examples signal errors. This normally displays an error message in the echo area. We show the error message on a line starting with 'error-->'. Note that 'error-->' itself does not appear in the echo area.
+
+#+BEGIN_SRC elisp
+         (+ 23 'x)
+         error--> Wrong type argument: number-or-marker-p, x
+#+END_SRC
+
+** 1.3.6 Buffer Text Notation
+     :PROPERTIES:
+     :CUSTOM_ID: buffer-text-notation
+     :END:
+
+Some examples describe modifications to the contents of a buffer, by showing the before and after versions of the text. These examples show the contents of the buffer in question between two lines of dashes containing the buffer name. In addition, '-!-' indicates the location of point. (The symbol for point, of course, is not part of the text in the buffer; it indicates the place /between/ two characters where point is currently located.)
+
+#+BEGIN_SRC elisp
+         ---------- Buffer: foo ----------
+         This is the -!-contents of foo.
+         ---------- Buffer: foo ----------
+
+         (insert "changed ")
+              ⇒ nil
+         ---------- Buffer: foo ----------
+         This is the changed -!-contents of foo.
+         ---------- Buffer: foo ----------
+#+END_SRC
+
+** 1.3.7 Format of Descriptions
+     :PROPERTIES:
+     :CUSTOM_ID: format-of-descriptions
+     :END:
+
+Functions, variables, macros, commands, user options, and special forms are described in this manual in a uniform format. The first line of a description contains the name of the item followed by its arguments, if any. The category---function, variable, or whatever---appears at the beginning of the line. The description follows on ~succeeding~ lines, sometimes with examples.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#A-Sample-Function-Description][A Sample Function Description]]: A description of an imaginary function, =foo=.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#A-Sample-Variable-Description][A Sample Variable Description]]: A description of an imaginary variable, =electric-future-map=.
+
+
+*** 1.3.7.1 A Sample Function Description
+      :PROPERTIES:
+      :CUSTOM_ID: a-sample-function-description
+      :END:
+
+In a function description, the name of the function being described appears first. It is followed on the same line by a list of argument names. These names are also used in the body of the description, to stand for the values of the arguments.
+
+The appearance of the keyword =&optional= in the argument list indicates that the ~subsequent~ arguments may be omitted (omitted arguments default to =nil=). Do not write =&optional= when you call the function.
+
+The keyword =&rest= (which must be followed by a single argument name) indicates that any number of arguments can follow. The single argument name following =&rest= receives, as its value, a list of all the remaining arguments passed to the function. Do not write =&rest= when you call the function.
+
+Here is a description of an imaginary function =foo=:
+
+--- Function: *foo* integer1 &optional integer2 &rest integers
+
+
+  The function =foo= subtracts integer1 from integer2, then adds all the rest of the arguments to the result. If integer2 is not supplied, then the number 19 is used by default.
+
+  #+BEGIN_SRC elisp
+                (foo 1 5 3 9)
+                     ⇒ 16
+                (foo 5)
+                     ⇒ 14
+  #+END_SRC
+
+  More generally,
+
+  #+BEGIN_SRC elisp
+                (foo w x y...)
+                ==
+                (+ (- x w) y...)
+  #+END_SRC
+# 短评: 实话讲, 没看明白, 试图表达什么意思.
+
+By convention, any argument whose name contains the name of a type (e.g., integer, integer1 or buffer) is expected to be of that type. A plural of a type (such as buffers) often means a list of objects of that type. An argument named object may be of any type. (For a list of Emacs object types, (see [[file:02.Lisp-Data-Types.org]].) An argument with any other sort of name (e.g., new-file) is specific to the function; if the function has a documentation string, the type of the argument should be described there (see [[file:24.Documentation.org]]).
+
+See [[file:13.Functions.org::13.2 Lambda Expressions]], for a more complete description of arguments modified by =&optional= and =&rest=.
+
+Command, macro, and special form descriptions have the same format, but the word 'Function' is replaced by 'Command', 'Macro', or 'Special Form', respectively. Commands are simply functions that may be called interactively; macros process their arguments differently from functions (the arguments are not evaluated), but are presented the same way.
+# 短评: 此处初窥marco的特性, argument not evaluated.
+The descriptions of macros and special forms use a more complex notation to specify optional and repeated arguments, because they can break the argument list down into separate arguments in more complicated ways. '[optional-arg]' means that optional-arg is optional and 'repeated-args...' stands for zero or more arguments. Parentheses are used when several arguments are grouped into additional levels of list structure. Here is an example:
+
+--- Special Form: *count-loop* (var [from to [inc]]) body...
+
+  This imaginary special form implements a loop that executes the body forms and then increments the variable var on each iteration. On the first iteration, the variable has the value from; on subsequent iterations, it is incremented by one (or by inc if that is given). The loop exits before executing body if var equals to. Here is an example:
+
+  #+BEGIN_SRC elisp
+                (count-loop (i 0 10)
+                  (prin1 i) (princ " ")
+                  (prin1 (aref vector i))
+                  (terpri))
+  #+END_SRC
+
+  If from and to are omitted, var is bound to =nil= before the loop begins, and the loop exits if var is non-=nil= at the beginning of an iteration. Here is an example:
+
+  #+BEGIN_SRC elisp
+                (count-loop (done)
+                  (if (pending)
+                      (fixit)
+                    (setq done t)))
+  #+END_SRC
+
+  In this special form, the arguments from and to are optional, but must both be present or both absent. If they are present, inc may optionally be specified as well. These arguments are grouped with the argument var into a list, to distinguish them from body, which includes all remaining elements of the form.
+
+*** 1.3.7.2 A Sample Variable Description
+      :PROPERTIES:
+      :CUSTOM_ID: a-sample-variable-description
+      :END:
+
+A variable is a name that can be bound (or set) to an object. The object to which a variable is bound is called a value; we say also that variable holds that value. Although nearly all variables can be set by the user, certain variables exist specifically so that users can change them; these are called user options. Ordinary variables and user options are described using a format like that for functions, except that there are no arguments.
+
+Here is a description of the imaginary =electric-future-map= variable.
+
+--- Variable: *electric-future-map*
+
+#+BEGIN_QUOTE
+  The value of this variable is a full keymap used by Electric Command Future mode. The functions in this map allow you to edit commands you have not yet thought about executing.
+#+END_QUOTE
+
+User option descriptions have the same format, but 'Variable' is replaced by 'User Option'.
+
+* 1.4 Version Information
+    :PROPERTIES:
+    :CUSTOM_ID: version-information
+    :END:
+
+These facilities provide information about which version of Emacs is in use.
+
+--- Command: *emacs-version* &optional here
+
+
+  This function returns a string describing the version of Emacs that is running. It is useful to include this string in bug reports.
+
+#+BEGIN_SRC elisp
+  (emacs-version)
+#+END_SRC
+
+#+RESULTS:
+: GNU Emacs 26.3 (build 2, x86_64-pc-linux-gnu, GTK+ Version 3.24.11)
+:  of 2019-09-23, modified by Debian
+
+  If here is non-=nil=, it inserts the text in the buffer before point, and returns =nil=. When this function is called interactively, it prints the same information in the echo area, but giving a prefix argument makes here =non-nil=.
+
+
+--- Variable: *emacs-build-time*
+
+
+  The value of this variable indicates the time at which Emacs was built. It is a list of four integers, like the value of =current-time= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Time-of-Day][Time of Day]]), or is =nil= if the information is not available.
+
+  #+BEGIN_SRC elisp
+ emacs-build-time
+                     ⇒ (20614 63694 515336 438000)
+  #+END_SRC
+
+
+--- Variable: *emacs-version*
+
+
+  The value of this variable is the version of Emacs being run. It is a string such as ="26.1"= . A value with three numeric components, such as ="26.0.91"= , indicates an unreleased test version. (Prior to Emacs 26.1, the string includes an extra final component with the integer that is now stored in =emacs-build-number=; e.g., ="25.1.1"=.)
+
+
+--- Variable: *emacs-major-version*
+
+
+  The major version number of Emacs, as an integer. For Emacs version 23.1, the value is 23.
+
+
+--- Variable: *emacs-minor-version*
+
+
+  The minor version number of Emacs, as an integer. For Emacs version 23.1, the value is 1.
+
+
+--- Variable: *emacs-build-number*
+
+
+  An integer that increments each time Emacs is built in the same directory (without cleaning). This is only of relevance when developing Emacs.
+
+
+
+* 1.5 Acknowledgments
+    :PROPERTIES:
+    :CUSTOM_ID: acknowledgments
+    :END:
+
+This manual was originally written by Robert Krawitz, Bil Lewis, Dan LaLiberte, Richard M. Stallman and Chris Welty, the volunteers of the GNU manual group, in an effort extending over several years. Robert J. Chassell helped to review and edit the manual, with the support of the Defense Advanced Research Projects Agency, ARPA Order 6082, arranged by Warren A. Hunt, Jr. of Computational Logic, Inc. Additional sections have since been written by Miles Bader, Lars Brinkhoff, Chong Yidong, Kenichi Handa, Lute Kamstra, Juri Linkov, Glenn Morris, Thien-Thi Nguyen, Dan Nicolaescu, Martin Rudalics, Kim F. Storm, Luc Teirlinck, and Eli Zaretskii, and others.
+
+Corrections were supplied by Drew Adams, Juanma Barranquero, Karl Berry, Jim Blandy, Bard Bloom, Stephane Boucher, David Boyes, Alan Carroll, Richard Davis, Lawrence R. Dodd, Peter Doornbosch, David A. Duff, Chris Eich, Beverly Erlebacher, David Eckelkamp, Ralf Fassel, Eirik Fuller, Stephen Gildea, Bob Glickstein, Eric Hanchrow, Jesper Harder, George Hartzell, Nathan Hess, Masayuki Ida, Dan Jacobson, Jak Kirman, Bob Knighten, Frederick M. Korz, Joe Lammens, Glenn M. Lewis, K. Richard Magill, Brian Marick, Roland McGrath, Stefan Monnier, Skip Montanaro, John Gardiner Myers, Thomas A. Peterson, Francesco Potortì, Friedrich Pukelsheim, Arnold D. Robbins, Raul Rockwell, Jason Rumney, Per Starbäck, Shinichirou Sugou, Kimmo Suominen, Edward Tharp, Bill Trost, Rickard Westman, Jean White, Eduard Wiebe, Matthew Wilding, Carl Witty, Dale Worley, Rusty Wright, and David D. Zuhn.
+
+For a more complete list of contributors, please see the relevant change log entries in the Emacs source repository.
+
+
+* 总结
+读完本章的所学所得, 只是一点:
+&optiontial and &rest

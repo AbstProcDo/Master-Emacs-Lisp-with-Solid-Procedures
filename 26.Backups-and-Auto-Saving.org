@@ -1,0 +1,590 @@
+#+TITLE: 26.Backups-and-Auto-Saving
+* 26 Backups and Auto-Saving
+   :PROPERTIES:
+   :CUSTOM_ID: backups-and-auto-saving
+   :END:
+
+Backup files and auto-save files are two methods by which Emacs tries to protect the user from the consequences of crashes or of the user's own errors. Auto-saving preserves the text from earlier in the current editing session; backup files preserve file contents prior to the current session.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]]: How backup files are made; how their names are chosen.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Auto_002dSaving][Auto-Saving]]: How auto-save files are made; how their names are chosen.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Reverting][Reverting]]: =revert-buffer=, and how to customize what it does.
+* 26.1 Backup Files
+    :PROPERTIES:
+    :CUSTOM_ID: backup-files
+    :END:
+
+A backup file is a copy of the old contents of a file you are editing. Emacs makes a backup file the first time you save a buffer into its visited file. Thus, normally, the backup file contains the contents of the file as it was before the current editing session. The contents of the backup file normally remain unchanged once it exists.
+
+Backups are usually made by renaming the visited file to a new name. Optionally, you can specify that backup files should be made by copying the visited file. This choice makes a difference for files with multiple names; it also can affect whether the edited file remains owned by the original owner or becomes owned by the user editing it.
+
+By default, Emacs makes a single backup file for each file edited. You can alternatively request numbered backups; then each new backup file gets a new name. You can delete old numbered backups when you don't want them any more, or Emacs can delete them automatically.
+
+For performance, the operating system may not write the backup file's contents to secondary storage immediately, or may alias the backup data with the original until one or the other is later modified. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Files-and-Storage][Files and Storage]].
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Making-Backups][Making Backups]]: How Emacs makes backup files, and when.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Rename-or-Copy][Rename or Copy]]: Two alternatives: renaming the old file or copying it.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Numbered-Backups][Numbered Backups]]: Keeping multiple backups for each source file.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Names][Backup Names]]: How backup file names are computed; customization.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Rename-or-Copy][Rename or Copy]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]]
+
+** 26.1.1 Making Backup Files
+     :PROPERTIES:
+     :CUSTOM_ID: making-backup-files
+     :END:
+
+--- Function: *backup-buffer*
+
+#+BEGIN_QUOTE
+  This function makes a backup of the file visited by the current buffer, if appropriate. It is called by =save-buffer= before saving the buffer the first time.
+
+  If a backup was made by renaming, the return value is a cons cell of the form (modes extra-alist backupname), where modes are the mode bits of the original file, as returned by =file-modes= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Testing-Accessibility][Testing Accessibility]]), extra-alist is an alist describing the original file's extended attributes, as returned by =file-extended-attributes= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Extended-Attributes][Extended Attributes]]), and backupname is the name of the backup.
+
+  In all other cases (i.e., if a backup was made by copying or if no backup was made), this function returns =nil=.
+#+END_QUOTE
+
+--- Variable: *buffer-backed-up*
+
+#+BEGIN_QUOTE
+  This buffer-local variable says whether this buffer's file has been backed up on account of this buffer. If it is non-=nil=, the backup file has been written. Otherwise, the file should be backed up when it is next saved (if backups are enabled). This is a permanent local; =kill-all-local-variables= does not alter it.
+#+END_QUOTE
+
+--- User Option: *make-backup-files*
+
+#+BEGIN_QUOTE
+  This variable determines whether or not to make backup files. If it is non-=nil=, then Emacs creates a backup of each file when it is saved for the first time---provided that =backup-inhibited= is =nil= (see below).
+
+  The following example shows how to change the =make-backup-files= variable only in the Rmail buffers and not elsewhere. Setting it =nil= stops Emacs from making backups of these files, which may save disk space. (You would put this code in your init file.)
+
+  #+BEGIN_EXAMPLE
+                (add-hook 'rmail-mode-hook
+                          (lambda () (setq-local make-backup-files nil)))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Variable: *backup-enable-predicate*
+
+#+BEGIN_QUOTE
+  This variable's value is a function to be called on certain occasions to decide whether a file should have backup files. The function receives one argument, an absolute file name to consider. If the function returns =nil=, backups are disabled for that file. Otherwise, the other variables in this section say whether and how to make backups.
+
+  The default value is =normal-backup-enable-predicate=, which checks for files in =temporary-file-directory= and =small-temporary-file-directory=.
+#+END_QUOTE
+
+--- Variable: *backup-inhibited*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, backups are inhibited. It records the result of testing =backup-enable-predicate= on the visited file name. It can also coherently be used by other mechanisms that inhibit backups based on which file is visited. For example, VC sets this variable non-=nil= to prevent making backups for files managed with a version control system.
+
+  This is a permanent local, so that changing the major mode does not lose its value. Major modes should not set this variable---they should set =make-backup-files= instead.
+#+END_QUOTE
+
+--- User Option: *backup-directory-alist*
+
+#+BEGIN_QUOTE
+  This variable's value is an alist of filename patterns and backup directories. Each element looks like
+
+  #+BEGIN_EXAMPLE
+                (regexp . directory)
+  #+END_EXAMPLE
+
+  Backups of files with names matching regexp will be made in directory. directory may be relative or absolute. If it is absolute, so that all matching files are backed up into the same directory, the file names in this directory will be the full name of the file backed up with all directory separators changed to '!' to prevent clashes. This will not work correctly if your filesystem truncates the resulting name.
+
+  For the common case of all backups going into one directory, the alist should contain a single element pairing '"."' with the appropriate directory.
+
+  If this variable is =nil= (the default), or it fails to match a filename, the backup is made in the original file's directory.
+
+  On MS-DOS filesystems without long names this variable is always ignored.
+#+END_QUOTE
+
+--- User Option: *make-backup-file-name-function*
+
+#+BEGIN_QUOTE
+  This variable's value is a function to use for making backup file names. The function =make-backup-file-name= calls it. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Names][Naming Backup Files]].
+
+  This could be buffer-local to do something special for specific files. If you change it, you may need to change =backup-file-name-p= and =file-name-sans-versions= too.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Numbered-Backups][Numbered Backups]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Making-Backups][Making Backups]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]]
+
+** 26.1.2 Backup by Renaming or by Copying?
+     :PROPERTIES:
+     :CUSTOM_ID: backup-by-renaming-or-by-copying
+     :END:
+
+There are two ways that Emacs can make a backup file:
+
+- Emacs can rename the original file so that it becomes a backup file, and then write the buffer being saved into a new file. After this procedure, any other names (i.e., hard links) of the original file now refer to the backup file. The new file is owned by the user doing the editing, and its group is the default for new files written by the user in that directory.\\
+- Emacs can copy the original file into a backup file, and then overwrite the original file with new contents. After this procedure, any other names (i.e., hard links) of the original file continue to refer to the current (updated) version of the file. The file's owner and group will be unchanged.
+
+The first method, renaming, is the default.
+
+The variable =backup-by-copying=, if non-=nil=, says to use the second method, which is to copy the original file and overwrite it with the new buffer contents. The variable =file-precious-flag=, if non-=nil=, also has this effect (as a sideline of its main significance). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Buffers][Saving Buffers]].
+
+--- User Option: *backup-by-copying*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, Emacs always makes backup files by copying. The default is =nil=.
+#+END_QUOTE
+
+The following three variables, when non-=nil=, cause the second method to be used in certain special cases. They have no effect on the treatment of files that don't fall into the special cases.
+
+--- User Option: *backup-by-copying-when-linked*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, Emacs makes backups by copying for files with multiple names (hard links). The default is =nil=.
+
+  This variable is significant only if =backup-by-copying= is =nil=, since copying is always used when that variable is non-=nil=.
+#+END_QUOTE
+
+--- User Option: *backup-by-copying-when-mismatch*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil= (the default), Emacs makes backups by copying in cases where renaming would change either the owner or the group of the file.
+
+  The value has no effect when renaming would not alter the owner or group of the file; that is, for files which are owned by the user and whose group matches the default for a new file created there by the user.
+
+  This variable is significant only if =backup-by-copying= is =nil=, since copying is always used when that variable is non-=nil=.
+#+END_QUOTE
+
+--- User Option: *backup-by-copying-when-privileged-mismatch*
+
+#+BEGIN_QUOTE
+  This variable, if non-=nil=, specifies the same behavior as =backup-by-copying-when-mismatch=, but only for certain user-id values: namely, those less than or equal to a certain number. You set this variable to that number.
+
+  Thus, if you set =backup-by-copying-when-privileged-mismatch= to 0, backup by copying is done for the superuser only, when necessary to prevent a change in the owner of the file.
+
+  The default is 200.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Names][Backup Names]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Rename-or-Copy][Rename or Copy]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]]
+
+** 26.1.3 Making and Deleting Numbered Backup Files
+     :PROPERTIES:
+     :CUSTOM_ID: making-and-deleting-numbered-backup-files
+     :END:
+
+If a file's name is foo, the names of its numbered backup versions are foo._{v}, for various integers v, like this: foo._{1}, foo._{2}, foo._{3}, ..., foo._{259}, and so on.
+
+--- User Option: *version-control*
+
+#+BEGIN_QUOTE
+  This variable controls whether to make a single non-numbered backup file or multiple numbered backups.
+
+  - =nil=
+
+    Make numbered backups if the visited file already has numbered backups; otherwise, do not. This is the default.
+
+  - =never=
+
+    Do not make numbered backups.
+
+  - anything else
+
+    Make numbered backups.
+
+#+END_QUOTE
+
+The use of numbered backups ultimately leads to a large number of backup versions, which must then be deleted. Emacs can do this automatically or it can ask the user whether to delete them.
+
+--- User Option: *kept-new-versions*
+
+#+BEGIN_QUOTE
+  The value of this variable is the number of newest versions to keep when a new numbered backup is made. The newly made backup is included in the count. The default value is 2.
+#+END_QUOTE
+
+--- User Option: *kept-old-versions*
+
+#+BEGIN_QUOTE
+  The value of this variable is the number of oldest versions to keep when a new numbered backup is made. The default value is 2.
+#+END_QUOTE
+
+If there are backups numbered 1, 2, 3, 5, and 7, and both of these variables have the value 2, then the backups numbered 1 and 2 are kept as old versions and those numbered 5 and 7 are kept as new versions; backup version 3 is excess. The function =find-backup-file-name= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Names][Backup Names]]) is responsible for determining which backup versions to delete, but does not delete them itself.
+
+--- User Option: *delete-old-versions*
+
+#+BEGIN_QUOTE
+  If this variable is =t=, then saving a file deletes excess backup versions silently. If it is =nil=, that means to ask for confirmation before deleting excess backups. Otherwise, they are not deleted at all.
+#+END_QUOTE
+
+--- User Option: *dired-kept-versions*
+
+#+BEGIN_QUOTE
+  This variable specifies how many of the newest backup versions to keep in the Dired command . (=dired-clean-directory=). That's the same thing =kept-new-versions= specifies when you make a new backup file. The default is 2.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Numbered-Backups][Numbered Backups]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]]
+
+** 26.1.4 Naming Backup Files
+     :PROPERTIES:
+     :CUSTOM_ID: naming-backup-files
+     :END:
+
+The functions in this section are documented mainly because you can customize the naming conventions for backup files by redefining them. If you change one, you probably need to change the rest.
+
+--- Function: *backup-file-name-p* filename
+
+#+BEGIN_QUOTE
+  This function returns a non-=nil= value if filename is a possible name for a backup file. It just checks the name, not whether a file with the name filename exists.
+
+  #+BEGIN_EXAMPLE
+                (backup-file-name-p "foo")
+                     ⇒ nil
+                (backup-file-name-p "foo~")
+                     ⇒ 3
+  #+END_EXAMPLE
+
+  The standard definition of this function is as follows:
+
+  #+BEGIN_EXAMPLE
+                (defun backup-file-name-p (file)
+                  "Return non-nil if FILE is a backup file \
+                name (numeric or not)..."
+                  (string-match "~\\'" file))
+  #+END_EXAMPLE
+
+  Thus, the function returns a non-=nil= value if the file name ends with a '~'. (We use a backslash to split the documentation string's first line into two lines in the text, but produce just one line in the string itself.)
+
+  This simple expression is placed in a separate function to make it easy to redefine for customization.
+#+END_QUOTE
+
+--- Function: *make-backup-file-name* filename
+
+#+BEGIN_QUOTE
+  This function returns a string that is the name to use for a non-numbered backup file for file filename. On Unix, this is just filename with a tilde appended.
+
+  The standard definition of this function, on most operating systems, is as follows:
+
+  #+BEGIN_EXAMPLE
+                (defun make-backup-file-name (file)
+                  "Create the non-numeric backup file name for FILE..."
+                  (concat file "~"))
+  #+END_EXAMPLE
+
+  You can change the backup-file naming convention by redefining this function. The following example redefines =make-backup-file-name= to prepend a '.' in addition to appending a tilde:
+
+  #+BEGIN_EXAMPLE
+                (defun make-backup-file-name (filename)
+                  (expand-file-name
+                    (concat "." (file-name-nondirectory filename) "~")
+                    (file-name-directory filename)))
+
+                (make-backup-file-name "backups.texi")
+                     ⇒ ".backups.texi~"
+  #+END_EXAMPLE
+
+  Some parts of Emacs, including some Dired commands, assume that backup file names end with '~'. If you do not follow that convention, it will not cause serious problems, but these commands may give less-than-desirable results.
+#+END_QUOTE
+
+--- Function: *find-backup-file-name* filename
+
+#+BEGIN_QUOTE
+  This function computes the file name for a new backup file for filename. It may also propose certain existing backup files for deletion. =find-backup-file-name= returns a list whose car is the name for the new backup file and whose cdr is a list of backup files whose deletion is proposed. The value can also be =nil=, which means not to make a backup.
+
+  Two variables, =kept-old-versions= and =kept-new-versions=, determine which backup versions should be kept. This function keeps those versions by excluding them from the cdr of the value. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Numbered-Backups][Numbered Backups]].
+
+  In this example, the value says that _{rms/foo.}5~ is the name to use for the new backup file, and _{rms/foo.}3~ is an excess version that the caller should consider deleting now.
+
+  #+BEGIN_EXAMPLE
+                (find-backup-file-name "~rms/foo")
+                     ⇒ ("~rms/foo.~5~" "~rms/foo.~3~")
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *file-newest-backup* filename
+
+#+BEGIN_QUOTE
+  This function returns the name of the most recent backup file for filename, or =nil= if that file has no backup files.
+
+  Some file comparison commands use this function so that they can automatically compare a file with its most recent backup.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Reverting][Reverting]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backup-Files][Backup Files]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backups-and-Auto_002dSaving][Backups and Auto-Saving]]
+
+* 26.2 Auto-Saving
+    :PROPERTIES:
+    :CUSTOM_ID: auto-saving
+    :END:
+
+Emacs periodically saves all files that you are visiting; this is called auto-saving. Auto-saving prevents you from losing more than a limited amount of work if the system crashes. By default, auto-saves happen every 300 keystrokes, or after around 30 seconds of idle time. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Auto-Save][Auto Save]], for information on auto-save for users. Here we describe the functions used to implement auto-saving and the variables that control them.
+
+--- Variable: *buffer-auto-save-file-name*
+
+#+BEGIN_QUOTE
+  This buffer-local variable is the name of the file used for auto-saving the current buffer. It is =nil= if the buffer should not be auto-saved.
+
+  #+BEGIN_EXAMPLE
+                buffer-auto-save-file-name
+                     ⇒ "/xcssun/users/rms/lewis/#backups.texi#"
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *auto-save-mode* arg
+
+#+BEGIN_QUOTE
+  This is the mode command for Auto Save mode, a buffer-local minor mode. When Auto Save mode is enabled, auto-saving is enabled in the buffer. The calling convention is the same as for other minor mode commands (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Minor-Mode-Conventions][Minor Mode Conventions]]).
+
+  Unlike most minor modes, there is no =auto-save-mode= variable. Auto Save mode is enabled if =buffer-auto-save-file-name= is non-=nil= and =buffer-saved-size= (see below) is non-zero.
+#+END_QUOTE
+
+--- Function: *auto-save-file-name-p* filename
+
+#+BEGIN_QUOTE
+  This function returns a non-=nil= value if filename is a string that could be the name of an auto-save file. It assumes the usual naming convention for auto-save files: a name that begins and ends with hash marks ('#') is a possible auto-save file name. The argument filename should not contain a directory part.
+
+  #+BEGIN_EXAMPLE
+                (make-auto-save-file-name)
+                     ⇒ "/xcssun/users/rms/lewis/#backups.texi#"
+                (auto-save-file-name-p "#backups.texi#")
+                     ⇒ 0
+                (auto-save-file-name-p "backups.texi")
+                     ⇒ nil
+  #+END_EXAMPLE
+
+  The standard definition of this function is as follows:
+
+  #+BEGIN_EXAMPLE
+                (defun auto-save-file-name-p (filename)
+                  "Return non-nil if FILENAME can be yielded by..."
+                  (string-match "^#.*#$" filename))
+  #+END_EXAMPLE
+
+  This function exists so that you can customize it if you wish to change the naming convention for auto-save files. If you redefine it, be sure to redefine the function =make-auto-save-file-name= correspondingly.
+#+END_QUOTE
+
+--- Function: *make-auto-save-file-name*
+
+#+BEGIN_QUOTE
+  This function returns the file name to use for auto-saving the current buffer. This is just the file name with hash marks ('#') prepended and appended to it. This function does not look at the variable =auto-save-visited-file-name= (described below); callers of this function should check that variable first.
+
+  #+BEGIN_EXAMPLE
+                (make-auto-save-file-name)
+                     ⇒ "/xcssun/users/rms/lewis/#backups.texi#"
+  #+END_EXAMPLE
+
+  Here is a simplified version of the standard definition of this function:
+
+  #+BEGIN_EXAMPLE
+                (defun make-auto-save-file-name ()
+                  "Return file name to use for auto-saves \
+                of current buffer.."
+                  (if buffer-file-name
+                      (concat
+                       (file-name-directory buffer-file-name)
+                       "#"
+                       (file-name-nondirectory buffer-file-name)
+                       "#")
+                    (expand-file-name
+                     (concat "#%" (buffer-name) "#"))))
+  #+END_EXAMPLE
+
+  This exists as a separate function so that you can redefine it to customize the naming convention for auto-save files. Be sure to change =auto-save-file-name-p= in a corresponding way.
+#+END_QUOTE
+
+--- User Option: *auto-save-visited-file-name*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, Emacs auto-saves buffers in the files they are visiting. That is, the auto-save is done in the same file that you are editing. Normally, this variable is =nil=, so auto-save files have distinct names that are created by =make-auto-save-file-name=.
+
+  When you change the value of this variable, the new value does not take effect in an existing buffer until the next time auto-save mode is reenabled in it. If auto-save mode is already enabled, auto-saves continue to go in the same file name until =auto-save-mode= is called again.
+
+  Note that setting this variable to a non-=nil= value does not change the fact that auto-saving is different from saving the buffer; e.g., the hooks described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Buffers][Saving Buffers]] are /not/ run when a buffer is auto-saved.
+#+END_QUOTE
+
+--- Function: *recent-auto-save-p*
+
+#+BEGIN_QUOTE
+  This function returns =t= if the current buffer has been auto-saved since the last time it was read in or saved.
+#+END_QUOTE
+
+--- Function: *set-buffer-auto-saved*
+
+#+BEGIN_QUOTE
+  This function marks the current buffer as auto-saved. The buffer will not be auto-saved again until the buffer text is changed again. The function returns =nil=.
+#+END_QUOTE
+
+--- User Option: *auto-save-interval*
+
+#+BEGIN_QUOTE
+  The value of this variable specifies how often to do auto-saving, in terms of number of input events. Each time this many additional input events are read, Emacs does auto-saving for all buffers in which that is enabled. Setting this to zero disables autosaving based on the number of characters typed.
+#+END_QUOTE
+
+--- User Option: *auto-save-timeout*
+
+#+BEGIN_QUOTE
+  The value of this variable is the number of seconds of idle time that should cause auto-saving. Each time the user pauses for this long, Emacs does auto-saving for all buffers in which that is enabled. (If the current buffer is large, the specified timeout is multiplied by a factor that increases as the size increases; for a million-byte buffer, the factor is almost 4.)
+
+  If the value is zero or =nil=, then auto-saving is not done as a result of idleness, only after a certain number of input events as specified by =auto-save-interval=.
+#+END_QUOTE
+
+--- Variable: *auto-save-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run whenever an auto-save is about to happen.
+#+END_QUOTE
+
+--- User Option: *auto-save-default*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, buffers that are visiting files have auto-saving enabled by default. Otherwise, they do not.
+#+END_QUOTE
+
+--- Command: *do-auto-save* &optional no-message current-only
+
+#+BEGIN_QUOTE
+  This function auto-saves all buffers that need to be auto-saved. It saves all buffers for which auto-saving is enabled and that have been changed since the previous auto-save.
+
+  If any buffers are auto-saved, =do-auto-save= normally displays a message saying 'Auto-saving...' in the echo area while auto-saving is going on. However, if no-message is non-=nil=, the message is inhibited.
+
+  If current-only is non-=nil=, only the current buffer is auto-saved.
+#+END_QUOTE
+
+--- Function: *delete-auto-save-file-if-necessary* &optional force
+
+#+BEGIN_QUOTE
+  This function deletes the current buffer's auto-save file if =delete-auto-save-files= is non-=nil=. It is called every time a buffer is saved.
+
+  Unless force is non-=nil=, this function only deletes the file if it was written by the current Emacs session since the last true save.
+#+END_QUOTE
+
+--- User Option: *delete-auto-save-files*
+
+#+BEGIN_QUOTE
+  This variable is used by the function =delete-auto-save-file-if-necessary=. If it is non-=nil=, Emacs deletes auto-save files when a true save is done (in the visited file). This saves disk space and unclutters your directory.
+#+END_QUOTE
+
+--- Function: *rename-auto-save-file*
+
+#+BEGIN_QUOTE
+  This function adjusts the current buffer's auto-save file name if the visited file name has changed. It also renames an existing auto-save file, if it was made in the current Emacs session. If the visited file name has not changed, this function does nothing.
+#+END_QUOTE
+
+--- Variable: *buffer-saved-size*
+
+#+BEGIN_QUOTE
+  The value of this buffer-local variable is the length of the current buffer, when it was last read in, saved, or auto-saved. This is used to detect a substantial decrease in size, and turn off auto-saving in response.
+
+  If it is −1, that means auto-saving is temporarily shut off in this buffer due to a substantial decrease in size. Explicitly saving the buffer stores a positive value in this variable, thus reenabling auto-saving. Turning auto-save mode off or on also updates this variable, so that the substantial decrease in size is forgotten.
+
+  If it is −2, that means this buffer should disregard changes in buffer size; in particular, it should not shut off auto-saving temporarily due to changes in buffer size.
+#+END_QUOTE
+
+--- Variable: *auto-save-list-file-name*
+
+#+BEGIN_QUOTE
+  This variable (if non-=nil=) specifies a file for recording the names of all the auto-save files. Each time Emacs does auto-saving, it writes two lines into this file for each buffer that has auto-saving enabled. The first line gives the name of the visited file (it's empty if the buffer has none), and the second gives the name of the auto-save file.
+
+  When Emacs exits normally, it deletes this file; if Emacs crashes, you can look in the file to find all the auto-save files that might contain work that was otherwise lost. The =recover-session= command uses this file to find them.
+
+  The default name for this file specifies your home directory and starts with '.saves-'. It also contains the Emacs process ID and the host name.
+#+END_QUOTE
+
+--- User Option: *auto-save-list-file-prefix*
+
+#+BEGIN_QUOTE
+  After Emacs reads your init file, it initializes =auto-save-list-file-name= (if you have not already set it non-=nil=) based on this prefix, adding the host name and process ID. If you set this to =nil= in your init file, then Emacs does not initialize =auto-save-list-file-name=.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Auto_002dSaving][Auto-Saving]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backups-and-Auto_002dSaving][Backups and Auto-Saving]]
+
+* 26.3 Reverting
+    :PROPERTIES:
+    :CUSTOM_ID: reverting
+    :END:
+
+If you have made extensive changes to a file and then change your mind about them, you can get rid of them by reading in the previous version of the file with the =revert-buffer= command. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Reverting][Reverting a Buffer]].
+
+--- Command: *revert-buffer* &optional ignore-auto noconfirm preserve-modes
+
+#+BEGIN_QUOTE
+  This command replaces the buffer text with the text of the visited file on disk. This action undoes all changes since the file was visited or saved.
+
+  By default, if the latest auto-save file is more recent than the visited file, and the argument ignore-auto is =nil=, =revert-buffer= asks the user whether to use that auto-save instead. When you invoke this command interactively, ignore-auto is =t= if there is no numeric prefix argument; thus, the interactive default is not to check the auto-save file.
+
+  Normally, =revert-buffer= asks for confirmation before it changes the buffer; but if the argument noconfirm is non-=nil=, =revert-buffer= does not ask for confirmation.
+
+  Normally, this command reinitializes the buffer's major and minor modes using =normal-mode=. But if preserve-modes is non-=nil=, the modes remain unchanged.
+
+  Reverting tries to preserve marker positions in the buffer by using the replacement feature of =insert-file-contents=. If the buffer contents and the file contents are identical before the revert operation, reverting preserves all the markers. If they are not identical, reverting does change the buffer; in that case, it preserves the markers in the unchanged text (if any) at the beginning and end of the buffer. Preserving any additional markers would be problematical.
+#+END_QUOTE
+
+--- Variable: *revert-buffer-in-progress-p*
+
+#+BEGIN_QUOTE
+  =revert-buffer= binds this variable to a non-=nil= value while it is working.
+#+END_QUOTE
+
+You can customize how =revert-buffer= does its work by setting the variables described in the rest of this section.
+
+--- User Option: *revert-without-query*
+
+#+BEGIN_QUOTE
+  This variable holds a list of files that should be reverted without query. The value is a list of regular expressions. If the visited file name matches one of these regular expressions, and the file has changed on disk but the buffer is not modified, then =revert-buffer= reverts the file without asking the user for confirmation.
+#+END_QUOTE
+
+Some major modes customize =revert-buffer= by making buffer-local bindings for these variables:
+
+--- Variable: *revert-buffer-function*
+
+#+BEGIN_QUOTE
+  The value of this variable is the function to use to revert this buffer. It should be a function with two optional arguments to do the work of reverting. The two optional arguments, ignore-auto and noconfirm, are the arguments that =revert-buffer= received.
+
+  Modes such as Dired mode, in which the text being edited does not consist of a file's contents but can be regenerated in some other fashion, can give this variable a buffer-local value that is a special function to regenerate the contents.
+#+END_QUOTE
+
+--- Variable: *revert-buffer-insert-file-contents-function*
+
+#+BEGIN_QUOTE
+  The value of this variable specifies the function to use to insert the updated contents when reverting this buffer. The function receives two arguments: first the file name to use; second, =t= if the user has asked to read the auto-save file.
+
+  The reason for a mode to change this variable instead of =revert-buffer-function= is to avoid duplicating or replacing the rest of what =revert-buffer= does: asking for confirmation, clearing the undo list, deciding the proper major mode, and running the hooks listed below.
+#+END_QUOTE
+
+--- Variable: *before-revert-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run by the default =revert-buffer-function= before inserting the modified contents. A custom =revert-buffer-function= may or may not run this hook.
+#+END_QUOTE
+
+--- Variable: *after-revert-hook*
+
+#+BEGIN_QUOTE
+  This normal hook is run by the default =revert-buffer-function= after inserting the modified contents. A custom =revert-buffer-function= may or may not run this hook.
+#+END_QUOTE
+
+Emacs can revert buffers automatically. It does that by default for buffers visiting files. The following describes how to add support for auto-reverting new types of buffers.
+
+First, such buffers must have a suitable =revert-buffer-function= and =buffer-stale-function= defined.
+
+--- Variable: *buffer-stale-function*
+
+#+BEGIN_QUOTE
+  The value of this variable specifies a function to call to check whether a buffer needs reverting. The default value only handles buffers that are visiting files, by checking their modification time. Buffers that are not visiting files require a custom function of one optional argument noconfirm. The function should return non-=nil= if the buffer should be reverted. The buffer is current when this function is called.
+
+  While this function is mainly intended for use in auto-reverting, it could be used for other purposes as well. For instance, if auto-reverting is not enabled, it could be used to warn the user that the buffer needs reverting. The idea behind the noconfirm argument is that it should be =t= if the buffer is going to be reverted without asking the user and =nil= if the function is just going to be used to warn the user that the buffer is out of date. In particular, for use in auto-reverting, noconfirm is =t=. If the function is only going to be used for auto-reverting, you can ignore the noconfirm argument.
+
+  If you just want to automatically auto-revert every =auto-revert-interval= seconds (like the Buffer Menu), use:
+
+  #+BEGIN_EXAMPLE
+                (setq-local buffer-stale-function
+                     #'(lambda (&optional noconfirm) 'fast))
+  #+END_EXAMPLE
+
+  in the buffer's mode function.
+
+  The special return value 'fast' tells the caller that the need for reverting was not checked, but that reverting the buffer is fast. It also tells Auto Revert not to print any revert messages, even if =auto-revert-verbose= is non-=nil=. This is important, as getting revert messages every =auto-revert-interval= seconds can be very annoying. The information provided by this return value could also be useful if the function is consulted for purposes other than auto-reverting.
+#+END_QUOTE
+
+Once the buffer has a suitable =revert-buffer-function= and =buffer-stale-function=, several problems usually remain.
+
+The buffer will only auto-revert if it is marked unmodified. Hence, you will have to make sure that various functions mark the buffer modified if and only if either the buffer contains information that might be lost by reverting, or there is reason to believe that the user might be inconvenienced by auto-reverting, because he is actively working on the buffer. The user can always override this by manually adjusting the modified status of the buffer. To support this, calling the =revert-buffer-function= on a buffer that is marked unmodified should always keep the buffer marked unmodified.
+
+It is important to assure that point does not continuously jump around as a consequence of auto-reverting. Of course, moving point might be inevitable if the buffer radically changes.
+
+You should make sure that the =revert-buffer-function= does not print messages that unnecessarily duplicate Auto Revert's own messages, displayed if =auto-revert-verbose= is =t=, and effectively override a =nil= value for =auto-revert-verbose=. Hence, adapting a mode for auto-reverting often involves getting rid of such messages. This is especially important for buffers that automatically revert every =auto-revert-interval= seconds.
+
+If the new auto-reverting is part of Emacs, you should mention it in the documentation string of =global-auto-revert-non-file-buffers=.
+
+Similarly, you should document the additions in the Emacs manual.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Windows][Windows]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Backups-and-Auto_002dSaving][Backups and Auto-Saving]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Top][Top]]

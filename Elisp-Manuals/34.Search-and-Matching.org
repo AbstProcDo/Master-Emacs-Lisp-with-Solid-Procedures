@@ -1,0 +1,1184 @@
+#+TITLE: 34.Search-and-Matching
+* 34 Searching and Matching
+   :PROPERTIES:
+   :CUSTOM_ID: searching-and-matching
+   :END:
+
+GNU Emacs provides two ways to search through a buffer for specified text: exact string searches and regular expression searches. After a regular expression search, you can examine the match data to determine which text matched the whole regular expression or various portions of it.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Search][String Search]]: Search for an exact match.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Case][Searching and Case]]: Case-independent or case-significant searching.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]: Describing classes of strings.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]]: Searching for a match for a regexp.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#POSIX-Regexps][POSIX Regexps]]: Searching POSIX-style for the longest match.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]: Finding out which part of the text matched, after a string or regexp search.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Search-and-Replace][Search and Replace]]: Commands that loop, searching and replacing.
+8) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Regexps][Standard Regexps]]: Useful regexps for finding sentences, pages,...
+
+The 'skip-chars...' functions also perform a kind of searching. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Skipping-Characters][Skipping Characters]]. To search for changes in character properties, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Property-Search][Property Search]].
+
+
+* 34.1 Searching for Strings
+    :PROPERTIES:
+    :CUSTOM_ID: searching-for-strings
+    :END:
+
+These are the primitive functions for searching through the text in a buffer. They are meant for use in programs, but you may call them interactively. If you do so, they prompt for the search string; the arguments limit and noerror are =nil=, and repeat is 1. For more details on interactive searching, see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Search][Searching and Replacement]].
+
+These search functions convert the search string to multibyte if the buffer is multibyte; they convert the search string to unibyte if the buffer is unibyte. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]].
+
+--- Command: *search-forward* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches forward from point for an exact match for string. If successful, it sets point to the end of the occurrence found, and returns the new value of point. If no match is found, the value and side effects depend on noerror (see below).
+
+  In the following example, point is initially at the beginning of the line. Then =(search-forward "fox")= moves point after the last letter of 'fox':
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                -!-The quick brown fox jumped over the lazy dog.
+                ---------- Buffer: foo ----------
+
+                (search-forward "fox")
+                     ⇒ 20
+
+                ---------- Buffer: foo ----------
+                The quick brown fox-!- jumped over the lazy dog.
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+
+  The argument limit specifies the bound to the search, and should be a position in the current buffer. No match extending after that position is accepted. If limit is omitted or =nil=, it defaults to the end of the accessible portion of the buffer.
+
+  What happens when the search fails depends on the value of noerror. If noerror is =nil=, a =search-failed= error is signaled. If noerror is =t=, =search-forward= returns =nil= and does nothing. If noerror is neither =nil= nor =t=, then =search-forward= moves point to the upper bound and returns =nil=.
+
+  The argument noerror only affects valid searches which fail to find a match. Invalid arguments cause errors regardless of noerror.
+
+  If count is a positive number n, the search is done n times; each successive search starts at the end of the previous match. If all these successive searches succeed, the function call succeeds, moving point and returning its new value. Otherwise the function call fails, with results depending on the value of noerror, as described above. If count is a negative number −n, the search is done n times in the opposite (backward) direction.
+#+END_QUOTE
+
+--- Command: *search-backward* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches backward from point for string. It is like =search-forward=, except that it searches backwards rather than forwards. Backward searches leave point at the beginning of the match.
+#+END_QUOTE
+
+--- Command: *word-search-forward* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches forward from point for a word match for string. If it finds a match, it sets point to the end of the match found, and returns the new value of point.
+
+  Word matching regards string as a sequence of words, disregarding punctuation that separates them. It searches the buffer for the same sequence of words. Each word must be distinct in the buffer (searching for the word 'ball' does not match the word 'balls'), but the details of punctuation and spacing are ignored (searching for 'ball boy' does match 'ball. Boy!').
+
+  In this example, point is initially at the beginning of the buffer; the search leaves it between the 'y' and the '!'.
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                -!-He said "Please!  Find
+                the ball boy!"
+                ---------- Buffer: foo ----------
+
+                (word-search-forward "Please find the ball, boy.")
+                     ⇒ 39
+
+                ---------- Buffer: foo ----------
+                He said "Please!  Find
+                the ball boy-!-!"
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+
+  If limit is non-=nil=, it must be a position in the current buffer; it specifies the upper bound to the search. The match found must not extend after that position.
+
+  If noerror is =nil=, then =word-search-forward= signals an error if the search fails. If noerror is =t=, then it returns =nil= instead of signaling an error. If noerror is neither =nil= nor =t=, it moves point to limit (or the end of the accessible portion of the buffer) and returns =nil=.
+
+  If count is a positive number, it specifies how many successive occurrences to search for. Point is positioned at the end of the last match. If count is a negative number, the search is backward and point is positioned at the beginning of the last match.
+
+  Internally, =word-search-forward= and related functions use the function =word-search-regexp= to convert string to a regular expression that ignores punctuation.
+#+END_QUOTE
+
+--- Command: *word-search-forward-lax* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This command is identical to =word-search-forward=, except that the beginning or the end of string need not match a word boundary, unless string begins or ends in whitespace. For instance, searching for 'ball boy' matches 'ball boyee', but does not match 'balls boy'.
+#+END_QUOTE
+
+--- Command: *word-search-backward* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches backward from point for a word match to string. This function is just like =word-search-forward= except that it searches backward and normally leaves point at the beginning of the match.
+#+END_QUOTE
+
+--- Command: *word-search-backward-lax* string &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This command is identical to =word-search-backward=, except that the beginning or the end of string need not match a word boundary, unless string begins or ends in whitespace.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Search][String Search]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.2 Searching and Case
+    :PROPERTIES:
+    :CUSTOM_ID: searching-and-case
+    :END:
+
+By default, searches in Emacs ignore the case of the text they are searching through; if you specify searching for 'FOO', then 'Foo' or 'foo' is also considered a match. This applies to regular expressions, too; thus, '[aB]' would match 'a' or 'A' or 'b' or 'B'.
+
+If you do not want this feature, set the variable =case-fold-search= to =nil=. Then all letters must match exactly, including case. This is a buffer-local variable; altering the variable affects only the current buffer. (See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Intro-to-Buffer_002dLocal][Intro to Buffer-Local]].) Alternatively, you may change the default value. In Lisp code, you will more typically use =let= to bind =case-fold-search= to the desired value.
+
+Note that the user-level incremental search feature handles case distinctions differently. When the search string contains only lower case letters, the search ignores case, but when the search string contains one or more upper case letters, the search becomes case-sensitive. But this has nothing to do with the searching functions used in Lisp code. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Incremental-Search][Incremental Search]].
+
+--- User Option: *case-fold-search*
+
+#+BEGIN_QUOTE
+  This buffer-local variable determines whether searches should ignore case. If the variable is =nil= they do not ignore case; otherwise (and by default) they do ignore case.
+#+END_QUOTE
+
+--- User Option: *case-replace*
+
+#+BEGIN_QUOTE
+  This variable determines whether the higher-level replacement functions should preserve case. If the variable is =nil=, that means to use the replacement text verbatim. A non-=nil= value means to convert the case of the replacement text according to the text being replaced.
+
+  This variable is used by passing it as an argument to the function =replace-match=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Replacing-Match][Replacing Match]].
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Case][Searching and Case]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.3 Regular Expressions
+    :PROPERTIES:
+    :CUSTOM_ID: regular-expressions
+    :END:
+
+A regular expression, or regexp for short, is a pattern that denotes a (possibly infinite) set of strings. Searching for matches for a regexp is a very powerful operation. This section explains how to write regexps; the following section says how to search for them.
+
+For interactive development of regular expressions, you can use the M-x re-builder command. It provides a convenient interface for creating regular expressions, by giving immediate visual feedback in a separate buffer. As you edit the regexp, all its matches in the target buffer are highlighted. Each parenthesized sub-expression of the regexp is shown in a distinct face, which makes it easier to verify even very complex regexps.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]]: Rules for writing regular expressions.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Example][Regexp Example]]: Illustrates regular expression syntax.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Functions][Regexp Functions]]: Functions for operating on regular expressions.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Example][Regexp Example]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]
+
+** 34.3.1 Syntax of Regular Expressions
+     :PROPERTIES:
+     :CUSTOM_ID: syntax-of-regular-expressions
+     :END:
+
+Regular expressions have a syntax in which a few characters are special constructs and the rest are ordinary. An ordinary character is a simple regular expression that matches that character and nothing else. The special characters are '.', ‘*', '+', '?', '[', ‘\^', ‘$', and ‘'; no new special characters will be defined in the future. The character ‘]' is special if it ends a character alternative (see later). The character '-' is special inside a character alternative. A '[:' and balancing ‘:]' enclose a character class inside a character alternative. Any other character appearing in a regular expression is ordinary, unless a ‘' precedes it.
+
+For example, 'f' is not a special character, so it is ordinary, and therefore 'f' is a regular expression that matches the string 'f' and no other string. (It does /not/ match the string 'fg', but it does match a /part/ of that string.) Likewise, 'o' is a regular expression that matches only 'o'.
+
+Any two regular expressions a and b can be concatenated. The result is a regular expression that matches a string if a matches some amount of the beginning of that string and b matches the rest of the string.
+
+As a simple example, we can concatenate the regular expressions 'f' and 'o' to get the regular expression 'fo', which matches only the string 'fo'. Still trivial. To do something more powerful, you need to use one of the special regular expression constructs.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Special][Regexp Special]]: Special characters in regular expressions.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]]: Character classes used in regular expressions.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Backslash][Regexp Backslash]]: Backslash-sequences in regular expressions.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]]
+
+*** 34.3.1.1 Special Characters in Regular Expressions
+      :PROPERTIES:
+      :CUSTOM_ID: special-characters-in-regular-expressions
+      :END:
+
+Here is a list of the characters that are special in a regular expression.
+
+- '.' (Period)
+
+  is a special character that matches any single character except a newline. Using concatenation, we can make regular expressions like 'a.b', which matches any three-character string that begins with 'a' and ends with 'b'.
+
+- ‘*'
+
+  is not a construct by itself; it is a postfix operator that means to match the preceding regular expression repetitively as many times as possible. Thus, 'o/' matches any number of ‘o's (including no ‘o's). ‘/' always applies to the /smallest/ possible preceding expression. Thus, 'fo/' has a repeating ‘o', not a repeating ‘fo'. It matches ‘f', ‘fo', ‘foo', and so on. The matcher processes a ‘/' construct by matching, immediately, as many repetitions as can be found. Then it continues with the rest of the pattern. If that fails, backtracking occurs, discarding some of the matches of the '/'-modified construct in the hope that this will make it possible to match the rest of the pattern. For example, in matching ‘ca/ar' against the string 'caaar', the 'a/' first tries to match all three ‘a's; but the rest of the pattern is ‘ar' and there is only ‘r' left to match, so this try fails. The next alternative is for ‘a/' to match only two 'a's. With this choice, the rest of the regexp matches successfully. *Warning:* Nested repetition operators can run for an indefinitely long time, if they lead to ambiguous matching. For example, trying to match the regular expression ‘(x+y/)/a' against the string 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz' could take hours before it ultimately fails. Emacs must try each way of grouping the 'x's before concluding that none of them can work. Even worse, ‘(x/)/' can match the null string in infinitely many ways, so it causes an infinite loop. To avoid these problems, check nested repetitions carefully, to make sure that they do not cause combinatorial explosions in backtracking.
+
+- '+'
+
+  is a postfix operator, similar to '/' except that it must match the preceding expression at least once. So, for example, ‘ca+r' matches the strings ‘car' and ‘caaaar' but not the string ‘cr', whereas ‘ca/r' matches all three strings.
+
+- '?'
+
+  is a postfix operator, similar to ‘*' except that it must match the preceding expression either once or not at all. For example, 'ca?r' matches 'car' or 'cr'; nothing else.
+
+- ‘*?', '+?', '??'
+
+  These are non-greedy variants of the operators '/', ‘+' and ‘?'. Where those operators match the largest possible substring (consistent with matching the entire containing expression), the non-greedy variants match the smallest possible substring (consistent with matching the entire containing expression). For example, the regular expression ‘c[ad]/a' when applied to the string 'cdaaada' matches the whole string; but the regular expression 'c[ad]/?a', applied to that same string, matches just ‘cda'. (The smallest possible match here for ‘[ad]/?' that permits the whole expression to match is 'd'.)
+
+- '[ ... ]'
+
+  is a character alternative, which begins with '[' and is terminated by ‘]'. In the simplest case, the characters between the two brackets are what this character alternative can match. Thus, '[ad]' matches either one 'a' or one 'd', and '[ad]/' matches any string composed of just ‘a's and ‘d's (including the empty string). It follows that ‘c[ad]/r' matches 'cr', 'car', 'cdr', 'caddaar', etc. You can also include character ranges in a character alternative, by writing the starting and ending characters with a '-' between them. Thus, '[a-z]' matches any lower-case ASCII letter. Ranges may be intermixed freely with individual characters, as in '[a-z$%.]', which matches any lower case ASCII letter or '$', '%' or period. However, the ending character of one range should not be the starting point of another one; for example, '[a-m-z]' should be avoided. The usual regexp special characters are not special inside a character alternative. A completely different set of characters is special inside character alternatives: ']', '-' and '\^'. To include a ']' in a character alternative, you must make it the first character. For example, '[]a]' matches ']' or 'a'. To include a '-', write '-' as the first or last character of the character alternative, or as the upper bound of a range. Thus, '[]-]' matches both ']' and '-'. (As explained below, you cannot use ']' to include a ']' inside a character alternative, since '' is not special there.) To include ‘\^' in a character alternative, put it anywhere but at the beginning. The following aspects of ranges are specific to Emacs, in that POSIX allows but does not require this behavior and programs other than Emacs may behave differently: If =case-fold-search= is non-=nil=, '[a-z]' also matches upper-case letters. A range is not affected by the locale's collation sequence: it always represents the set of characters with codepoints ranging between those of its bounds, so that '[a-z]' matches only ASCII letters, even outside the C or POSIX locale. As a special case, if either bound of a range is a raw 8-bit byte, the other bound should be a unibyte character, and the range matches only unibyte characters. If the lower bound of a range is greater than its upper bound, the range is empty and represents no characters. Thus, '[b-a]' always fails to match, and '[\^b-a]' matches any character, including newline. However, the lower bound should be at most one greater than the upper bound; for example, '[c-a]' should be avoided. A character alternative can also specify named character classes (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]]). This is a POSIX feature. For example, '[[:ascii:]]' matches any ASCII character. Using a character class is equivalent to mentioning each of the characters in that class; but the latter is not feasible in practice, since some classes include thousands of different characters. A character class should not appear as the lower or upper bound of a range.
+
+- '[\^ ... ]'
+
+  '[\^' begins a complemented character alternative. This matches any character except the ones specified. Thus, '[\^a-z0-9A-Z]' matches all characters /except/ letters and digits. '\^' is not special in a character alternative unless it is the first character. The character following the '\^' is treated as if it were first (in other words, '-' and ']' are not special there). A complemented character alternative can match a newline, unless newline is mentioned as one of the characters not to match. This is in contrast to the handling of regexps in programs such as =grep=. You can specify named character classes, just like in character alternatives. For instance, '[\^[:ascii:]]' matches any non-ASCII character. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]].
+
+- '\^'
+
+  When matching a buffer, '\^' matches the empty string, but only at the beginning of a line in the text being matched (or the beginning of the accessible portion of the buffer). Otherwise it fails to match anything. Thus, '\^foo' matches a 'foo' that occurs at the beginning of a line. When matching a string instead of a buffer, '\^' matches at the beginning of the string or after a newline character. For historical compatibility reasons, '\^' can be used only at the beginning of the regular expression, or after '(', '(?:' or '|'.
+
+- '$'
+
+  is similar to '\^' but matches only at the end of a line (or the end of the accessible portion of the buffer). Thus, 'x+$’ matches a string of one ‘x’ or more at the end of a line. When matching a string instead of a buffer, ‘$' matches at the end of the string or before a newline character. For historical compatibility reasons, '$' can be used only at the end of the regular expression, or before ')' or '|'.
+
+- ‘'
+
+  has two functions: it quotes the special characters (including ''), and it introduces additional special constructs. Because ‘' quotes special characters, ‘$' is a regular expression that matches only '$', and '[' is a regular expression that matches only '[', and so on. Note that '' also has special meaning in the read syntax of Lisp strings (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Type][String Type]]), and must be quoted with ‘'. For example, the regular expression that matches the ‘' character is ‘\'. To write a Lisp string that contains the characters '\', Lisp syntax requires you to quote each ‘' with another ‘'. Therefore, the read syntax for a regular expression matching ‘' is ="\\\\"=.
+
+*Please note:* For historical compatibility, special characters are treated as ordinary ones if they are in contexts where their special meanings make no sense. For example, '/foo' treats ‘/' as ordinary since there is no preceding expression on which the ‘*' can act. It is poor practice to depend on this behavior; quote the special character anyway, regardless of where it appears.
+
+As a '' is not special inside a character alternative, it can never remove the special meaning of ‘-' or ']'. So you should not quote these characters when they have no special meaning either. This would not clarify anything, since backslashes can legitimately precede these characters where they /have/ special meaning, as in '[\^\]' (="[^\\]"= for Lisp string syntax), which matches any single character except a backslash.
+
+In practice, most ']' that occur in regular expressions close a character alternative and hence are special. However, occasionally a regular expression may try to match a complex pattern of literal '[' and ‘]'. In such situations, it sometimes may be necessary to carefully parse the regexp from the start to determine which square brackets enclose a character alternative. For example, '[\^][]]' consists of the complemented character alternative '[\^][]' (which matches any single character that is not a square bracket), followed by a literal ']'.
+
+The exact rules are that at the beginning of a regexp, '[' is special and ‘]' not. This lasts until the first unquoted '[', after which we are in a character alternative; '[' is no longer special (except when it starts a character class) but ‘]' is special, unless it immediately follows the special '[' or that '[' followed by a ‘\^'. This lasts until the next special ‘]' that does not end a character class. This ends the character alternative and restores the ordinary syntax of regular expressions; an unquoted '[' is special again and a ‘]' not.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Backslash][Regexp Backslash]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Special][Regexp Special]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]]
+
+*** 34.3.1.2 Character Classes
+      :PROPERTIES:
+      :CUSTOM_ID: character-classes
+      :END:
+
+Here is a table of the classes you can use in a character alternative, and what they mean:
+
+- '[:ascii:]'
+
+  This matches any ASCII character (codes 0--127).
+
+- '[:alnum:]'
+
+  This matches any letter or digit. For multibyte characters, it matches characters whose Unicode 'general-category' property (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]]) indicates they are alphabetic or decimal number characters.
+
+- '[:alpha:]'
+
+  This matches any letter. For multibyte characters, it matches characters whose Unicode 'general-category' property (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]]) indicates they are alphabetic characters.
+
+- '[:blank:]'
+
+  This matches horizontal whitespace, as defined by Annex C of the Unicode Technical Standard #18. In particular, it matches spaces, tabs, and other characters whose Unicode 'general-category' property (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]]) indicates they are spacing separators.
+
+- '[:cntrl:]'
+
+  This matches any ASCII control character.
+
+- '[:digit:]'
+
+  This matches '0' through '9'. Thus, '[-+[:digit:]]' matches any digit, as well as '+' and '-'.
+
+- '[:graph:]'
+
+  This matches graphic characters---everything except whitespace, ASCII and non-ASCII control characters, surrogates, and codepoints unassigned by Unicode, as indicated by the Unicode 'general-category' property (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Properties][Character Properties]]).
+
+- '[:lower:]'
+
+  This matches any lower-case letter, as determined by the current case table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Case-Tables][Case Tables]]). If =case-fold-search= is non-=nil=, this also matches any upper-case letter.
+
+- '[:multibyte:]'
+
+  This matches any multibyte character (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]]).
+
+- '[:nonascii:]'
+
+  This matches any non-ASCII character.
+
+- '[:print:]'
+
+  This matches any printing character---either whitespace, or a graphic character matched by '[:graph:]'.
+
+- '[:punct:]'
+
+  This matches any punctuation character. (At present, for multibyte characters, it matches anything that has non-word syntax.)
+
+- '[:space:]'
+
+  This matches any character that has whitespace syntax (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]]).
+
+- '[:unibyte:]'
+
+  This matches any unibyte character (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]]).
+
+- '[:upper:]'
+
+  This matches any upper-case letter, as determined by the current case table (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Case-Tables][Case Tables]]). If =case-fold-search= is non-=nil=, this also matches any lower-case letter.
+
+- '[:word:]'
+
+  This matches any character that has word syntax (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]]).
+
+- '[:xdigit:]'
+
+  This matches the hexadecimal digits: '0' through '9', 'a' through 'f' and 'A' through 'F'.
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Char-Classes][Char Classes]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]]
+
+*** 34.3.1.3 Backslash Constructs in Regular Expressions
+      :PROPERTIES:
+      :CUSTOM_ID: backslash-constructs-in-regular-expressions
+      :END:
+
+For the most part, ‘' followed by any character matches only that character. However, there are several exceptions: certain sequences starting with ‘' that have special meanings. Here is a table of the special ‘' constructs.
+
+- '|'
+
+  specifies an alternative. Two regular expressions a and b with '|' in between form an expression that matches anything that either a or b matches. Thus, 'foo|bar' matches either 'foo' or 'bar' but no other string. '|' applies to the largest possible surrounding expressions. Only a surrounding '( ... )' grouping can limit the grouping power of '|'. If you need full backtracking capability to handle multiple uses of '|', use the POSIX regular expression functions (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#POSIX-Regexps][POSIX Regexps]]).
+
+- '{m}'
+
+  is a postfix operator that repeats the previous pattern exactly m times. Thus, 'x{5}' matches the string 'xxxxx' and nothing else. 'c[ad]{3}r' matches string such as 'caaar', 'cdddr', 'cadar', and so on.
+
+- '{m,n}'
+
+  is a more general postfix operator that specifies repetition with a minimum of m repeats and a maximum of n repeats. If m is omitted, the minimum is 0; if n is omitted, there is no maximum. For both forms, m and n, if specified, may be no larger than 2**15 − 1 . For example, 'c[ad]{1,2}r' matches the strings 'car', 'cdr', 'caar', 'cadr', 'cdar', and 'cddr', and nothing else. '{0,1}' or '{,1}' is equivalent to '?'. '{0,}' or '{,}' is equivalent to ‘*'. '{1,}' is equivalent to '+'.
+
+- '( ... )'
+
+  is a grouping construct that serves three purposes: To enclose a set of '|' alternatives for other operations. Thus, the regular expression '(foo|bar)x' matches either 'foox' or 'barx'. To enclose a complicated expression for the postfix operators '/', ‘+' and ‘?' to operate on. Thus, ‘ba(na)/' matches 'ba', 'bana', 'banana', 'bananana', etc., with any number (zero or more) of 'na' strings. To record a matched substring for future reference with '\digit' (see below). This last application is not a consequence of the idea of a parenthetical grouping; it is a separate feature that was assigned as a second meaning to the same '( ... )' construct because, in practice, there was usually no conflict between the two meanings. But occasionally there is a conflict, and that led to the introduction of shy groups.
+
+- '(?: ... )'
+
+  is the shy group construct. A shy group serves the first two purposes of an ordinary group (controlling the nesting of other operators), but it does not get a number, so you cannot refer back to its value with '\digit'. Shy groups are particularly useful for mechanically-constructed regular expressions, because they can be added automatically without altering the numbering of ordinary, non-shy groups. Shy groups are also called non-capturing or unnumbered groups.
+
+- '(?num: ... )'
+
+  is the explicitly numbered group construct. Normal groups get their number implicitly, based on their position, which can be inconvenient. This construct allows you to force a particular group number. There is no particular restriction on the numbering, e.g., you can have several groups with the same number in which case the last one to match (i.e., the rightmost match) will win. Implicitly numbered groups always get the smallest integer larger than the one of any previous group.
+
+- '\digit'
+
+  matches the same text that matched the digitth occurrence of a grouping ('( ... )') construct. In other words, after the end of a group, the matcher remembers the beginning and end of the text matched by that group. Later on in the regular expression you can use '' followed by digit to match that same text, whatever it may have been. The strings matching the first nine grouping constructs appearing in the entire regular expression passed to a search or matching function are assigned numbers 1 through 9 in the order that the open parentheses appear in the regular expression. So you can use ‘\1' through '\9' to refer to the text matched by the corresponding grouping constructs. For example, '(./)\1' matches any newline-free string that is composed of two identical halves. The ‘(./)' matches the first half, which may be anything, but the '\1' that follows must match the same exact text. If a '( ... )' construct matches more than once (which can happen, for instance, if it is followed by '/'), only the last match is recorded. If a particular grouping construct in the regular expression was never matched---for instance, if it appears inside of an alternative that wasn't used, or inside of a repetition that repeated zero times---then the corresponding ‘\digit' construct never matches anything. To use an artificial example, ‘(foo(b/)|lose)\2' cannot match 'lose': the second alternative inside the larger group matches it, but then '\2' is undefined and can't match anything. But it can match 'foobb', because the first alternative matches 'foob' and '\2' matches 'b'.
+
+- '\w'
+
+  matches any word-constituent character. The editor syntax table determines which characters these are. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]].
+
+- '\W'
+
+  matches any character that is not a word constituent.
+
+- '\scode'
+
+  matches any character whose syntax is code. Here code is a character that represents a syntax code: thus, 'w' for word constituent, '-' for whitespace, '(' for open parenthesis, etc. To represent whitespace syntax, use either '-' or a space character. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Class-Table][Syntax Class Table]], for a list of syntax codes and the characters that stand for them.
+
+- '\Scode'
+
+  matches any character whose syntax is not code.
+
+- '\cc'
+
+  matches any character whose category is c. Here c is a character that represents a category: thus, 'c' for Chinese characters or 'g' for Greek characters in the standard category table. You can see the list of all the currently defined categories with M-x describe-categories . You can also define your own categories in addition to the standard ones using the =define-category= function (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Categories][Categories]]).
+
+- '\Cc'
+
+  matches any character whose category is not c.
+
+The following regular expression constructs match the empty string---that is, they don't use up any characters---but whether they match depends on the context. For all, the beginning and end of the accessible portion of the buffer are treated as if they were the actual beginning and end of the buffer.
+
+- '`'
+
+  matches the empty string, but only at the beginning of the buffer or string being matched against.
+
+- '''
+
+  matches the empty string, but only at the end of the buffer or string being matched against.
+
+- '='
+
+  matches the empty string, but only at point. (This construct is not defined when matching against a string.)
+
+- '\b'
+
+  matches the empty string, but only at the beginning or end of a word. Thus, '\bfoo\b' matches any occurrence of 'foo' as a separate word. '\bballs?\b' matches 'ball' or 'balls' as a separate word. '\b' matches at the beginning or end of the buffer (or string) regardless of what text appears next to it.
+
+- '\B'
+
+  matches the empty string, but /not/ at the beginning or end of a word, nor at the beginning or end of the buffer (or string).
+
+- '<'
+
+  matches the empty string, but only at the beginning of a word. '<' matches at the beginning of the buffer (or string) only if a word-constituent character follows.
+
+- '>'
+
+  matches the empty string, but only at the end of a word. '>' matches at the end of the buffer (or string) only if the contents end with a word-constituent character.
+
+- '\_<'
+
+  matches the empty string, but only at the beginning of a symbol. A symbol is a sequence of one or more word or symbol constituent characters. '\_<' matches at the beginning of the buffer (or string) only if a symbol-constituent character follows.
+
+- '\_>'
+
+  matches the empty string, but only at the end of a symbol. '\_>' matches at the end of the buffer (or string) only if the contents end with a symbol-constituent character.
+
+  Not every string is a valid regular expression. For example, a string that ends inside a character alternative without a terminating ']' is invalid, and so is a string that ends with a single ‘'. If an invalid regular expression is passed to any of the search functions, an =invalid-regexp= error is signaled.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Functions][Regexp Functions]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]
+
+** 34.3.2 Complex Regexp Example
+     :PROPERTIES:
+     :CUSTOM_ID: complex-regexp-example
+     :END:
+
+Here is a complicated regexp which was formerly used by Emacs to recognize the end of a sentence together with any whitespace that follows. (Nowadays Emacs uses a similar but more complex default regexp constructed by the function =sentence-end=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Regexps][Standard Regexps]].)
+
+Below, we show first the regexp as a string in Lisp syntax (to distinguish spaces from tab characters), and then the result of evaluating it. The string constant begins and ends with a double-quote. '"' stands for a double-quote as part of the string, '\' for a backslash as part of the string, '\t' for a tab and '\n' for a newline.
+
+#+BEGIN_EXAMPLE
+         "[.?!][]\"')}]*\\($\\| $\\|\t\\|  \\)[ \t\n]*"
+              ⇒ "[.?!][]\"')}]*\\($\\| $\\|  \\|  \\)[
+         ]*"
+#+END_EXAMPLE
+
+In the output, tab and newline appear as themselves.
+
+This regular expression contains four parts in succession and can be deciphered as follows:
+
+- =[.?!]=
+
+  The first part of the pattern is a character alternative that matches any one of three characters: period, question mark, and exclamation mark. The match must begin with one of these three characters. (This is one point where the new default regexp used by Emacs differs from the old. The new value also allows some non-ASCII characters that end a sentence without any following whitespace.)
+
+- =[]\"')}]*=
+
+  The second part of the pattern matches any closing braces and quotation marks, zero or more of them, that may follow the period, question mark or exclamation mark. The =\"= is Lisp syntax for a double-quote in a string. The ‘*' at the end indicates that the immediately preceding regular expression (a character alternative, in this case) may be repeated zero or more times.
+
+- =\\($\\| $\\|\t\\|  \\)=
+
+  The third part of the pattern matches the whitespace that follows the end of a sentence: the end of a line (optionally with a space), or a tab, or two spaces. The double backslashes mark the parentheses and vertical bars as regular expression syntax; the parentheses delimit a group and the vertical bars separate alternatives. The dollar sign is used to match the end of a line.
+
+- =[ \t\n]*=
+
+  Finally, the last part of the pattern matches any additional whitespace beyond the minimum needed to end a sentence.
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Example][Regexp Example]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]
+
+** 34.3.3 Regular Expression Functions
+     :PROPERTIES:
+     :CUSTOM_ID: regular-expression-functions
+     :END:
+
+These functions operate on regular expressions.
+
+--- Function: *regexp-quote* string
+
+#+BEGIN_QUOTE
+  This function returns a regular expression whose only exact match is string. Using this regular expression in =looking-at= will succeed only if the next characters in the buffer are string; using it in a search function will succeed if the text being searched contains string. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]].
+
+  This allows you to request an exact string match or search when calling a function that wants a regular expression.
+
+  #+BEGIN_EXAMPLE
+                (regexp-quote "^The cat$")
+                     ⇒ "\\^The cat\\$"
+  #+END_EXAMPLE
+
+  One use of =regexp-quote= is to combine an exact string match with context described as a regular expression. For example, this searches for the string that is the value of string, surrounded by whitespace:
+
+  #+BEGIN_EXAMPLE
+                (re-search-forward
+                 (concat "\\s-" (regexp-quote string) "\\s-"))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *regexp-opt* strings &optional paren
+
+#+BEGIN_QUOTE
+  This function returns an efficient regular expression that will match any of the strings in the list strings. This is useful when you need to make matching or searching as fast as possible---for example, for Font Lock mode[[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#fn-18][18]].
+
+  The optional argument paren can be any of the following:
+
+  - a string
+
+    The resulting regexp is preceded by paren and followed by ')', e.g. use '"\(?1:"' to produce an explicitly numbered group.
+
+  - =words=
+
+    The resulting regexp is surrounded by '<(' and ')>'.
+
+  - =symbols=
+
+    The resulting regexp is surrounded by '\_<(' and ')\_>' (this is often appropriate when matching programming-language keywords and the like).
+
+  - non-=nil=
+
+    The resulting regexp is surrounded by '(' and ')'.
+
+  - =nil=
+
+    The resulting regexp is surrounded by '(?:' and ')', if it is necessary to ensure that a postfix operator appended to it will apply to the whole expression.
+
+  The resulting regexp of =regexp-opt= is equivalent to but usually more efficient than that of a simplified version:
+
+  #+BEGIN_EXAMPLE
+                (defun simplified-regexp-opt (strings &optional paren)
+                 (let ((parens
+                        (cond
+                         ((stringp paren)       (cons paren "\\)"))
+                         ((eq paren 'words)    '("\\<\\(" . "\\)\\>"))
+                         ((eq paren 'symbols) '("\\_<\\(" . "\\)\\_>"))
+                         ((null paren)          '("\\(?:" . "\\)"))
+                         (t                       '("\\(" . "\\)")))))
+                   (concat (car parens)
+                           (mapconcat 'regexp-quote strings "\\|")
+                           (cdr parens))))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *regexp-opt-depth* regexp
+
+#+BEGIN_QUOTE
+  This function returns the total number of grouping constructs (parenthesized expressions) in regexp. This does not include shy groups (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Backslash][Regexp Backslash]]).
+#+END_QUOTE
+
+--- Function: *regexp-opt-charset* chars
+
+#+BEGIN_QUOTE
+  This function returns a regular expression matching a character in the list of characters chars.
+
+  #+BEGIN_EXAMPLE
+                (regexp-opt-charset '(?a ?b ?c ?d ?e))
+                     ⇒ "[a-e]"
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#POSIX-Regexps][POSIX Regexps]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.4 Regular Expression Searching
+    :PROPERTIES:
+    :CUSTOM_ID: regular-expression-searching
+    :END:
+
+In GNU Emacs, you can search for the next match for a regular expression (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-of-Regexps][Syntax of Regexps]]) either incrementally or not. For incremental search commands, see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Regexp-Search][Regular Expression Search]]. Here we describe only the search functions useful in programs. The principal one is =re-search-forward=.
+
+These search functions convert the regular expression to multibyte if the buffer is multibyte; they convert the regular expression to unibyte if the buffer is unibyte. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Representations][Text Representations]].
+
+--- Command: *re-search-forward* regexp &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches forward in the current buffer for a string of text that is matched by the regular expression regexp. The function skips over any amount of text that is not matched by regexp, and leaves point at the end of the first match found. It returns the new value of point.
+
+  If limit is =non-nil=, it must be a position in the current buffer. It specifies the upper bound to the search. No match extending after that position is accepted. If limit is omitted or =nil=, it defaults to the end of the accessible portion of the buffer.
+
+  What =re-search-forward= does when the search fails depends on the value of noerror:
+
+  - =nil=
+
+    Signal a =search-failed= error.
+
+  - =t=
+
+    Do nothing and return =nil=.
+
+  - anything else
+
+    Move point to limit (or the end of the accessible portion of the buffer) and return =nil=.
+
+  The argument noerror only affects valid searches which fail to find a match. Invalid arguments cause errors regardless of noerror.
+
+  If count is a positive number n, the search is done n times; each successive search starts at the end of the previous match. If all these successive searches succeed, the function call succeeds, moving point and returning its new value. Otherwise the function call fails, with results depending on the value of noerror, as described above. If count is a negative number −n, the search is done n times in the opposite (backward) direction.
+
+  In the following example, point is initially before the 'T'. Evaluating the search call moves point to the end of that line (between the 't' of 'hat' and the newline).
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                I read "-!-The cat in the hat
+                comes back" twice.
+                ---------- Buffer: foo ----------
+
+                (re-search-forward "[a-z]+" nil t 5)
+                     ⇒ 27
+
+                ---------- Buffer: foo ----------
+                I read "The cat in the hat-!-
+                comes back" twice.
+                ---------- Buffer: foo ----------
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Command: *re-search-backward* regexp &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This function searches backward in the current buffer for a string of text that is matched by the regular expression regexp, leaving point at the beginning of the first text found.
+
+  This function is analogous to =re-search-forward=, but they are not simple mirror images. =re-search-forward= finds the match whose beginning is as close as possible to the starting point. If =re-search-backward= were a perfect mirror image, it would find the match whose end is as close as possible. However, in fact it finds the match whose beginning is as close as possible (and yet ends before the starting point). The reason for this is that matching a regular expression at a given spot always works from beginning to end, and starts at a specified beginning position.
+
+  A true mirror-image of =re-search-forward= would require a special feature for matching regular expressions from end to beginning. It's not worth the trouble of implementing that.
+#+END_QUOTE
+
+--- Function: *string-match* regexp string &optional start
+
+#+BEGIN_QUOTE
+  This function returns the index of the start of the first match for the regular expression regexp in string, or =nil= if there is no match. If start is non-=nil=, the search starts at that index in string.
+
+  For example,
+
+  #+BEGIN_EXAMPLE
+                (string-match
+                 "quick" "The quick brown fox jumped quickly.")
+                     ⇒ 4
+                (string-match
+                 "quick" "The quick brown fox jumped quickly." 8)
+                     ⇒ 27
+  #+END_EXAMPLE
+
+  The index of the first character of the string is 0, the index of the second character is 1, and so on.
+
+  If this function finds a match, the index of the first character beyond the match is available as =(match-end 0)=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]].
+
+  #+BEGIN_EXAMPLE
+                (string-match
+                 "quick" "The quick brown fox jumped quickly." 8)
+                     ⇒ 27
+
+                (match-end 0)
+                     ⇒ 32
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *string-match-p* regexp string &optional start
+
+#+BEGIN_QUOTE
+  This predicate function does what =string-match= does, but it avoids modifying the match data.
+#+END_QUOTE
+
+--- Function: *looking-at* regexp
+
+#+BEGIN_QUOTE
+  This function determines whether the text in the current buffer directly following point matches the regular expression regexp. "Directly following" means precisely that: the search is "anchored" and it can succeed only starting with the first character following point. The result is =t= if so, =nil= otherwise.
+
+  This function does not move point, but it does update the match data. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]. If you need to test for a match without modifying the match data, use =looking-at-p=, described below.
+
+  In this example, point is located directly before the 'T'. If it were anywhere else, the result would be =nil=.
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                I read "-!-The cat in the hat
+                comes back" twice.
+                ---------- Buffer: foo ----------
+
+                (looking-at "The cat in the hat$")
+                     ⇒ t
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *looking-back* regexp limit &optional greedy
+
+#+BEGIN_QUOTE
+  This function returns =t= if regexp matches the text immediately before point (i.e., ending at point), and =nil= otherwise.
+
+  Because regular expression matching works only going forward, this is implemented by searching backwards from point for a match that ends at point. That can be quite slow if it has to search a long distance. You can bound the time required by specifying a non-=nil= value for limit, which says not to search before limit. In this case, the match that is found must begin at or after limit. Here's an example:
+
+  #+BEGIN_EXAMPLE
+                ---------- Buffer: foo ----------
+                I read "-!-The cat in the hat
+                comes back" twice.
+                ---------- Buffer: foo ----------
+
+                (looking-back "read \"" 3)
+                     ⇒ t
+                (looking-back "read \"" 4)
+                     ⇒ nil
+  #+END_EXAMPLE
+
+  If greedy is non-=nil=, this function extends the match backwards as far as possible, stopping when a single additional previous character cannot be part of a match for regexp. When the match is extended, its starting position is allowed to occur before limit.
+
+  As a general recommendation, try to avoid using =looking-back= wherever possible, since it is slow. For this reason, there are no plans to add a =looking-back-p= function.
+#+END_QUOTE
+
+--- Function: *looking-at-p* regexp
+
+#+BEGIN_QUOTE
+  This predicate function works like =looking-at=, but without updating the match data.
+#+END_QUOTE
+
+--- Variable: *search-spaces-regexp*
+
+#+BEGIN_QUOTE
+  If this variable is non-=nil=, it should be a regular expression that says how to search for whitespace. In that case, any group of spaces in a regular expression being searched for stands for use of this regular expression. However, spaces inside of constructs such as '[...]' and ‘*', '+', '?' are not affected by =search-spaces-regexp=.
+
+  Since this variable affects all regular expression search and match constructs, you should bind it temporarily for as small as possible a part of the code.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.5 POSIX Regular Expression Searching
+    :PROPERTIES:
+    :CUSTOM_ID: posix-regular-expression-searching
+    :END:
+
+The usual regular expression functions do backtracking when necessary to handle the '|' and repetition constructs, but they continue this only until they find /some/ match. Then they succeed and report the first match found.
+
+This section describes alternative search functions which perform the full backtracking specified by the POSIX standard for regular expression matching. They continue backtracking until they have tried all possibilities and found all matches, so they can report the longest match, as required by POSIX. This is much slower, so use these functions only when you really need the longest match.
+
+The POSIX search and match functions do not properly support the non-greedy repetition operators (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Special][non-greedy]]). This is because POSIX backtracking conflicts with the semantics of non-greedy repetition.
+
+--- Command: *posix-search-forward* regexp &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This is like =re-search-forward= except that it performs the full backtracking specified by the POSIX standard for regular expression matching.
+#+END_QUOTE
+
+--- Command: *posix-search-backward* regexp &optional limit noerror count
+
+#+BEGIN_QUOTE
+  This is like =re-search-backward= except that it performs the full backtracking specified by the POSIX standard for regular expression matching.
+#+END_QUOTE
+
+--- Function: *posix-looking-at* regexp
+
+#+BEGIN_QUOTE
+  This is like =looking-at= except that it performs the full backtracking specified by the POSIX standard for regular expression matching.
+#+END_QUOTE
+
+--- Function: *posix-string-match* regexp string &optional start
+
+#+BEGIN_QUOTE
+  This is like =string-match= except that it performs the full backtracking specified by the POSIX standard for regular expression matching.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Search-and-Replace][Search and Replace]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#POSIX-Regexps][POSIX Regexps]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.6 The Match Data
+    :PROPERTIES:
+    :CUSTOM_ID: the-match-data
+    :END:
+
+Emacs keeps track of the start and end positions of the segments of text found during a search; this is called the match data. Thanks to the match data, you can search for a complex pattern, such as a date in a mail message, and then extract parts of the match under control of the pattern.
+
+Because the match data normally describe the most recent search only, you must be careful not to do another search inadvertently between the search you wish to refer back to and the use of the match data. If you can't avoid another intervening search, you must save and restore the match data around it, to prevent it from being overwritten.
+
+Notice that all functions are allowed to overwrite the match data unless they're explicitly documented not to do so. A consequence is that functions that are run implicitly in the background (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Timers][Timers]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Idle-Timers][Idle Timers]]) should likely save and restore the match data explicitly.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Replacing-Match][Replacing Match]]: Replacing a substring that was matched.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Simple-Match-Data][Simple Match Data]]: Accessing single items of match data, such as where a particular subexpression started.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Entire-Match-Data][Entire Match Data]]: Accessing the entire match data at once, as a list.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Match-Data][Saving Match Data]]: Saving and restoring the match data.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Simple-Match-Data][Simple Match Data]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]
+
+** 34.6.1 Replacing the Text that Matched
+     :PROPERTIES:
+     :CUSTOM_ID: replacing-the-text-that-matched
+     :END:
+
+This function replaces all or part of the text matched by the last search. It works by means of the match data.
+
+--- Function: *replace-match* replacement &optional fixedcase literal string subexp
+
+#+BEGIN_QUOTE
+  This function performs a replacement operation on a buffer or string.
+
+  If you did the last search in a buffer, you should omit the string argument or specify =nil= for it, and make sure that the current buffer is the one in which you performed the last search. Then this function edits the buffer, replacing the matched text with replacement. It leaves point at the end of the replacement text.
+
+  If you performed the last search on a string, pass the same string as string. Then this function returns a new string, in which the matched text is replaced by replacement.
+
+  If fixedcase is non-=nil=, then =replace-match= uses the replacement text without case conversion; otherwise, it converts the replacement text depending upon the capitalization of the text to be replaced. If the original text is all upper case, this converts the replacement text to upper case. If all words of the original text are capitalized, this capitalizes all the words of the replacement text. If all the words are one-letter and they are all upper case, they are treated as capitalized words rather than all-upper-case words.
+
+  If literal is non-=nil=, then replacement is inserted exactly as it is, the only alterations being case changes as needed. If it is =nil= (the default), then the character ‘' is treated specially. If a ‘' appears in replacement, then it must be part of one of the following sequences:
+
+  - '&'
+
+    This stands for the entire text being replaced.
+
+  - '\n', where n is a digit
+
+    This stands for the text that matched the nth subexpression in the original regexp. Subexpressions are those expressions grouped inside '(...)'. If the nth subexpression never matched, an empty string is substituted.
+
+  - '\'
+
+    This stands for a single ‘' in the replacement text.
+
+  - '?'
+
+    This stands for itself (for compatibility with =replace-regexp= and related commands; see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Regexp-Replace][Regexp Replace]]).
+
+  Any other character following ‘' signals an error.
+
+  The substitutions performed by '&' and '\n' occur after case conversion, if any. Therefore, the strings they substitute are never case-converted.
+
+  If subexp is non-=nil=, that says to replace just subexpression number subexp of the regexp that was matched, not the entire match. For example, after matching 'foo (ba/r)', calling =replace-match= with 1 as subexp means to replace just the text that matched ‘(ba/r)'.
+#+END_QUOTE
+
+--- Function: *match-substitute-replacement* replacement &optional fixedcase literal string subexp
+
+#+BEGIN_QUOTE
+  This function returns the text that would be inserted into the buffer by =replace-match=, but without modifying the buffer. It is useful if you want to present the user with actual replacement result, with constructs like '\n' or '&' substituted with matched groups. Arguments replacement and optional fixedcase, literal, string and subexp have the same meaning as for =replace-match=.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Entire-Match-Data][Entire Match Data]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Replacing-Match][Replacing Match]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]
+
+** 34.6.2 Simple Match Data Access
+     :PROPERTIES:
+     :CUSTOM_ID: simple-match-data-access
+     :END:
+
+This section explains how to use the match data to find out what was matched by the last search or match operation, if it succeeded.
+
+You can ask about the entire matching text, or about a particular parenthetical subexpression of a regular expression. The count argument in the functions below specifies which. If count is zero, you are asking about the entire match. If count is positive, it specifies which subexpression you want.
+
+Recall that the subexpressions of a regular expression are those expressions grouped with escaped parentheses, '(...)'. The countth subexpression is found by counting occurrences of '(' from the beginning of the whole regular expression. The first subexpression is numbered 1, the second 2, and so on. Only regular expressions can have subexpressions---after a simple string search, the only information available is about the entire match.
+
+Every successful search sets the match data. Therefore, you should query the match data immediately after searching, before calling any other function that might perform another search. Alternatively, you may save and restore the match data (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Match-Data][Saving Match Data]]) around the call to functions that could perform another search. Or use the functions that explicitly do not modify the match data; e.g., =string-match-p=.
+
+A search which fails may or may not alter the match data. In the current implementation, it does not, but we may change it in the future. Don't try to rely on the value of the match data after a failing search.
+
+--- Function: *match-string* count &optional in-string
+
+#+BEGIN_QUOTE
+  This function returns, as a string, the text matched in the last search or match operation. It returns the entire text if count is zero, or just the portion corresponding to the countth parenthetical subexpression, if count is positive.
+
+  If the last such operation was done against a string with =string-match=, then you should pass the same string as the argument in-string. After a buffer search or match, you should omit in-string or pass =nil= for it; but you should make sure that the current buffer when you call =match-string= is the one in which you did the searching or matching. Failure to follow this advice will lead to incorrect results.
+
+  The value is =nil= if count is out of range, or for a subexpression inside a '|' alternative that wasn't used or a repetition that repeated zero times.
+#+END_QUOTE
+
+--- Function: *match-string-no-properties* count &optional in-string
+
+#+BEGIN_QUOTE
+  This function is like =match-string= except that the result has no text properties.
+#+END_QUOTE
+
+--- Function: *match-beginning* count
+
+#+BEGIN_QUOTE
+  If the last regular expression search found a match, this function returns the position of the start of the matching text or of a subexpression of it.
+
+  If count is zero, then the value is the position of the start of the entire match. Otherwise, count specifies a subexpression in the regular expression, and the value of the function is the starting position of the match for that subexpression.
+
+  The value is =nil= for a subexpression inside a '|' alternative that wasn't used or a repetition that repeated zero times.
+#+END_QUOTE
+
+--- Function: *match-end* count
+
+#+BEGIN_QUOTE
+  This function is like =match-beginning= except that it returns the position of the end of the match, rather than the position of the beginning.
+#+END_QUOTE
+
+Here is an example of using the match data, with a comment showing the positions within the text:
+
+#+BEGIN_EXAMPLE
+         (string-match "\\(qu\\)\\(ick\\)"
+                       "The quick fox jumped quickly.")
+                       ;0123456789
+              ⇒ 4
+
+         (match-string 0 "The quick fox jumped quickly.")
+              ⇒ "quick"
+         (match-string 1 "The quick fox jumped quickly.")
+              ⇒ "qu"
+         (match-string 2 "The quick fox jumped quickly.")
+              ⇒ "ick"
+
+         (match-beginning 1)       ; The beginning of the match
+              ⇒ 4                 ;   with ‘qu’ is at index 4.
+
+         (match-beginning 2)       ; The beginning of the match
+              ⇒ 6                 ;   with ‘ick’ is at index 6.
+
+         (match-end 1)             ; The end of the match
+              ⇒ 6                 ;   with ‘qu’ is at index 6.
+
+         (match-end 2)             ; The end of the match
+              ⇒ 9                 ;   with ‘ick’ is at index 9.
+#+END_EXAMPLE
+
+Here is another example. Point is initially located at the beginning of the line. Searching moves point to between the space and the word 'in'. The beginning of the entire match is at the 9th character of the buffer ('T'), and the beginning of the match for the first subexpression is at the 13th character ('c').
+
+#+BEGIN_EXAMPLE
+         (list
+           (re-search-forward "The \\(cat \\)")
+           (match-beginning 0)
+           (match-beginning 1))
+             ⇒ (17 9 13)
+
+         ---------- Buffer: foo ----------
+         I read "The cat -!-in the hat comes back" twice.
+                 ^   ^
+                 9  13
+         ---------- Buffer: foo ----------
+#+END_EXAMPLE
+
+(In this case, the index returned is a buffer position; the first character of the buffer counts as 1.)
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Saving-Match-Data][Saving Match Data]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Simple-Match-Data][Simple Match Data]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]
+
+** 34.6.3 Accessing the Entire Match Data
+     :PROPERTIES:
+     :CUSTOM_ID: accessing-the-entire-match-data
+     :END:
+
+The functions =match-data= and =set-match-data= read or write the entire match data, all at once.
+
+--- Function: *match-data* &optional integers reuse reseat
+
+#+BEGIN_QUOTE
+  This function returns a list of positions (markers or integers) that record all the information on the text that the last search matched. Element zero is the position of the beginning of the match for the whole expression; element one is the position of the end of the match for the expression. The next two elements are the positions of the beginning and end of the match for the first subexpression, and so on. In general, element number 2n corresponds to =(match-beginning=n=)=; and element number 2n + 1 corresponds to =(match-end=n=)=.
+
+  Normally all the elements are markers or =nil=, but if integers is non-=nil=, that means to use integers instead of markers. (In that case, the buffer itself is appended as an additional element at the end of the list, to facilitate complete restoration of the match data.) If the last match was done on a string with =string-match=, then integers are always used, since markers can't point into a string.
+
+  If reuse is non-=nil=, it should be a list. In that case, =match-data= stores the match data in reuse. That is, reuse is destructively modified. reuse does not need to have the right length. If it is not long enough to contain the match data, it is extended. If it is too long, the length of reuse stays the same, but the elements that were not used are set to =nil=. The purpose of this feature is to reduce the need for garbage collection.
+
+  If reseat is non-=nil=, all markers on the reuse list are reseated to point to nowhere.
+
+  As always, there must be no possibility of intervening searches between the call to a search function and the call to =match-data= that is intended to access the match data for that search.
+
+  #+BEGIN_EXAMPLE
+                (match-data)
+                     ⇒  (#<marker at 9 in foo>
+                          #<marker at 17 in foo>
+                          #<marker at 13 in foo>
+                          #<marker at 17 in foo>)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *set-match-data* match-list &optional reseat
+
+#+BEGIN_QUOTE
+  This function sets the match data from the elements of match-list, which should be a list that was the value of a previous call to =match-data=. (More precisely, anything that has the same format will work.)
+
+  If match-list refers to a buffer that doesn't exist, you don't get an error; that sets the match data in a meaningless but harmless way.
+
+  If reseat is non-=nil=, all markers on the match-list list are reseated to point to nowhere.
+
+  =store-match-data= is a semi-obsolete alias for =set-match-data=.
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Entire-Match-Data][Entire Match Data]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]]
+
+** 34.6.4 Saving and Restoring the Match Data
+     :PROPERTIES:
+     :CUSTOM_ID: saving-and-restoring-the-match-data
+     :END:
+
+When you call a function that may search, you may need to save and restore the match data around that call, if you want to preserve the match data from an earlier search for later use. Here is an example that shows the problem that arises if you fail to save the match data:
+
+#+BEGIN_EXAMPLE
+         (re-search-forward "The \\(cat \\)")
+              ⇒ 48
+         (foo)                   ; foo does more searching.
+         (match-end 0)
+              ⇒ 61              ; Unexpected result---not 48!
+#+END_EXAMPLE
+
+You can save and restore the match data with =save-match-data=:
+
+--- Macro: *save-match-data* body...
+
+#+BEGIN_QUOTE
+  This macro executes body, saving and restoring the match data around it. The return value is the value of the last form in body.
+#+END_QUOTE
+
+You could use =set-match-data= together with =match-data= to imitate the effect of the special form =save-match-data=. Here is how:
+
+#+BEGIN_EXAMPLE
+         (let ((data (match-data)))
+           (unwind-protect
+               ...   ; Ok to change the original match data.
+             (set-match-data data)))
+#+END_EXAMPLE
+
+Emacs automatically saves and restores the match data when it runs process filter functions (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Filter-Functions][Filter Functions]]) and process sentinels (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Sentinels][Sentinels]]).
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Standard-Regexps][Standard Regexps]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Match-Data][Match Data]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.7 Search and Replace
+    :PROPERTIES:
+    :CUSTOM_ID: search-and-replace
+    :END:
+
+If you want to find all matches for a regexp in part of the buffer, and replace them, the best way is to write an explicit loop using =re-search-forward= and =replace-match=, like this:
+
+#+BEGIN_EXAMPLE
+         (while (re-search-forward "foo[ \t]+bar" nil t)
+           (replace-match "foobar"))
+#+END_EXAMPLE
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Replacing-Match][Replacing the Text that Matched]], for a description of =replace-match=.
+
+However, replacing matches in a string is more complex, especially if you want to do it efficiently. So Emacs provides a function to do this.
+
+--- Function: *replace-regexp-in-string* regexp rep string &optional fixedcase literal subexp start
+
+#+BEGIN_QUOTE
+  This function copies string and searches it for matches for regexp, and replaces them with rep. It returns the modified copy. If start is non-=nil=, the search for matches starts at that index in string, so matches starting before that index are not changed.
+
+  This function uses =replace-match= to do the replacement, and it passes the optional arguments fixedcase, literal and subexp along to =replace-match=.
+
+  Instead of a string, rep can be a function. In that case, =replace-regexp-in-string= calls rep for each match, passing the text of the match as its sole argument. It collects the value rep returns and passes that to =replace-match= as the replacement string. The match data at this point are the result of matching regexp against a substring of string.
+#+END_QUOTE
+
+If you want to write a command along the lines of =query-replace=, you can use =perform-replace= to do the work.
+
+--- Function: *perform-replace* from-string replacements query-flag regexp-flag delimited-flag &optional repeat-count map start end backward region-noncontiguous-p
+
+#+BEGIN_QUOTE
+  This function is the guts of =query-replace= and related commands. It searches for occurrences of from-string in the text between positions start and end and replaces some or all of them. If start is =nil= (or omitted), point is used instead, and the end of the buffer's accessible portion is used for end. (If the optional argument backward is non-=nil=, the search starts at end and goes backward.)
+
+  If query-flag is =nil=, it replaces all occurrences; otherwise, it asks the user what to do about each one.
+
+  If regexp-flag is non-=nil=, then from-string is considered a regular expression; otherwise, it must match literally. If delimited-flag is non-=nil=, then only replacements surrounded by word boundaries are considered.
+
+  The argument replacements specifies what to replace occurrences with. If it is a string, that string is used. It can also be a list of strings, to be used in cyclic order.
+
+  If replacements is a cons cell, =(=function=.=data=)=, this means to call function after each match to get the replacement text. This function is called with two arguments: data, and the number of replacements already made.
+
+  If repeat-count is non-=nil=, it should be an integer. Then it specifies how many times to use each of the strings in the replacements list before advancing cyclically to the next one.
+
+  If from-string contains upper-case letters, then =perform-replace= binds =case-fold-search= to =nil=, and it uses the replacements without altering their case.
+
+  Normally, the keymap =query-replace-map= defines the possible user responses for queries. The argument map, if non-=nil=, specifies a keymap to use instead of =query-replace-map=.
+
+  Non-=nil= region-noncontiguous-p means that the region between start and end is composed of noncontiguous pieces. The most common example of this is a rectangular region, where the pieces are separated by newline characters.
+
+  This function uses one of two functions to search for the next occurrence of from-string. These functions are specified by the values of two variables: =replace-re-search-function= and =replace-search-function=. The former is called when the argument regexp-flag is non-=nil=, the latter when it is =nil=.
+#+END_QUOTE
+
+--- Variable: *query-replace-map*
+
+#+BEGIN_QUOTE
+  This variable holds a special keymap that defines the valid user responses for =perform-replace= and the commands that use it, as well as =y-or-n-p= and =map-y-or-n-p=. This map is unusual in two ways:
+
+  - The key bindings are not commands, just symbols that are meaningful to the functions that use this map.\\
+  - Prefix keys are not supported; each key binding must be for a single-event key sequence. This is because the functions don't use =read-key-sequence= to get the input; instead, they read a single event and look it up "by hand".
+#+END_QUOTE
+
+Here are the meaningful bindings for =query-replace-map=. Several of them are meaningful only for =query-replace= and friends.
+
+- =act=
+
+  Do take the action being considered---in other words, "yes".
+
+- =skip=
+
+  Do not take action for this question---in other words, "no".
+
+- =exit=
+
+  Answer this question "no", and give up on the entire series of questions, assuming that the answers will be "no".
+
+- =exit-prefix=
+
+  Like =exit=, but add the key that was pressed to =unread-command-events= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Event-Input-Misc][Event Input Misc]]).
+
+- =act-and-exit=
+
+  Answer this question "yes", and give up on the entire series of questions, assuming that subsequent answers will be "no".
+
+- =act-and-show=
+
+  Answer this question "yes", but show the results---don't advance yet to the next question.
+
+- =automatic=
+
+  Answer this question and all subsequent questions in the series with "yes", without further user interaction.
+
+- =backup=
+
+  Move back to the previous place that a question was asked about.
+
+- =undo=
+
+  Undo last replacement and move back to the place where that replacement was performed.
+
+- =undo-all=
+
+  Undo all replacements and move back to the place where the first replacement was performed.
+
+- =edit=
+
+  Enter a recursive edit to deal with this question---instead of any other action that would normally be taken.
+
+- =edit-replacement=
+
+  Edit the replacement for this question in the minibuffer.
+
+- =delete-and-edit=
+
+  Delete the text being considered, then enter a recursive edit to replace it.
+
+- =recenter=
+
+- =scroll-up=
+
+- =scroll-down=
+
+- =scroll-other-window=
+
+- =scroll-other-window-down=
+
+  Perform the specified window scroll operation, then ask the same question again. Only =y-or-n-p= and related functions use this answer.
+
+- =quit=
+
+  Perform a quit right away. Only =y-or-n-p= and related functions use this answer.
+
+- =help=
+
+  Display some help, then ask again.
+
+--- Variable: *multi-query-replace-map*
+
+#+BEGIN_QUOTE
+  This variable holds a keymap that extends =query-replace-map= by providing additional keybindings that are useful in multi-buffer replacements. The additional bindings are:
+
+  - =automatic-all=
+
+    Answer this question and all subsequent questions in the series with "yes", without further user interaction, for all remaining buffers.
+
+  - =exit-current=
+
+    Answer this question "no", and give up on the entire series of questions for the current buffer. Continue to the next buffer in the sequence.
+
+#+END_QUOTE
+
+--- Variable: *replace-search-function*
+
+#+BEGIN_QUOTE
+  This variable specifies a function that =perform-replace= calls to search for the next string to replace. Its default value is =search-forward=. Any other value should name a function of 3 arguments: the first 3 arguments of =search-forward= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#String-Search][String Search]]).
+#+END_QUOTE
+
+--- Variable: *replace-re-search-function*
+
+#+BEGIN_QUOTE
+  This variable specifies a function that =perform-replace= calls to search for the next regexp to replace. Its default value is =re-search-forward=. Any other value should name a function of 3 arguments: the first 3 arguments of =re-search-forward= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regexp-Search][Regexp Search]]).
+#+END_QUOTE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Search-and-Replace][Search and Replace]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Searching-and-Matching][Searching and Matching]]
+
+* 34.8 Standard Regular Expressions Used in Editing
+    :PROPERTIES:
+    :CUSTOM_ID: standard-regular-expressions-used-in-editing
+    :END:
+
+This section describes some variables that hold regular expressions used for certain purposes in editing:
+
+--- User Option: *page-delimiter*
+
+#+BEGIN_QUOTE
+  This is the regular expression describing line-beginnings that separate pages. The default value is ="^\014"= (i.e., ="^^L"= or ="^\C-l"=); this matches a line that starts with a formfeed character.
+#+END_QUOTE
+
+The following two regular expressions should /not/ assume the match always starts at the beginning of a line; they should not use '\^' to anchor the match. Most often, the paragraph commands do check for a match only at the beginning of a line, which means that '\^' would be superfluous. When there is a nonzero left margin, they accept matches that start after the left margin. In that case, a '\^' would be incorrect. However, a '\^' is harmless in modes where a left margin is never used.
+
+--- User Option: *paragraph-separate*
+
+#+BEGIN_QUOTE
+  This is the regular expression for recognizing the beginning of a line that separates paragraphs. (If you change this, you may have to change =paragraph-start= also.) The default value is ="[ \t\f]*$"=, which matches a line that consists entirely of spaces, tabs, and form feeds (after its left margin).
+#+END_QUOTE
+
+--- User Option: *paragraph-start*
+
+#+BEGIN_QUOTE
+  This is the regular expression for recognizing the beginning of a line that starts /or/ separates paragraphs. The default value is ="\f\\|[ \t]*$"=, which matches a line containing only whitespace or starting with a form feed (after its left margin).
+#+END_QUOTE
+
+--- User Option: *sentence-end*
+
+#+BEGIN_QUOTE
+  If non-=nil=, the value should be a regular expression describing the end of a sentence, including the whitespace following the sentence. (All paragraph boundaries also end sentences, regardless.)
+
+  If the value is =nil=, as it is by default, then the function =sentence-end= constructs the regexp. That is why you should always call the function =sentence-end= to obtain the regexp to be used to recognize the end of a sentence.
+#+END_QUOTE
+
+--- Function: *sentence-end*
+
+#+BEGIN_QUOTE
+  This function returns the value of the variable =sentence-end=, if non-=nil=. Otherwise it returns a default value based on the values of the variables =sentence-end-double-space= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Definition-of-sentence_002dend_002ddouble_002dspace][Definition of sentence-end-double-space]]), =sentence-end-without-period=, and =sentence-end-without-space=.
+#+END_QUOTE
+
+

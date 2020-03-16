@@ -1,0 +1,1667 @@
+#+TITLE: 12.Variables
+* 12 Variables
+   :PROPERTIES:
+   :CUSTOM_ID: variables
+   :END:
+
+A variable is a name used in a program to stand for a value. In Lisp, each variable is represented by a Lisp symbol (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbols][Symbols]]). The variable name is simply the symbol's name, and the variable's value is stored in the symbol's value cell[[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#fn-7][7]]. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Components][Symbol Components]]. In Emacs Lisp, the use of a symbol as a variable is independent of its use as a function name.
+
+As previously noted in this manual, a Lisp program is represented primarily by Lisp objects, and only secondarily as text. The textual form of a Lisp program is given by the read syntax of the Lisp objects that constitute the program. Hence, the textual form of a variable in a Lisp program is written using the read syntax for the symbol representing the variable.
+
+1) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Global-Variables][Global Variables]]: Variable values that exist permanently, everywhere.
+2) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Constant-Variables][Constant Variables]]: Variables that never change.
+3) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-Variables][Local Variables]]: Variable values that exist only temporarily.
+4) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Void-Variables][Void Variables]]: Symbols that lack values.
+5) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]]: A definition says a symbol is used as a variable.
+6) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Tips-for-Defining][Tips for Defining]]: Things you should think about when you define a variable.
+7) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Variables][Accessing Variables]]: Examining values of variables whose names are known only at run time.
+8) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Variables][Setting Variables]]: Storing new values in variables.
+9) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Watching-Variables][Watching Variables]]: Running a function when a variable is changed.
+10) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]: How Lisp chooses among local and global values.
+11) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]]: Variable values in effect only in one buffer.
+12) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]: Handling local variable lists in files.
+13) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Directory-Local-Variables][Directory Local Variables]]: Local variables common to all files in a directory.
+14) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Connection-Local-Variables][Connection Local Variables]]: Local variables common for remote connections.
+15) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Aliases][Variable Aliases]]: Variables that are aliases for other variables.
+16) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables-with-Restricted-Values][Variables with Restricted Values]]: Non-constant variables whose value can /not/ be an arbitrary Lisp object.
+17) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Generalized-Variables][Generalized Variables]]: Extending the concept of variables.
+
+* 12.1 Global Variables
+    :PROPERTIES:
+    :CUSTOM_ID: global-variables
+    :END:
+
+The simplest way to use a variable is globally. This means that the variable has just one value at a time, and this value is in effect (at least for the moment) throughout the Lisp system. The value remains in effect until you specify a new one. When a new value replaces the old one, no trace of the old value remains in the variable.
+
+You specify a value for a symbol with =setq=. For example,
+
+#+BEGIN_EXAMPLE
+         (setq x '(a b))
+#+END_EXAMPLE
+
+gives the variable =x= the value =(a b)=. Note that =setq= is a special form (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Special-Forms][Special Forms]]); it does not evaluate its first argument, the name of the variable, but it does evaluate the second argument, the new value.
+
+Once the variable has a value, you can refer to it by using the symbol itself as an expression. Thus,
+
+#+BEGIN_EXAMPLE
+         x ⇒ (a b)
+#+END_EXAMPLE
+
+assuming the =setq= form shown above has already been executed.
+
+If you do set the same variable again, the new value replaces the old one:
+
+#+BEGIN_EXAMPLE
+         x
+              ⇒ (a b)
+         (setq x 4)
+              ⇒ 4
+         x
+              ⇒ 4
+#+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-Variables][Local Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Global-Variables][Global Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.2 Variables that Never Change
+    :PROPERTIES:
+    :CUSTOM_ID: variables-that-never-change
+    :END:
+
+In Emacs Lisp, certain symbols normally evaluate to themselves. These include =nil= and =t=, as well as any symbol whose name starts with ':' (these are called keywords). These symbols cannot be rebound, nor can their values be changed. Any attempt to set or bind =nil= or =t= signals a =setting-constant= error. The same is true for a keyword (a symbol whose name starts with ':'), if it is interned in the standard obarray, except that setting such a symbol to itself is not an error.
+
+#+BEGIN_EXAMPLE
+         nil == 'nil
+              ⇒ nil
+         (setq nil 500)
+         error--> Attempt to set constant symbol: nil
+#+END_EXAMPLE
+
+--- Function: *keywordp* object
+
+#+BEGIN_QUOTE
+  function returns =t= if object is a symbol whose name starts with ':', interned in the standard obarray, and returns =nil= otherwise.
+#+END_QUOTE
+
+These constants are fundamentally different from the constants defined using the =defconst= special form (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]]). A =defconst= form serves to inform human readers that you do not intend to change the value of a variable, but Emacs does not raise an error if you actually change it.
+
+A small number of additional symbols are made read-only for various practical reasons. These include =enable-multibyte-characters=, =most-positive-fixnum=, =most-negative-fixnum=, and a few others. Any attempt to set or bind these also signals a =setting-constant= error.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Void-Variables][Void Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Constant-Variables][Constant Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.3 Local Variables
+    :PROPERTIES:
+    :CUSTOM_ID: local-variables
+    :END:
+
+Global variables have values that last until explicitly superseded with new values. Sometimes it is useful to give a variable a local value---a value that takes effect only within a certain part of a Lisp program. When a variable has a local value, we say that it is locally bound to that value, and that it is a local variable.
+
+For example, when a function is called, its argument variables receive local values, which are the actual arguments supplied to the function call; these local bindings take effect within the body of the function. To take another example, the =let= special form explicitly establishes local bindings for specific variables, which take effect only within the body of the =let= form.
+
+We also speak of the global binding, which is where (conceptually) the global value is kept.
+
+Establishing a local binding saves away the variable's previous value (or lack of one). We say that the previous value is shadowed. Both global and local values may be shadowed. If a local binding is in effect, using =setq= on the local variable stores the specified value in the local binding. When that local binding is no longer in effect, the previously shadowed value (or lack of one) comes back.
+
+A variable can have more than one local binding at a time (e.g., if there are nested =let= forms that bind the variable). The current binding is the local binding that is actually in effect. It determines the value returned by evaluating the variable symbol, and it is the binding acted on by =setq=.
+
+For most purposes, you can think of the current binding as the innermost local binding, or the global binding if there is no local binding. To be more precise, a rule called the scoping rule determines where in a program a local binding takes effect. The default scoping rule in Emacs Lisp is called dynamic scoping, which simply states that the current binding at any given point in the execution of a program is the most recently-created binding for that variable that still exists. For details about dynamic scoping, and an alternative scoping rule called lexical scoping, See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]].
+
+The special forms =let= and =let*= exist to create local bindings:
+
+--- Special Form: *let* (bindings...) forms...
+
+#+BEGIN_QUOTE
+  This special form sets up local bindings for a certain set of variables, as specified by bindings, and then evaluates all of the forms in textual order. Its return value is the value of the last form in forms. The local bindings set up by =let= will be in effect only within the body of forms.
+
+  Each of the bindings is either (i) a symbol, in which case that symbol is locally bound to =nil=; or (ii) a list of the form =(=symbol value-form=)=, in which case symbol is locally bound to the result of evaluating value-form. If value-form is omitted, =nil= is used.
+
+  All of the value-forms in bindings are evaluated in the order they appear and /before/ binding any of the symbols to them. Here is an example of this: =z= is bound to the old value of =y=, which is 2, not the new value of =y=, which is 1.
+
+  #+BEGIN_EXAMPLE
+                (setq y 2)
+                     ⇒ 2
+
+                (let ((y 1)
+                      (z y))
+                  (list y z))
+                     ⇒ (1 2)
+  #+END_EXAMPLE
+
+  On the other hand, the order of /bindings/ is unspecified: in the following example, either 1 or 2 might be printed.
+
+  #+BEGIN_EXAMPLE
+                (let ((x 1)
+                      (x 2))
+                  (print x))
+  #+END_EXAMPLE
+
+  Therefore, avoid binding a variable more than once in a single =let= form.
+#+END_QUOTE
+
+--- Special Form: *let** (bindings...) forms...
+
+#+BEGIN_QUOTE
+  This special form is like =let=, but it binds each variable right after computing its local value, before computing the local value for the next variable. Therefore, an expression in bindings can refer to the preceding symbols bound in this =let*= form. Compare the following example with the example above for =let=.
+
+  #+BEGIN_EXAMPLE
+                (setq y 2)
+                     ⇒ 2
+
+                (let* ((y 1)
+                       (z y))    ; Use the just-established value of y.
+                  (list y z))
+                     ⇒ (1 1)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Here is a complete list of the other facilities that create local bindings:
+
+- Function calls (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Functions][Functions]]).\\
+- Macro calls (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Macros][Macros]]).\\
+- =condition-case= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Errors][Errors]]).
+
+Variables can also have buffer-local bindings (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]]); a few variables have terminal-local bindings (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]]). These kinds of bindings work somewhat like ordinary local bindings, but they are localized depending on where you are in Emacs.
+
+--- User Option: *max-specpdl-size*
+
+#+BEGIN_QUOTE
+  This variable defines the limit on the total number of local variable bindings and =unwind-protect= cleanups (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Cleanups][Cleaning Up from Nonlocal Exits]]) that are allowed before Emacs signals an error (with data ="Variable binding depth exceeds max-specpdl-size"=).
+
+  This limit, with the associated error when it is exceeded, is one way that Lisp avoids infinite recursion on an ill-defined function. =max-lisp-eval-depth= provides another limit on depth of nesting. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Definition-of-max_002dlisp_002deval_002ddepth][Eval]].
+
+  The default value is 1300. Entry to the Lisp debugger increases the value, if there is little room left, to make sure the debugger itself has room to execute.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-Variables][Local Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.4 When a Variable is Void
+    :PROPERTIES:
+    :CUSTOM_ID: when-a-variable-is-void
+    :END:
+
+We say that a variable is void if its symbol has an unassigned value cell (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Components][Symbol Components]]).
+
+Under Emacs Lisp's default dynamic scoping rule (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]), the value cell stores the variable's current (local or global) value. Note that an unassigned value cell is /not/ the same as having =nil= in the value cell. The symbol =nil= is a Lisp object and can be the value of a variable, just as any other object can be; but it is still a value. If a variable is void, trying to evaluate the variable signals a =void-variable= error, instead of returning a value.
+
+Under the optional lexical scoping rule, the value cell only holds the variable's global value---the value outside of any lexical binding construct. When a variable is lexically bound, the local value is determined by the lexical environment; hence, variables can have local values even if their symbols' value cells are unassigned.
+
+--- Function: *makunbound* symbol
+
+#+BEGIN_QUOTE
+  This function empties out the value cell of symbol, making the variable void. It returns symbol.
+
+  If symbol has a dynamic local binding, =makunbound= voids the current binding, and this voidness lasts only as long as the local binding is in effect. Afterwards, the previously shadowed local or global binding is reexposed; then the variable will no longer be void, unless the reexposed binding is void too.
+
+  Here are some examples (assuming dynamic binding is in effect):
+
+  #+BEGIN_EXAMPLE
+                (setq x 1)               ; Put a value in the global binding.
+                     ⇒ 1
+                (let ((x 2))             ; Locally bind it.
+                  (makunbound 'x)        ; Void the local binding.
+                  x)
+                error--> Symbol's value as variable is void: x
+                x                        ; The global binding is unchanged.
+                     ⇒ 1
+
+                (let ((x 2))             ; Locally bind it.
+                  (let ((x 3))           ; And again.
+                    (makunbound 'x)      ; Void the innermost-local binding.
+                    x))                  ; And refer: it's void.
+                error--> Symbol's value as variable is void: x
+
+                (let ((x 2))
+                  (let ((x 3))
+                    (makunbound 'x))     ; Void inner binding, then remove it.
+                  x)                     ; Now outer let binding is visible.
+                     ⇒ 2
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *boundp* variable
+
+#+BEGIN_QUOTE
+  This function returns =t= if variable (a symbol) is not void, and =nil= if it is void.
+
+  Here are some examples (assuming dynamic binding is in effect):
+
+  #+BEGIN_EXAMPLE
+                (boundp 'abracadabra)          ; Starts out void.
+                     ⇒ nil
+                (let ((abracadabra 5))         ; Locally bind it.
+                  (boundp 'abracadabra))
+                     ⇒ t
+                (boundp 'abracadabra)          ; Still globally void.
+                     ⇒ nil
+                (setq abracadabra 5)           ; Make it globally nonvoid.
+                     ⇒ 5
+                (boundp 'abracadabra)
+                     ⇒ t
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Tips-for-Defining][Tips for Defining]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Void-Variables][Void Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.5 Defining Global Variables
+    :PROPERTIES:
+    :CUSTOM_ID: defining-global-variables
+    :END:
+
+A variable definition is a construct that announces your intention to use a symbol as a global variable. It uses the special forms =defvar= or =defconst=, which are documented below.
+
+A variable definition serves three purposes. First, it informs people who read the code that the symbol is /intended/ to be used a certain way (as a variable). Second, it informs the Lisp system of this, optionally supplying an initial value and a documentation string. Third, it provides information to programming tools such as etags, allowing them to find where the variable was defined.
+
+The difference between =defconst= and =defvar= is mainly a matter of intent, serving to inform human readers of whether the value should ever change. Emacs Lisp does not actually prevent you from changing the value of a variable defined with =defconst=. One notable difference between the two forms is that =defconst= unconditionally initializes the variable, whereas =defvar= initializes it only if it is originally void.
+
+To define a customizable variable, you should use =defcustom= (which calls =defvar= as a subroutine). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Definitions][Variable Definitions]].
+
+--- Special Form: *defvar* symbol [value [doc-string]]
+
+#+BEGIN_QUOTE
+  This special form defines symbol as a variable. Note that symbol is not evaluated; the symbol to be defined should appear explicitly in the =defvar= form. The variable is marked as special, meaning that it should always be dynamically bound (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]).
+
+  If value is specified, and symbol is void (i.e., it has no dynamically bound value; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Void-Variables][Void Variables]]), then value is evaluated and symbol is set to the result. But if symbol is not void, value is not evaluated, and symbol's value is left unchanged. If value is omitted, the value of symbol is not changed in any case.
+
+  Note that specifying a value, even =nil=, marks the variable as special permanently. Whereas if value is omitted then the variable is only marked special locally (i.e. within the current lexical scope, or file if at the top-level). This can be useful for suppressing byte compilation warnings, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Compiler-Errors][Compiler Errors]].
+
+  If symbol has a buffer-local binding in the current buffer, =defvar= acts on the default value, which is buffer-independent, rather than the buffer-local binding. It sets the default value if the default value is void. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]].
+
+  If symbol is already lexically bound (e.g., if the =defvar= form occurs in a =let= form with lexical binding enabled), then =defvar= sets the dynamic value. The lexical binding remains in effect until its binding construct exits. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]].
+
+  When you evaluate a top-level =defvar= form with C-M-x in Emacs Lisp mode (=eval-defun=), a special feature of =eval-defun= arranges to set the variable unconditionally, without testing whether its value is void.
+
+  If the doc-string argument is supplied, it specifies the documentation string for the variable (stored in the symbol's =variable-documentation= property). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Documentation][Documentation]].
+
+  Here are some examples. This form defines =foo= but does not initialize it:
+
+  #+BEGIN_EXAMPLE
+                (defvar foo)
+                     ⇒ foo
+  #+END_EXAMPLE
+
+  This example initializes the value of =bar= to =23=, and gives it a documentation string:
+
+  #+BEGIN_EXAMPLE
+                (defvar bar 23
+                  "The normal weight of a bar.")
+                     ⇒ bar
+  #+END_EXAMPLE
+
+  The =defvar= form returns symbol, but it is normally used at top level in a file where its value does not matter.
+
+  For a more elaborate example of using =defvar= without a value, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-defvar-example][Local defvar example]].
+#+END_QUOTE
+
+--- Special Form: *defconst* symbol value [doc-string]
+
+#+BEGIN_QUOTE
+  This special form defines symbol as a value and initializes it. It informs a person reading your code that symbol has a standard global value, established here, that should not be changed by the user or by other programs. Note that symbol is not evaluated; the symbol to be defined must appear explicitly in the =defconst=.
+
+  The =defconst= form, like =defvar=, marks the variable as special, meaning that it should always be dynamically bound (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]). In addition, it marks the variable as risky (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]).
+
+  =defconst= always evaluates value, and sets the value of symbol to the result. If symbol does have a buffer-local binding in the current buffer, =defconst= sets the default value, not the buffer-local value. (But you should not be making buffer-local bindings for a symbol that is defined with =defconst=.)
+
+  An example of the use of =defconst= is Emacs's definition of =float-pi=---the mathematical constant pi, which ought not to be changed by anyone (attempts by the Indiana State Legislature notwithstanding). As the second form illustrates, however, =defconst= is only advisory.
+
+  #+BEGIN_EXAMPLE
+                (defconst float-pi 3.141592653589793 "The value of Pi.")
+                     ⇒ float-pi
+                (setq float-pi 3)
+                     ⇒ float-pi
+                float-pi
+                     ⇒ 3
+  #+END_EXAMPLE
+#+END_QUOTE
+
+*Warning:* If you use a =defconst= or =defvar= special form while the variable has a local binding (made with =let=, or a function argument), it sets the local binding rather than the global binding. This is not what you usually want. To prevent this, use these special forms at top level in a file, where normally no local binding is in effect, and make sure to load the file before making a local binding for the variable.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Variables][Accessing Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.6 Tips for Defining Variables Robustly
+    :PROPERTIES:
+    :CUSTOM_ID: tips-for-defining-variables-robustly
+    :END:
+
+When you define a variable whose value is a function, or a list of functions, use a name that ends in '-function' or '-functions', respectively.
+
+There are several other variable name conventions; here is a complete list:
+
+- '...-hook'
+
+  The variable is a normal hook (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Hooks][Hooks]]).
+
+- '...-function'
+
+  The value is a function.
+
+- '...-functions'
+
+  The value is a list of functions.
+
+- '...-form'
+
+  The value is a form (an expression).
+
+- '...-forms'
+
+  The value is a list of forms (expressions).
+
+- '...-predicate'
+
+  The value is a predicate---a function of one argument that returns non-=nil= for success and =nil= for failure.
+
+- '...-flag'
+
+  The value is significant only as to whether it is =nil= or not. Since such variables often end up acquiring more values over time, this convention is not strongly recommended.
+
+- '...-program'
+
+  The value is a program name.
+
+- '...-command'
+
+  The value is a whole shell command.
+
+- '...-switches'
+
+  The value specifies options for a command.
+
+- 'prefix--...'
+
+  The variable is intended for internal use and is defined in the file prefix.el. (Emacs code contributed before 2018 may follow other conventions, which are being phased out.)
+
+- '...-internal'
+
+  The variable is intended for internal use and is defined in C code. (Emacs code contributed before 2018 may follow other conventions, which are being phased out.)
+
+When you define a variable, always consider whether you should mark it as safe or risky; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]].
+
+When defining and initializing a variable that holds a complicated value (such as a keymap with bindings in it), it's best to put the entire computation of the value into the =defvar=, like this:
+
+#+BEGIN_EXAMPLE
+         (defvar my-mode-map
+           (let ((map (make-sparse-keymap)))
+             (define-key map "\C-c\C-a" 'my-command)
+             ...
+             map)
+           docstring)
+#+END_EXAMPLE
+
+This method has several benefits. First, if the user quits while loading the file, the variable is either still uninitialized or initialized properly, never in-between. If it is still uninitialized, reloading the file will initialize it properly. Second, reloading the file once the variable is initialized will not alter it; that is important if the user has run hooks to alter part of the contents (such as, to rebind keys). Third, evaluating the =defvar= form with C-M-x will reinitialize the map completely.
+
+Putting so much code in the =defvar= form has one disadvantage: it puts the documentation string far away from the line which names the variable. Here's a safe way to avoid that:
+
+#+BEGIN_EXAMPLE
+         (defvar my-mode-map nil
+           docstring)
+         (unless my-mode-map
+           (let ((map (make-sparse-keymap)))
+             (define-key map "\C-c\C-a" 'my-command)
+             ...
+             (setq my-mode-map map)))
+#+END_EXAMPLE
+
+This has all the same advantages as putting the initialization inside the =defvar=, except that you must type C-M-x twice, once on each form, if you do want to reinitialize the variable.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Variables][Setting Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Tips-for-Defining][Tips for Defining]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.7 Accessing Variable Values
+    :PROPERTIES:
+    :CUSTOM_ID: accessing-variable-values
+    :END:
+
+The usual way to reference a variable is to write the symbol which names it. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Forms][Symbol Forms]].
+
+Occasionally, you may want to reference a variable which is only determined at run time. In that case, you cannot specify the variable name in the text of the program. You can use the =symbol-value= function to extract the value.
+
+--- Function: *symbol-value* symbol
+
+#+BEGIN_QUOTE
+  This function returns the value stored in symbol's value cell. This is where the variable's current (dynamic) value is stored. If the variable has no local binding, this is simply its global value. If the variable is void, a =void-variable= error is signaled.
+
+  If the variable is lexically bound, the value reported by =symbol-value= is not necessarily the same as the variable's lexical value, which is determined by the lexical environment rather than the symbol's value cell. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]].
+
+  #+BEGIN_EXAMPLE
+                (setq abracadabra 5)
+                     ⇒ 5
+                (setq foo 9)
+                     ⇒ 9
+
+                ;; Here the symbol abracadabra
+                ;;   is the symbol whose value is examined.
+                (let ((abracadabra 'foo))
+                  (symbol-value 'abracadabra))
+                     ⇒ foo
+
+                ;; Here, the value of abracadabra,
+                ;;   which is foo,
+                ;;   is the symbol whose value is examined.
+                (let ((abracadabra 'foo))
+                  (symbol-value abracadabra))
+                     ⇒ 9
+
+                (symbol-value 'abracadabra)
+                     ⇒ 5
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Watching-Variables][Watching Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Variables][Accessing Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.8 Setting Variable Values
+    :PROPERTIES:
+    :CUSTOM_ID: setting-variable-values
+    :END:
+
+The usual way to change the value of a variable is with the special form =setq=. When you need to compute the choice of variable at run time, use the function =set=.
+
+--- Special Form: *setq* [symbol form]...
+
+#+BEGIN_QUOTE
+  This special form is the most common method of changing a variable's value. Each symbol is given a new value, which is the result of evaluating the corresponding form. The current binding of the symbol is changed.
+
+  =setq= does not evaluate symbol; it sets the symbol that you write. We say that this argument is automatically quoted. The 'q' in =setq= stands for "quoted".
+
+  The value of the =setq= form is the value of the last form.
+
+  #+BEGIN_EXAMPLE
+                (setq x (1+ 2))
+                     ⇒ 3
+                x                   ; x now has a global value.
+                     ⇒ 3
+                (let ((x 5))
+                  (setq x 6)        ; The local binding of x is set.
+                  x)
+                     ⇒ 6
+                x                   ; The global value is unchanged.
+                     ⇒ 3
+  #+END_EXAMPLE
+
+  Note that the first form is evaluated, then the first symbol is set, then the second form is evaluated, then the second symbol is set, and so on:
+
+  #+BEGIN_EXAMPLE
+                (setq x 10          ; Notice that x is set before
+                      y (1+ x))     ;   the value of y is computed.
+                     ⇒ 11
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *set* symbol value
+
+#+BEGIN_QUOTE
+  This function puts value in the value cell of symbol. Since it is a function rather than a special form, the expression written for symbol is evaluated to obtain the symbol to set. The return value is value.
+
+  When dynamic variable binding is in effect (the default), =set= has the same effect as =setq=, apart from the fact that =set= evaluates its symbol argument whereas =setq= does not. But when a variable is lexically bound, =set= affects its /dynamic/ value, whereas =setq= affects its current (lexical) value. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]].
+
+  #+BEGIN_EXAMPLE
+                (set one 1)
+                error--> Symbol's value as variable is void: one
+                (set 'one 1)
+                     ⇒ 1
+                (set 'two 'one)
+                     ⇒ one
+                (set two 2)         ; two evaluates to symbol one.
+                     ⇒ 2
+                one                 ; So it is one that was set.
+                     ⇒ 2
+                (let ((one 1))      ; This binding of one is set,
+                  (set 'one 3)      ;   not the global value.
+                  one)
+                     ⇒ 3
+                one
+                     ⇒ 2
+  #+END_EXAMPLE
+
+  If symbol is not actually a symbol, a =wrong-type-argument= error is signaled.
+
+  #+BEGIN_EXAMPLE
+                (set '(x y) 'z)
+                error--> Wrong type argument: symbolp, (x y)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Variables][Setting Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.9 Running a function when a variable is changed.
+    :PROPERTIES:
+    :CUSTOM_ID: running-a-function-when-a-variable-is-changed.
+    :END:
+
+It is sometimes useful to take some action when a variable changes its value. The watchpoint facility provides the means to do so. Some possible uses for this feature include keeping display in sync with variable settings, and invoking the debugger to track down unexpected changes to variables (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Debugging][Variable Debugging]]).
+
+The following functions may be used to manipulate and query the watch functions for a variable.
+
+--- Function: *add-variable-watcher* symbol watch-function
+
+#+BEGIN_QUOTE
+  This function arranges for watch-function to be called whenever symbol is modified. Modifications through aliases (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Aliases][Variable Aliases]]) will have the same effect.
+
+  watch-function will be called with 4 arguments: (symbol newval operation where).
+
+  symbol is the variable being changed. newval is the value it will be changed to. operation is a symbol representing the kind of change, one of: =set',=let', =unlet',=makunbound', and =defvaralias'.  where is a buffer if the buffer-local value of the variable is being changed,=nil` otherwise.
+#+END_QUOTE
+
+--- Function: *remove-variable-watch* symbol watch-function
+
+#+BEGIN_QUOTE
+  This function removes watch-function from symbol's list of watchers.
+#+END_QUOTE
+
+--- Function: *get-variable-watchers* symbol
+
+#+BEGIN_QUOTE
+  This function returns the list of symbol's active watcher functions.
+#+END_QUOTE
+
+** 12.9.1 Limitations
+     :PROPERTIES:
+     :CUSTOM_ID: limitations
+     :END:
+
+There are a couple of ways in which a variable could be modified (or at least appear to be modified) without triggering a watchpoint.
+
+Since watchpoints are attached to symbols, modification to the objects contained within variables (e.g., by a list modification function see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Modifying-Lists][Modifying Lists]]) is not caught by this mechanism.
+
+Additionally, C code can modify the value of variables directly, bypassing the watchpoint mechanism.
+
+A minor limitation of this feature, again because it targets symbols, is that only variables of dynamic scope may be watched. This poses little difficulty, since modifications to lexical variables can be discovered easily by inspecting the code within the scope of the variable (unlike dynamic variables, which can be modified by any code at all, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]).
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Watching-Variables][Watching Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.10 Scoping Rules for Variable Bindings
+    :PROPERTIES:
+    :CUSTOM_ID: scoping-rules-for-variable-bindings
+    :END:
+
+When you create a local binding for a variable, that binding takes effect only within a limited portion of the program (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-Variables][Local Variables]]). This section describes exactly what this means.
+
+Each local binding has a certain scope and extent. Scope refers to /where/ in the textual source code the binding can be accessed. Extent refers to /when/, as the program is executing, the binding exists.
+
+By default, the local bindings that Emacs creates are dynamic bindings. Such a binding has dynamic scope, meaning that any part of the program can potentially access the variable binding. It also has dynamic extent, meaning that the binding lasts only while the binding construct (such as the body of a =let= form) is being executed.
+
+Emacs can optionally create lexical bindings. A lexical binding has lexical scope, meaning that any reference to the variable must be located textually within the binding construct[[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#fn-8][8]]. It also has indefinite extent, meaning that under some circumstances the binding can live on even after the binding construct has finished executing, by means of special objects called closures.
+
+The following subsections describe dynamic binding and lexical binding in greater detail, and how to enable lexical binding in Emacs Lisp programs.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Binding][Dynamic Binding]]: The default for binding local variables in Emacs.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Binding-Tips][Dynamic Binding Tips]]: Avoiding problems with dynamic binding.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lexical-Binding][Lexical Binding]]: A different type of local variable binding.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Using-Lexical-Binding][Using Lexical Binding]]: How to enable lexical binding.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Binding-Tips][Dynamic Binding Tips]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]
+
+** 12.10.1 Dynamic Binding
+     :PROPERTIES:
+     :CUSTOM_ID: dynamic-binding
+     :END:
+
+By default, the local variable bindings made by Emacs are dynamic bindings. When a variable is dynamically bound, its current binding at any point in the execution of the Lisp program is simply the most recently-created dynamic local binding for that symbol, or the global binding if there is no such local binding.
+
+Dynamic bindings have dynamic scope and extent, as shown by the following example:
+
+#+BEGIN_EXAMPLE
+         (defvar x -99)  ; x receives an initial value of −99.
+
+         (defun getx ()
+           x)            ; x is used free in this function.
+
+         (let ((x 1))    ; x is dynamically bound.
+           (getx))
+              ⇒ 1
+
+         ;; After the let form finishes, x reverts to its
+         ;; previous value, which is −99.
+
+         (getx)
+              ⇒ -99
+#+END_EXAMPLE
+
+The function =getx= refers to =x=. This is a free reference, in the sense that there is no binding for =x= within that =defun= construct itself. When we call =getx= from within a =let= form in which =x= is (dynamically) bound, it retrieves the local value (i.e., 1). But when we call =getx= outside the =let= form, it retrieves the global value (i.e., −99).
+
+Here is another example, which illustrates setting a dynamically bound variable using =setq=:
+
+#+BEGIN_EXAMPLE
+         (defvar x -99)      ; x receives an initial value of −99.
+
+         (defun addx ()
+           (setq x (1+ x)))  ; Add 1 to x and return its new value.
+
+         (let ((x 1))
+           (addx)
+           (addx))
+              ⇒ 3           ; The two addx calls add to x twice.
+
+         ;; After the let form finishes, x reverts to its
+         ;; previous value, which is −99.
+
+         (addx)
+              ⇒ -98
+#+END_EXAMPLE
+
+Dynamic binding is implemented in Emacs Lisp in a simple way. Each symbol has a value cell, which specifies its current dynamic value (or absence of value). See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Symbol-Components][Symbol Components]]. When a symbol is given a dynamic local binding, Emacs records the contents of the value cell (or absence thereof) in a stack, and stores the new local value in the value cell. When the binding construct finishes executing, Emacs pops the old value off the stack, and puts it in the value cell.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lexical-Binding][Lexical Binding]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Binding][Dynamic Binding]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]
+
+** 12.10.2 Proper Use of Dynamic Binding
+     :PROPERTIES:
+     :CUSTOM_ID: proper-use-of-dynamic-binding
+     :END:
+
+Dynamic binding is a powerful feature, as it allows programs to refer to variables that are not defined within their local textual scope. However, if used without restraint, this can also make programs hard to understand. There are two clean ways to use this technique:
+
+- If a variable has no global definition, use it as a local variable only within a binding construct, such as the body of the =let= form where the variable was bound. If this convention is followed consistently throughout a program, the value of the variable will not affect, nor be affected by, any uses of the same variable symbol elsewhere in the program.
+
+- Otherwise, define the variable with
+
+  #+BEGIN_EXAMPLE
+      defvar
+  #+END_EXAMPLE
+
+  ,
+
+  #+BEGIN_EXAMPLE
+      defconst
+  #+END_EXAMPLE
+
+  (see
+
+  Defining Variables
+
+  ), or
+
+  #+BEGIN_EXAMPLE
+      defcustom
+  #+END_EXAMPLE
+
+  (see
+
+  Variable Definitions
+
+  ). Usually, the definition should be at top-level in an Emacs Lisp file. As far as possible, it should include a documentation string which explains the meaning and purpose of the variable. You should also choose the variable's name to avoid name conflicts (see
+
+  Coding Conventions
+
+  ).
+
+  Then you can bind the variable anywhere in a program, knowing reliably what the effect will be. Wherever you encounter the variable, it will be easy to refer back to the definition, e.g., via the C-h v command (provided the variable definition has been loaded into Emacs). See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Name-Help][Name Help]].
+
+  For example, it is common to use local bindings for customizable variables like =case-fold-search=:
+
+  #+BEGIN_EXAMPLE
+                (defun search-for-abc ()
+                  "Search for the string \"abc\", ignoring case differences."
+                  (let ((case-fold-search t))
+                    (re-search-forward "abc")))
+  #+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Using-Lexical-Binding][Using Lexical Binding]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dynamic-Binding-Tips][Dynamic Binding Tips]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]
+
+** 12.10.3 Lexical Binding
+     :PROPERTIES:
+     :CUSTOM_ID: lexical-binding
+     :END:
+
+Lexical binding was introduced to Emacs, as an optional feature, in version 24.1. We expect its importance to increase with time. Lexical binding opens up many more opportunities for optimization, so programs using it are likely to run faster in future Emacs versions. Lexical binding is also more compatible with concurrency, which was added to Emacs in version 26.1.
+
+A lexically-bound variable has lexical scope, meaning that any reference to the variable must be located textually within the binding construct. Here is an example (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Using-Lexical-Binding][Using Lexical Binding]], for how to actually enable lexical binding):
+
+#+BEGIN_EXAMPLE
+         (let ((x 1))    ; x is lexically bound.
+           (+ x 3))
+              ⇒ 4
+
+         (defun getx ()
+           x)            ; x is used free in this function.
+
+         (let ((x 1))    ; x is lexically bound.
+           (getx))
+         error--> Symbol's value as variable is void: x
+#+END_EXAMPLE
+
+Here, the variable =x= has no global value. When it is lexically bound within a =let= form, it can be used in the textual confines of that =let= form. But it can /not/ be used from within a =getx= function called from the =let= form, since the function definition of =getx= occurs outside the =let= form itself.
+
+Here is how lexical binding works. Each binding construct defines a lexical environment, specifying the variables that are bound within the construct and their local values. When the Lisp evaluator wants the current value of a variable, it looks first in the lexical environment; if the variable is not specified in there, it looks in the symbol's value cell, where the dynamic value is stored.
+
+(Internally, the lexical environment is an alist of symbol-value pairs, with the final element in the alist being the symbol =t= rather than a cons cell. Such an alist can be passed as the second argument to the =eval= function, in order to specify a lexical environment in which to evaluate a form. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval][Eval]]. Most Emacs Lisp programs, however, should not interact directly with lexical environments in this way; only specialized programs like debuggers.)
+
+Lexical bindings have indefinite extent. Even after a binding construct has finished executing, its lexical environment can be "kept around" in Lisp objects called closures. A closure is created when you define a named or anonymous function with lexical binding enabled. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Closures][Closures]], for details.
+
+When a closure is called as a function, any lexical variable references within its definition use the retained lexical environment. Here is an example:
+
+#+BEGIN_EXAMPLE
+         (defvar my-ticker nil)   ; We will use this dynamically bound
+                                  ; variable to store a closure.
+
+         (let ((x 0))             ; x is lexically bound.
+           (setq my-ticker (lambda ()
+                             (setq x (1+ x)))))
+             ⇒ (closure ((x . 0) t) ()
+                   (setq x (1+ x)))
+
+         (funcall my-ticker)
+             ⇒ 1
+
+         (funcall my-ticker)
+             ⇒ 2
+
+         (funcall my-ticker)
+             ⇒ 3
+
+         x                        ; Note that x has no global value.
+         error--> Symbol's value as variable is void: x
+#+END_EXAMPLE
+
+The =let= binding defines a lexical environment in which the variable =x= is locally bound to 0. Within this binding construct, we define a lambda expression which increments =x= by one and returns the incremented value. This lambda expression is automatically turned into a closure, in which the lexical environment lives on even after the =let= binding construct has exited. Each time we evaluate the closure, it increments =x=, using the binding of =x= in that lexical environment.
+
+Note that unlike dynamic variables which are tied to the symbol object itself, the relationship between lexical variables and symbols is only present in the interpreter (or compiler). Therefore, functions which take a symbol argument (like =symbol-value=, =boundp=, and =set=) can only retrieve or modify a variable's dynamic binding (i.e., the contents of its symbol's value cell).
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lexical-Binding][Lexical Binding]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]]
+
+** 12.10.4 Using Lexical Binding
+     :PROPERTIES:
+     :CUSTOM_ID: using-lexical-binding
+     :END:
+
+When loading an Emacs Lisp file or evaluating a Lisp buffer, lexical binding is enabled if the buffer-local variable =lexical-binding= is non-=nil=:
+
+--- Variable: *lexical-binding*
+
+#+BEGIN_QUOTE
+  If this buffer-local variable is non-=nil=, Emacs Lisp files and buffers are evaluated using lexical binding instead of dynamic binding. (However, special variables are still dynamically bound; see below.) If =nil=, dynamic binding is used for all local variables. This variable is typically set for a whole Emacs Lisp file, as a file local variable (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]). Note that unlike other such variables, this one must be set in the first line of a file.
+#+END_QUOTE
+
+When evaluating Emacs Lisp code directly using an =eval= call, lexical binding is enabled if the lexical argument to =eval= is non-=nil=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Eval][Eval]].
+
+Even when lexical binding is enabled, certain variables will continue to be dynamically bound. These are called special variables. Every variable that has been defined with =defvar=, =defcustom= or =defconst= is a special variable (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Variables][Defining Variables]]). All other variables are subject to lexical binding.
+
+Using =defvar= without a value, it is possible to bind a variable dynamically just in one file, or in just one part of a file while still binding it lexically elsewhere. For example:
+
+#+BEGIN_EXAMPLE
+         (let (_)
+           (defvar x)      ; Let-bindings of x will be dynamic within this let.
+           (let ((x -99))  ; This is a dynamic binding of x.
+             (defun get-dynamic-x ()
+               x)))
+
+         (let ((x 'lexical)) ; This is a lexical binding of x.
+           (defun get-lexical-x ()
+             x))
+
+         (let (_)
+           (defvar x)
+           (let ((x 'dynamic))
+             (list (get-lexical-x)
+                   (get-dynamic-x))))
+             ⇒ (lexical dynamic)
+#+END_EXAMPLE
+
+--- Function: *special-variable-p* symbol
+
+#+BEGIN_QUOTE
+  This function returns non-=nil= if symbol is a special variable (i.e., it has a =defvar=, =defcustom=, or =defconst= variable definition). Otherwise, the return value is =nil=.
+#+END_QUOTE
+
+The use of a special variable as a formal argument in a function is discouraged. Doing so gives rise to unspecified behavior when lexical binding mode is enabled (it may use lexical binding sometimes, and dynamic binding other times).
+
+Converting an Emacs Lisp program to lexical binding is easy. First, add a file-local variable setting of =lexical-binding= to =t= in the header line of the Emacs Lisp source file (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]). Second, check that every variable in the program which needs to be dynamically bound has a variable definition, so that it is not inadvertently bound lexically.
+
+A simple way to find out which variables need a variable definition is to byte-compile the source file. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]]. If a non-special variable is used outside of a =let= form, the byte-compiler will warn about reference or assignment to a free variable. If a non-special variable is bound but not used within a =let= form, the byte-compiler will warn about an unused lexical variable. The byte-compiler will also issue a warning if you use a special variable as a function argument.
+
+(To silence byte-compiler warnings about unused variables, just use a variable name that starts with an underscore. The byte-compiler interprets this as an indication that this is a variable known not to be used.)
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Scoping][Variable Scoping]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.11 Buffer-Local Variables
+    :PROPERTIES:
+    :CUSTOM_ID: buffer-local-variables
+    :END:
+
+Global and local variable bindings are found in most programming languages in one form or another. Emacs, however, also supports additional, unusual kinds of variable binding, such as buffer-local bindings, which apply only in one buffer. Having different values for a variable in different buffers is an important customization method. (Variables can also have bindings that are local to each terminal. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]].)
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Intro-to-Buffer_002dLocal][Intro to Buffer-Local]]: Introduction and concepts.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Buffer_002dLocal][Creating Buffer-Local]]: Creating and destroying buffer-local bindings.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Default-Value][Default Value]]: The default value is seen in buffers that don't have their own buffer-local values.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Buffer_002dLocal][Creating Buffer-Local]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]]
+
+** 12.11.1 Introduction to Buffer-Local Variables
+     :PROPERTIES:
+     :CUSTOM_ID: introduction-to-buffer-local-variables
+     :END:
+
+A buffer-local variable has a buffer-local binding associated with a particular buffer. The binding is in effect when that buffer is current; otherwise, it is not in effect. If you set the variable while a buffer-local binding is in effect, the new value goes in that binding, so its other bindings are unchanged. This means that the change is visible only in the buffer where you made it.
+
+The variable's ordinary binding, which is not associated with any specific buffer, is called the default binding. In most cases, this is the global binding.
+
+A variable can have buffer-local bindings in some buffers but not in other buffers. The default binding is shared by all the buffers that don't have their own bindings for the variable. (This includes all newly-created buffers.) If you set the variable in a buffer that does not have a buffer-local binding for it, this sets the default binding, so the new value is visible in all the buffers that see the default binding.
+
+The most common use of buffer-local bindings is for major modes to change variables that control the behavior of commands. For example, C mode and Lisp mode both set the variable =paragraph-start= to specify that only blank lines separate paragraphs. They do this by making the variable buffer-local in the buffer that is being put into C mode or Lisp mode, and then setting it to the new value for that mode. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Major-Modes][Major Modes]].
+
+The usual way to make a buffer-local binding is with =make-local-variable=, which is what major mode commands typically use. This affects just the current buffer; all other buffers (including those yet to be created) will continue to share the default value unless they are explicitly given their own buffer-local bindings.
+
+A more powerful operation is to mark the variable as automatically buffer-local by calling =make-variable-buffer-local=. You can think of this as making the variable local in all buffers, even those yet to be created. More precisely, the effect is that setting the variable automatically makes the variable local to the current buffer if it is not already so. All buffers start out by sharing the default value of the variable as usual, but setting the variable creates a buffer-local binding for the current buffer. The new value is stored in the buffer-local binding, leaving the default binding untouched. This means that the default value cannot be changed with =setq= in any buffer; the only way to change it is with =setq-default=.
+
+*Warning:* When a variable has buffer-local bindings in one or more buffers, =let= rebinds the binding that's currently in effect. For instance, if the current buffer has a buffer-local value, =let= temporarily rebinds that. If no buffer-local bindings are in effect, =let= rebinds the default value. If inside the =let= you then change to a different current buffer in which a different binding is in effect, you won't see the =let= binding any more. And if you exit the =let= while still in the other buffer, you won't see the unbinding occur (though it will occur properly). Here is an example to illustrate:
+
+#+BEGIN_EXAMPLE
+         (setq foo 'g)
+         (set-buffer "a")
+         (make-local-variable 'foo)
+         (setq foo 'a)
+         (let ((foo 'temp))
+           ;; foo ⇒ 'temp  ; let binding in buffer ‘a’
+           (set-buffer "b")
+           ;; foo ⇒ 'g     ; the global value since foo is not local in ‘b’
+           body...)
+         foo ⇒ 'g        ; exiting restored the local value in buffer ‘a’,
+                          ; but we don't see that in buffer ‘b’
+         (set-buffer "a") ; verify the local value was restored
+         foo ⇒ 'a
+#+END_EXAMPLE
+
+Note that references to =foo= in body access the buffer-local binding of buffer 'b'.
+
+When a file specifies local variable values, these become buffer-local values when you visit the file. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#File-Variables][File Variables]].
+
+A buffer-local variable cannot be made terminal-local (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]]).
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Default-Value][Default Value]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Intro-to-Buffer_002dLocal][Intro to Buffer-Local]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]]
+
+** 12.11.2 Creating and Deleting Buffer-Local Bindings
+     :PROPERTIES:
+     :CUSTOM_ID: creating-and-deleting-buffer-local-bindings
+     :END:
+
+--- Command: *make-local-variable* variable
+
+#+BEGIN_QUOTE
+  This function creates a buffer-local binding in the current buffer for variable (a symbol). Other buffers are not affected. The value returned is variable.
+
+  The buffer-local value of variable starts out as the same value variable previously had. If variable was void, it remains void.
+
+  #+BEGIN_EXAMPLE
+                ;; In buffer ‘b1’:
+                (setq foo 5)                ; Affects all buffers.
+                     ⇒ 5
+                (make-local-variable 'foo)  ; Now it is local in ‘b1’.
+                     ⇒ foo
+                foo                         ; That did not change
+                     ⇒ 5                   ;   the value.
+                (setq foo 6)                ; Change the value
+                     ⇒ 6                   ;   in ‘b1’.
+                foo
+                     ⇒ 6
+
+                ;; In buffer ‘b2’, the value hasn't changed.
+                (with-current-buffer "b2"
+                  foo)
+                     ⇒ 5
+  #+END_EXAMPLE
+
+  Making a variable buffer-local within a =let=-binding for that variable does not work reliably, unless the buffer in which you do this is not current either on entry to or exit from the =let=. This is because =let= does not distinguish between different kinds of bindings; it knows only which variable the binding was made for.
+
+  It is an error to make a constant or a read-only variable buffer-local. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Constant-Variables][Constant Variables]].
+
+  If the variable is terminal-local (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Multiple-Terminals][Multiple Terminals]]), this function signals an error. Such variables cannot have buffer-local bindings as well.
+
+  *Warning:* do not use =make-local-variable= for a hook variable. The hook variables are automatically made buffer-local as needed if you use the local argument to =add-hook= or =remove-hook=.
+#+END_QUOTE
+
+--- Macro: *setq-local* variable value
+
+#+BEGIN_QUOTE
+  This macro creates a buffer-local binding in the current buffer for variable, and gives it the buffer-local value value. It is equivalent to calling =make-local-variable= followed by =setq=. variable should be an unquoted symbol.
+#+END_QUOTE
+
+--- Command: *make-variable-buffer-local* variable
+
+#+BEGIN_QUOTE
+  This function marks variable (a symbol) automatically buffer-local, so that any subsequent attempt to set it will make it local to the current buffer at the time. Unlike =make-local-variable=, with which it is often confused, this cannot be undone, and affects the behavior of the variable in all buffers.
+
+  A peculiar wrinkle of this feature is that binding the variable (with =let= or other binding constructs) does not create a buffer-local binding for it. Only setting the variable (with =set= or =setq=), while the variable does not have a =let=-style binding that was made in the current buffer, does so.
+
+  If variable does not have a default value, then calling this command will give it a default value of =nil=. If variable already has a default value, that value remains unchanged. Subsequently calling =makunbound= on variable will result in a void buffer-local value and leave the default value unaffected.
+
+  The value returned is variable.
+
+  It is an error to make a constant or a read-only variable buffer-local. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Constant-Variables][Constant Variables]].
+
+  *Warning:* Don't assume that you should use =make-variable-buffer-local= for user-option variables, simply because users /might/ want to customize them differently in different buffers. Users can make any variable local, when they wish to. It is better to leave the choice to them.
+
+  The time to use =make-variable-buffer-local= is when it is crucial that no two buffers ever share the same binding. For example, when a variable is used for internal purposes in a Lisp program which depends on having separate values in separate buffers, then using =make-variable-buffer-local= can be the best solution.
+#+END_QUOTE
+
+--- Macro: *defvar-local* variable value &optional docstring
+
+#+BEGIN_QUOTE
+  This macro defines variable as a variable with initial value value and docstring, and marks it as automatically buffer-local. It is equivalent to calling =defvar= followed by =make-variable-buffer-local=. variable should be an unquoted symbol.
+#+END_QUOTE
+
+--- Function: *local-variable-p* variable &optional buffer
+
+#+BEGIN_QUOTE
+  This returns =t= if variable is buffer-local in buffer buffer (which defaults to the current buffer); otherwise, =nil=.
+#+END_QUOTE
+
+--- Function: *local-variable-if-set-p* variable &optional buffer
+
+#+BEGIN_QUOTE
+  This returns =t= if variable either has a buffer-local value in buffer buffer, or is automatically buffer-local. Otherwise, it returns =nil=. If omitted or =nil=, buffer defaults to the current buffer.
+#+END_QUOTE
+
+--- Function: *buffer-local-value* variable buffer
+
+#+BEGIN_QUOTE
+  This function returns the buffer-local binding of variable (a symbol) in buffer buffer. If variable does not have a buffer-local binding in buffer buffer, it returns the default value (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Default-Value][Default Value]]) of variable instead.
+#+END_QUOTE
+
+--- Function: *buffer-local-variables* &optional buffer
+
+#+BEGIN_QUOTE
+  This function returns a list describing the buffer-local variables in buffer buffer. (If buffer is omitted, the current buffer is used.) Normally, each list element has the form =(=sym=.=val=)=, where sym is a buffer-local variable (a symbol) and val is its buffer-local value. But when a variable's buffer-local binding in buffer is void, its list element is just sym.
+
+  #+BEGIN_EXAMPLE
+                (make-local-variable 'foobar)
+                (makunbound 'foobar)
+                (make-local-variable 'bind-me)
+                (setq bind-me 69)
+                (setq lcl (buffer-local-variables))
+                    ;; First, built-in variables local in all buffers:
+                ⇒ ((mark-active . nil)
+                    (buffer-undo-list . nil)
+                    (mode-name . "Fundamental")
+                    ...
+                    ;; Next, non-built-in buffer-local variables.
+                    ;; This one is buffer-local and void:
+                    foobar
+                    ;; This one is buffer-local and nonvoid:
+                    (bind-me . 69))
+  #+END_EXAMPLE
+
+  Note that storing new values into the cdrs of cons cells in this list does /not/ change the buffer-local values of the variables.
+#+END_QUOTE
+
+--- Command: *kill-local-variable* variable
+
+#+BEGIN_QUOTE
+  This function deletes the buffer-local binding (if any) for variable (a symbol) in the current buffer. As a result, the default binding of variable becomes visible in this buffer. This typically results in a change in the value of variable, since the default value is usually different from the buffer-local value just eliminated.
+
+  If you kill the buffer-local binding of a variable that automatically becomes buffer-local when set, this makes the default value visible in the current buffer. However, if you set the variable again, that will once again create a buffer-local binding for it.
+
+  =kill-local-variable= returns variable.
+
+  This function is a command because it is sometimes useful to kill one buffer-local variable interactively, just as it is useful to create buffer-local variables interactively.
+#+END_QUOTE
+
+--- Function: *kill-all-local-variables*
+
+#+BEGIN_QUOTE
+  This function eliminates all the buffer-local variable bindings of the current buffer except for variables marked as permanent and local hook functions that have a non-=nil= =permanent-local-hook= property (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Hooks][Setting Hooks]]). As a result, the buffer will see the default values of most variables.
+
+  This function also resets certain other information pertaining to the buffer: it sets the local keymap to =nil=, the syntax table to the value of =(standard-syntax-table)=, the case table to =(standard-case-table)=, and the abbrev table to the value of =fundamental-mode-abbrev-table=.
+
+  The very first thing this function does is run the normal hook =change-major-mode-hook= (see below).
+
+  Every major mode command begins by calling this function, which has the effect of switching to Fundamental mode and erasing most of the effects of the previous major mode. To ensure that this does its job, the variables that major modes set should not be marked permanent.
+
+  =kill-all-local-variables= returns =nil=.
+#+END_QUOTE
+
+--- Variable: *change-major-mode-hook*
+
+#+BEGIN_QUOTE
+  The function =kill-all-local-variables= runs this normal hook before it does anything else. This gives major modes a way to arrange for something special to be done if the user switches to a different major mode. It is also useful for buffer-specific minor modes that should be forgotten if the user changes the major mode.
+
+  For best results, make this variable buffer-local, so that it will disappear after doing its job and will not interfere with the subsequent major mode. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Hooks][Hooks]].
+#+END_QUOTE
+
+A buffer-local variable is permanent if the variable name (a symbol) has a =permanent-local= property that is non-=nil=. Such variables are unaffected by =kill-all-local-variables=, and their local bindings are therefore not cleared by changing major modes. Permanent locals are appropriate for data pertaining to where the file came from or how to save it, rather than with how to edit the contents.
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Creating-Buffer_002dLocal][Creating Buffer-Local]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]]
+
+** 12.11.3 The Default Value of a Buffer-Local Variable
+     :PROPERTIES:
+     :CUSTOM_ID: the-default-value-of-a-buffer-local-variable
+     :END:
+
+The global value of a variable with buffer-local bindings is also called the default value, because it is the value that is in effect whenever neither the current buffer nor the selected frame has its own binding for the variable.
+
+The functions =default-value= and =setq-default= access and change a variable's default value regardless of whether the current buffer has a buffer-local binding. For example, you could use =setq-default= to change the default setting of =paragraph-start= for most buffers; and this would work even when you are in a C or Lisp mode buffer that has a buffer-local value for this variable.
+
+The special forms =defvar= and =defconst= also set the default value (if they set the variable at all), rather than any buffer-local value.
+
+--- Function: *default-value* symbol
+
+#+BEGIN_QUOTE
+  This function returns symbol's default value. This is the value that is seen in buffers and frames that do not have their own values for this variable. If symbol is not buffer-local, this is equivalent to =symbol-value= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Accessing-Variables][Accessing Variables]]).
+#+END_QUOTE
+
+--- Function: *default-boundp* symbol
+
+#+BEGIN_QUOTE
+  The function =default-boundp= tells you whether symbol's default value is nonvoid. If =(default-boundp 'foo)= returns =nil=, then =(default-value 'foo)= would get an error.
+
+  =default-boundp= is to =default-value= as =boundp= is to =symbol-value=.
+#+END_QUOTE
+
+--- Special Form: *setq-default* [symbol form]...
+
+#+BEGIN_QUOTE
+  This special form gives each symbol a new default value, which is the result of evaluating the corresponding form. It does not evaluate symbol, but does evaluate form. The value of the =setq-default= form is the value of the last form.
+
+  If a symbol is not buffer-local for the current buffer, and is not marked automatically buffer-local, =setq-default= has the same effect as =setq=. If symbol is buffer-local for the current buffer, then this changes the value that other buffers will see (as long as they don't have a buffer-local value), but not the value that the current buffer sees.
+
+  #+BEGIN_EXAMPLE
+                ;; In buffer ‘foo’:
+                (make-local-variable 'buffer-local)
+                     ⇒ buffer-local
+                (setq buffer-local 'value-in-foo)
+                     ⇒ value-in-foo
+                (setq-default buffer-local 'new-default)
+                     ⇒ new-default
+                buffer-local
+                     ⇒ value-in-foo
+                (default-value 'buffer-local)
+                     ⇒ new-default
+
+                ;; In (the new) buffer ‘bar’:
+                buffer-local
+                     ⇒ new-default
+                (default-value 'buffer-local)
+                     ⇒ new-default
+                (setq buffer-local 'another-default)
+                     ⇒ another-default
+                (default-value 'buffer-local)
+                     ⇒ another-default
+
+                ;; Back in buffer ‘foo’:
+                buffer-local
+                     ⇒ value-in-foo
+                (default-value 'buffer-local)
+                     ⇒ another-default
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *set-default* symbol value
+
+#+BEGIN_QUOTE
+  This function is like =setq-default=, except that symbol is an ordinary evaluated argument.
+
+  #+BEGIN_EXAMPLE
+                (set-default (car '(a b c)) 23)
+                     ⇒ 23
+                (default-value 'a)
+                     ⇒ 23
+  #+END_EXAMPLE
+#+END_QUOTE
+
+A variable can be let-bound (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Local-Variables][Local Variables]]) to a value. This makes its global value shadowed by the binding; =default-value= will then return the value from that binding, not the global value, and =set-default= will be prevented from setting the global value (it will change the let-bound value instead). The following two functions allow to reference the global value even if it's shadowed by a let-binding.
+
+--- Function: *default-toplevel-value* symbol
+
+#+BEGIN_QUOTE
+  This function returns the top-level default value of symbol, which is its value outside of any let-binding.
+#+END_QUOTE
+
+#+BEGIN_EXAMPLE
+         (defvar variable 'global-value)
+             ⇒ variable
+         (let ((variable 'let-binding))
+           (default-value 'variable))
+             ⇒ let-binding
+         (let ((variable 'let-binding))
+           (default-toplevel-value 'variable))
+             ⇒ global-value
+#+END_EXAMPLE
+
+--- Function: *set-default-toplevel-value* symbol value
+
+#+BEGIN_QUOTE
+  This function sets the top-level default value of symbol to the specified value. This comes in handy when you want to set the global value of symbol regardless of whether your code runs in the context of symbol's let-binding.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Directory-Local-Variables][Directory Local Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer_002dLocal-Variables][Buffer-Local Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.12 File Local Variables
+    :PROPERTIES:
+    :CUSTOM_ID: file-local-variables
+    :END:
+
+A file can specify local variable values; Emacs uses these to create buffer-local bindings for those variables in the buffer visiting that file. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#File-Variables][Local Variables in Files]], for basic information about file-local variables. This section describes the functions and variables that affect how file-local variables are processed.
+
+If a file-local variable could specify an arbitrary function or Lisp expression that would be called later, visiting a file could take over your Emacs. Emacs protects against this by automatically setting only those file-local variables whose specified values are known to be safe. Other file-local variables are set only if the user agrees.
+
+For additional safety, =read-circle= is temporarily bound to =nil= when Emacs reads file-local variables (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Input-Functions][Input Functions]]). This prevents the Lisp reader from recognizing circular and shared Lisp structures (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Circular-Objects][Circular Objects]]).
+
+--- User Option: *enable-local-variables*
+
+#+BEGIN_QUOTE
+  This variable controls whether to process file-local variables. The possible values are:
+
+  - =t= (the default)
+
+    Set the safe variables, and query (once) about any unsafe variables.
+
+  - =:safe=
+
+    Set only the safe variables and do not query.
+
+  - =:all=
+
+    Set all the variables and do not query.
+
+  - =nil=
+
+    Don't set any variables.
+
+  - anything else
+
+    Query (once) about all the variables.
+
+#+END_QUOTE
+
+--- Variable: *inhibit-local-variables-regexps*
+
+#+BEGIN_QUOTE
+  This is a list of regular expressions. If a file has a name matching an element of this list, then it is not scanned for any form of file-local variable. For examples of why you might want to use this, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Auto-Major-Mode][Auto Major Mode]].
+#+END_QUOTE
+
+--- Function: *hack-local-variables* &optional handle-mode
+
+#+BEGIN_QUOTE
+  This function parses, and binds or evaluates as appropriate, any local variables specified by the contents of the current buffer. The variable =enable-local-variables= has its effect here. However, this function does not look for the 'mode:' local variable in the ‘-*-' line. =set-auto-mode= does that, also taking =enable-local-variables= into account (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Auto-Major-Mode][Auto Major Mode]]).
+
+  This function works by walking the alist stored in =file-local-variables-alist= and applying each local variable in turn. It calls =before-hack-local-variables-hook= and =hack-local-variables-hook= before and after applying the variables, respectively. It only calls the before-hook if the alist is non-=nil=; it always calls the other hook. This function ignores a 'mode' element if it specifies the same major mode as the buffer already has.
+
+  If the optional argument handle-mode is =t=, then all this function does is return a symbol specifying the major mode, if the '-/-' line or the local variables list specifies one, and =nil= otherwise. It does not set the mode or any other file-local variable. If handle-mode has any value other than =nil= or =t=, any settings of ‘mode' in the ‘-/-' line or the local variables list are ignored, and the other settings are applied. If handle-mode is =nil=, all the file local variables are set.
+#+END_QUOTE
+
+--- Variable: *file-local-variables-alist*
+
+#+BEGIN_QUOTE
+  This buffer-local variable holds the alist of file-local variable settings. Each element of the alist is of the form =(=var=.=value=)=, where var is a symbol of the local variable and value is its value. When Emacs visits a file, it first collects all the file-local variables into this alist, and then the =hack-local-variables= function applies them one by one.
+#+END_QUOTE
+
+--- Variable: *before-hack-local-variables-hook*
+
+#+BEGIN_QUOTE
+  Emacs calls this hook immediately before applying file-local variables stored in =file-local-variables-alist=.
+#+END_QUOTE
+
+--- Variable: *hack-local-variables-hook*
+
+#+BEGIN_QUOTE
+  Emacs calls this hook immediately after it finishes applying file-local variables stored in =file-local-variables-alist=.
+#+END_QUOTE
+
+You can specify safe values for a variable with a =safe-local-variable= property. The property has to be a function of one argument; any value is safe if the function returns non-=nil= given that value. Many commonly-encountered file variables have =safe-local-variable= properties; these include =fill-column=, =fill-prefix=, and =indent-tabs-mode=. For boolean-valued variables that are safe, use =booleanp= as the property value.
+
+If you want to define =safe-local-variable= properties for variables defined in C source code, add the names and the properties of those variables to the list in the "Safe local variables" section of files.el.
+
+When defining a user option using =defcustom=, you can set its =safe-local-variable= property by adding the arguments =:safe=function to =defcustom= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Definitions][Variable Definitions]]). However, a safety predicate defined using =:safe= will only be known once the package that contains the =defcustom= is loaded, which is often too late. As an alternative, you can use the autoload cookie (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Autoload][Autoload]]) to assign the option its safety predicate, like this:
+
+#+BEGIN_EXAMPLE
+         ;;;###autoload (put 'var 'safe-local-variable 'pred)
+#+END_EXAMPLE
+
+The safe value definitions specified with =autoload= are copied into the package's autoloads file (loaddefs.el for most packages bundled with Emacs), and are known to Emacs since the beginning of a session.
+
+--- User Option: *safe-local-variable-values*
+
+#+BEGIN_QUOTE
+  This variable provides another way to mark some variable values as safe. It is a list of cons cells =(=var=.=val=)=, where var is a variable name and val is a value which is safe for that variable.
+
+  When Emacs asks the user whether or not to obey a set of file-local variable specifications, the user can choose to mark them as safe. Doing so adds those variable/value pairs to =safe-local-variable-values=, and saves it to the user's custom file.
+#+END_QUOTE
+
+--- Function: *safe-local-variable-p* sym val
+
+#+BEGIN_QUOTE
+  This function returns non-=nil= if it is safe to give sym the value val, based on the above criteria.
+#+END_QUOTE
+
+Some variables are considered risky. If a variable is risky, it is never entered automatically into =safe-local-variable-values=; Emacs always queries before setting a risky variable, unless the user explicitly allows a value by customizing =safe-local-variable-values= directly.
+
+Any variable whose name has a non-=nil= =risky-local-variable= property is considered risky. When you define a user option using =defcustom=, you can set its =risky-local-variable= property by adding the arguments =:risky=value to =defcustom= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Definitions][Variable Definitions]]). In addition, any variable whose name ends in any of '-command', '-frame-alist', '-function', '-functions', '-hook', '-hooks', '-form', '-forms', '-map', '-map-alist', '-mode-alist', '-program', or '-predicate' is automatically considered risky. The variables 'font-lock-keywords', 'font-lock-keywords' followed by a digit, and 'font-lock-syntactic-keywords' are also considered risky.
+
+--- Function: *risky-local-variable-p* sym
+
+#+BEGIN_QUOTE
+  This function returns non-=nil= if sym is a risky variable, based on the above criteria.
+#+END_QUOTE
+
+--- Variable: *ignored-local-variables*
+
+#+BEGIN_QUOTE
+  This variable holds a list of variables that should not be given local values by files. Any value specified for one of these variables is completely ignored.
+#+END_QUOTE
+
+The 'Eval:' "variable" is also a potential loophole, so Emacs normally asks for confirmation before handling it.
+
+--- User Option: *enable-local-eval*
+
+#+BEGIN_QUOTE
+  This variable controls processing of 'Eval:' in ‘-*-' lines or local variables lists in files being visited. A value of =t= means process them unconditionally; =nil= means ignore them; anything else means ask the user what to do for each file. The default value is =maybe=.
+#+END_QUOTE
+
+--- User Option: *safe-local-eval-forms*
+
+#+BEGIN_QUOTE
+  This variable holds a list of expressions that are safe to evaluate when found in the 'Eval:' "variable" in a file local variables list.
+#+END_QUOTE
+
+If the expression is a function call and the function has a =safe-local-eval-function= property, the property value determines whether the expression is safe to evaluate. The property value can be a predicate to call to test the expression, a list of such predicates (it's safe if any predicate succeeds), or =t= (always safe provided the arguments are constant).
+
+Text properties are also potential loopholes, since their values could include functions to call. So Emacs discards all text properties from string values specified for file-local variables.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Connection-Local-Variables][Connection Local Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.13 Directory Local Variables
+    :PROPERTIES:
+    :CUSTOM_ID: directory-local-variables
+    :END:
+
+A directory can specify local variable values common to all files in that directory; Emacs uses these to create buffer-local bindings for those variables in buffers visiting any file in that directory. This is useful when the files in the directory belong to some project and therefore share the same local variables.
+
+There are two different methods for specifying directory local variables: by putting them in a special file, or by defining a project class for that directory.
+
+--- Constant: *dir-locals-file*
+
+#+BEGIN_QUOTE
+  This constant is the name of the file where Emacs expects to find the directory-local variables. The name of the file is .dir-locals.el[[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#fn-9][9]]. A file by that name in a directory causes Emacs to apply its settings to any file in that directory or any of its subdirectories (optionally, you can exclude subdirectories; see below). If some of the subdirectories have their own .dir-locals.el files, Emacs uses the settings from the deepest file it finds starting from the file's directory and moving up the directory tree. This constant is also used to derive the name of a second dir-locals file .dir-locals-2.el. If this second dir-locals file is present, then that is loaded instead of .dir-locals.el. This is useful when .dir-locals.el is under version control in a shared repository and cannot be used for personal customizations. The file specifies local variables as a specially formatted list; see [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Directory-Variables][Per-directory Local Variables]], for more details.
+#+END_QUOTE
+
+--- Function: *hack-dir-local-variables*
+
+#+BEGIN_QUOTE
+  This function reads the =.dir-locals.el= file and stores the directory-local variables in =file-local-variables-alist= that is local to the buffer visiting any file in the directory, without applying them. It also stores the directory-local settings in =dir-locals-class-alist=, where it defines a special class for the directory in which .dir-locals.el file was found. This function works by calling =dir-locals-set-class-variables= and =dir-locals-set-directory-class=, described below.
+#+END_QUOTE
+
+--- Function: *hack-dir-local-variables-non-file-buffer*
+
+#+BEGIN_QUOTE
+  This function looks for directory-local variables, and immediately applies them in the current buffer. It is intended to be called in the mode commands for non-file buffers, such as Dired buffers, to let them obey directory-local variable settings. For non-file buffers, Emacs looks for directory-local variables in =default-directory= and its parent directories.
+#+END_QUOTE
+
+--- Function: *dir-locals-set-class-variables* class variables
+
+#+BEGIN_QUOTE
+  This function defines a set of variable settings for the named class, which is a symbol. You can later assign the class to one or more directories, and Emacs will apply those variable settings to all files in those directories. The list in variables can be of one of the two forms: =(=major-mode=.=alist=)= or =(=directory=.=list=)=. With the first form, if the file's buffer turns on a mode that is derived from major-mode, then all the variables in the associated alist are applied; alist should be of the form =(=name=.=value=)=. A special value =nil= for major-mode means the settings are applicable to any mode. In alist, you can use a special name: =subdirs=. If the associated value is =nil=, the alist is only applied to files in the relevant directory, not to those in any subdirectories.
+
+  With the second form of variables, if directory is the initial substring of the file's directory, then list is applied recursively by following the above rules; list should be of one of the two forms accepted by this function in variables.
+#+END_QUOTE
+
+--- Function: *dir-locals-set-directory-class* directory class &optional mtime
+
+#+BEGIN_QUOTE
+  This function assigns class to all the files in =directory= and its subdirectories. Thereafter, all the variable settings specified for class will be applied to any visited file in directory and its children. class must have been already defined by =dir-locals-set-class-variables=.
+
+  Emacs uses this function internally when it loads directory variables from a =.dir-locals.el= file. In that case, the optional argument mtime holds the file modification time (as returned by =file-attributes=). Emacs uses this time to check stored local variables are still valid. If you are assigning a class directly, not via a file, this argument should be =nil=.
+#+END_QUOTE
+
+--- Variable: *dir-locals-class-alist*
+
+#+BEGIN_QUOTE
+  This alist holds the class symbols and the associated variable settings. It is updated by =dir-locals-set-class-variables=.
+#+END_QUOTE
+
+--- Variable: *dir-locals-directory-cache*
+
+#+BEGIN_QUOTE
+  This alist holds directory names, their assigned class names, and modification times of the associated directory local variables file (if there is one). The function =dir-locals-set-directory-class= updates this list.
+#+END_QUOTE
+
+--- Variable: *enable-dir-local-variables*
+
+#+BEGIN_QUOTE
+  If =nil=, directory-local variables are ignored. This variable may be useful for modes that want to ignore directory-locals while still respecting file-local variables (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#File-Local-Variables][File Local Variables]]).
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Aliases][Variable Aliases]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Directory-Local-Variables][Directory Local Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.14 Connection Local Variables
+    :PROPERTIES:
+    :CUSTOM_ID: connection-local-variables
+    :END:
+
+Connection-local variables provide a general mechanism for different variable settings in buffers with a remote connection. They are bound and set depending on the remote connection a buffer is dedicated to.
+
+--- Function: *connection-local-set-profile-variables* profile variables
+
+#+BEGIN_QUOTE
+  This function defines a set of variable settings for the connection profile, which is a symbol. You can later assign the connection profile to one or more remote connections, and Emacs will apply those variable settings to all process buffers for those connections. The list in variables is an alist of the form =(=name=.=value=)=. Example:
+
+  #+BEGIN_EXAMPLE
+                (connection-local-set-profile-variables
+                  'remote-bash
+                  '((shell-file-name . "/bin/bash")
+                    (shell-command-switch . "-c")
+                    (shell-interactive-switch . "-i")
+                    (shell-login-switch . "-l")))
+
+                (connection-local-set-profile-variables
+                  'remote-ksh
+                  '((shell-file-name . "/bin/ksh")
+                    (shell-command-switch . "-c")
+                    (shell-interactive-switch . "-i")
+                    (shell-login-switch . "-l")))
+
+                (connection-local-set-profile-variables
+                  'remote-null-device
+                  '((null-device . "/dev/null")))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Variable: *connection-local-profile-alist*
+
+#+BEGIN_QUOTE
+  This alist holds the connection profile symbols and the associated variable settings. It is updated by =connection-local-set-profile-variables=.
+#+END_QUOTE
+
+--- Function: *connection-local-set-profiles* criteria &rest profiles
+
+#+BEGIN_QUOTE
+  This function assigns profiles, which are symbols, to all remote connections identified by criteria. criteria is a plist identifying a connection and the application using this connection. Property names might be =:application=, =:protocol=, =:user= and =:machine=. The property value of =:application= is a symbol, all other property values are strings. All properties are optional; if criteria is =nil=, it always applies. Example:
+
+  #+BEGIN_EXAMPLE
+                (connection-local-set-profiles
+                  '(:application 'tramp :protocol "ssh" :machine "localhost")
+                  'remote-bash 'remote-null-device)
+
+                (connection-local-set-profiles
+                  '(:application 'tramp :protocol "sudo"
+                    :user "root" :machine "localhost")
+                  'remote-ksh 'remote-null-device)
+  #+END_EXAMPLE
+
+  If criteria is =nil=, it applies for all remote connections. Therefore, the example above would be equivalent to
+
+  #+BEGIN_EXAMPLE
+                (connection-local-set-profiles
+                  '(:application 'tramp :protocol "ssh" :machine "localhost")
+                  'remote-bash)
+
+                (connection-local-set-profiles
+                  '(:application 'tramp :protocol "sudo"
+                    :user "root" :machine "localhost")
+                  'remote-ksh)
+
+                (connection-local-set-profiles
+                  nil 'remote-null-device)
+  #+END_EXAMPLE
+
+  Any connection profile of profiles must have been already defined by =connection-local-set-profile-variables=.
+#+END_QUOTE
+
+--- Variable: *connection-local-criteria-alist*
+
+#+BEGIN_QUOTE
+  This alist contains connection criteria and their assigned profile names. The function =connection-local-set-profiles= updates this list.
+#+END_QUOTE
+
+--- Function: *hack-connection-local-variables* criteria
+
+#+BEGIN_QUOTE
+  This function collects applicable connection-local variables associated with criteria in =connection-local-variables-alist=, without applying them. Example:
+
+  #+BEGIN_EXAMPLE
+                (hack-connection-local-variables
+                  '(:application 'tramp :protocol "ssh" :machine "localhost"))
+
+                connection-local-variables-alist
+                     ⇒ ((null-device . "/dev/null")
+                        (shell-login-switch . "-l")
+                        (shell-interactive-switch . "-i")
+                        (shell-command-switch . "-c")
+                        (shell-file-name . "/bin/bash"))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *hack-connection-local-variables-apply* criteria
+
+#+BEGIN_QUOTE
+  This function looks for connection-local variables according to criteria, and immediately applies them in the current buffer.
+#+END_QUOTE
+
+--- Macro: *with-connection-local-profiles* profiles &rest body
+
+#+BEGIN_QUOTE
+  All connection-local variables, which are specified by a connection profile in profiles, are applied.
+
+  After that, body is executed, and the connection-local variables are unwound. Example:
+
+  #+BEGIN_EXAMPLE
+                (connection-local-set-profile-variables
+                  'remote-perl
+                  '((perl-command-name . "/usr/local/bin/perl")
+                    (perl-command-switch . "-e %s")))
+
+                (with-connection-local-profiles '(remote-perl)
+                  do something useful)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Variable: *enable-connection-local-variables*
+
+#+BEGIN_QUOTE
+  If =nil=, connection-local variables are ignored. This variable shall be changed temporarily only in special modes.
+#+END_QUOTE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables-with-Restricted-Values][Variables with Restricted Values]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Connection-Local-Variables][Connection Local Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.15 Variable Aliases
+    :PROPERTIES:
+    :CUSTOM_ID: variable-aliases
+    :END:
+
+It is sometimes useful to make two variables synonyms, so that both variables always have the same value, and changing either one also changes the other. Whenever you change the name of a variable---either because you realize its old name was not well chosen, or because its meaning has partly changed---it can be useful to keep the old name as an /alias/ of the new one for compatibility. You can do this with =defvaralias=.
+
+--- Function: *defvaralias* new-alias base-variable &optional docstring
+
+#+BEGIN_QUOTE
+  This function defines the symbol new-alias as a variable alias for symbol base-variable. This means that retrieving the value of new-alias returns the value of base-variable, and changing the value of new-alias changes the value of base-variable. The two aliased variable names always share the same value and the same bindings.
+
+  If the docstring argument is non-=nil=, it specifies the documentation for new-alias; otherwise, the alias gets the same documentation as base-variable has, if any, unless base-variable is itself an alias, in which case new-alias gets the documentation of the variable at the end of the chain of aliases.
+
+  This function returns base-variable.
+#+END_QUOTE
+
+Variable aliases are convenient for replacing an old name for a variable with a new name. =make-obsolete-variable= declares that the old name is obsolete and therefore that it may be removed at some stage in the future.
+
+--- Function: *make-obsolete-variable* obsolete-name current-name when &optional access-type
+
+#+BEGIN_QUOTE
+  This function makes the byte compiler warn that the variable obsolete-name is obsolete. If current-name is a symbol, it is the variable's new name; then the warning message says to use current-name instead of obsolete-name. If current-name is a string, this is the message and there is no replacement variable. when should be a string indicating when the variable was first made obsolete (usually a version number string).
+
+  The optional argument access-type, if non-=nil=, should specify the kind of access that will trigger obsolescence warnings; it can be either =get= or =set=.
+#+END_QUOTE
+
+You can make two variables synonyms and declare one obsolete at the same time using the macro =define-obsolete-variable-alias=.
+
+--- Macro: *define-obsolete-variable-alias* obsolete-name current-name &optional when docstring
+
+#+BEGIN_QUOTE
+  This macro marks the variable obsolete-name as obsolete and also makes it an alias for the variable current-name. It is equivalent to the following:
+
+  #+BEGIN_EXAMPLE
+                (defvaralias obsolete-name current-name docstring)
+                (make-obsolete-variable obsolete-name current-name when)
+  #+END_EXAMPLE
+#+END_QUOTE
+
+--- Function: *indirect-variable* variable
+
+#+BEGIN_QUOTE
+  This function returns the variable at the end of the chain of aliases of variable. If variable is not a symbol, or if variable is not defined as an alias, the function returns variable.
+
+  This function signals a =cyclic-variable-indirection= error if there is a loop in the chain of symbols.
+#+END_QUOTE
+
+#+BEGIN_EXAMPLE
+         (defvaralias 'foo 'bar)
+         (indirect-variable 'foo)
+              ⇒ bar
+         (indirect-variable 'bar)
+              ⇒ bar
+         (setq bar 2)
+         bar
+              ⇒ 2
+         foo
+              ⇒ 2
+         (setq foo 0)
+         bar
+              ⇒ 0
+         foo
+              ⇒ 0
+#+END_EXAMPLE
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Generalized-Variables][Generalized Variables]], Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variable-Aliases][Variable Aliases]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.16 Variables with Restricted Values
+    :PROPERTIES:
+    :CUSTOM_ID: variables-with-restricted-values
+    :END:
+
+Ordinary Lisp variables can be assigned any value that is a valid Lisp object. However, certain Lisp variables are not defined in Lisp, but in C. Most of these variables are defined in the C code using =DEFVAR_LISP=. Like variables defined in Lisp, these can take on any value. However, some variables are defined using =DEFVAR_INT= or =DEFVAR_BOOL=. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Defining-Lisp-variables-in-C][Writing Emacs Primitives]], in particular the description of functions of the type =syms_of_=filename, for a brief discussion of the C implementation.
+
+Variables of type =DEFVAR_BOOL= can only take on the values =nil= or =t=. Attempting to assign them any other value will set them to =t=:
+
+#+BEGIN_EXAMPLE
+         (let ((display-hourglass 5))
+           display-hourglass)
+              ⇒ t
+#+END_EXAMPLE
+
+--- Variable: *byte-boolean-vars*
+
+#+BEGIN_QUOTE
+  This variable holds a list of all variables of type =DEFVAR_BOOL=.
+#+END_QUOTE
+
+Variables of type =DEFVAR_INT= can take on only integer values. Attempting to assign them any other value will result in an error:
+
+#+BEGIN_EXAMPLE
+         (setq undo-limit 1000.0)
+         error--> Wrong type argument: integerp, 1000.0
+#+END_EXAMPLE
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables-with-Restricted-Values][Variables with Restricted Values]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Variables][Variables]]
+
+* 12.17 Generalized Variables
+    :PROPERTIES:
+    :CUSTOM_ID: generalized-variables
+    :END:
+
+A generalized variable or place form is one of the many places in Lisp memory where values can be stored using the =setf= macro (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Generalized-Variables][Setting Generalized Variables]]). The simplest place form is a regular Lisp variable. But the cars and cdrs of lists, elements of arrays, properties of symbols, and many other locations are also places where Lisp values get stored.
+
+Generalized variables are analogous to lvalues in the C language, where 'x = a[i]' gets an element from an array and 'a[i] = x' stores an element using the same notation. Just as certain forms like =a[i]= can be lvalues in C, there is a set of forms that can be generalized variables in Lisp.
+
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Generalized-Variables][Setting Generalized Variables]]: The =setf= macro.
+- [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Adding-Generalized-Variables][Adding Generalized Variables]]: Defining new =setf= forms.
+
+Next: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Adding-Generalized-Variables][Adding Generalized Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Generalized-Variables][Generalized Variables]]
+
+** 12.17.1 The =setf= Macro
+     :PROPERTIES:
+     :CUSTOM_ID: the-setf-macro
+     :END:
+
+The =setf= macro is the most basic way to operate on generalized variables. The =setf= form is like =setq=, except that it accepts arbitrary place forms on the left side rather than just symbols. For example, =(setf (car a) b)= sets the car of =a= to =b=, doing the same operation as =(setcar a b)=, but without you having to use two separate functions for setting and accessing this type of place.
+
+--- Macro: *setf* [place form]...
+
+#+BEGIN_QUOTE
+  This macro evaluates form and stores it in place, which must be a valid generalized variable form. If there are several place and form pairs, the assignments are done sequentially just as with =setq=. =setf= returns the value of the last form.
+#+END_QUOTE
+
+The following Lisp forms are the forms in Emacs that will work as generalized variables, and so may appear in the place argument of =setf=:
+
+- A symbol. In other words, =(setf x y)= is exactly equivalent to =(setq x y)=, and =setq= itself is strictly speaking redundant given that =setf= exists. Most programmers will continue to prefer =setq= for setting simple variables, though, for stylistic and historical reasons. The macro =(setf x y)= actually expands to =(setq x y)=, so there is no performance penalty for using it in compiled code.
+
+- A call to any of the following standard Lisp functions:
+
+  #+BEGIN_EXAMPLE
+                aref      cddr      symbol-function
+                car       elt       symbol-plist
+                caar      get       symbol-value
+                cadr      gethash
+                cdr       nth
+                cdar      nthcdr
+  #+END_EXAMPLE
+
+- A call to any of the following Emacs-specific functions:
+
+  #+BEGIN_EXAMPLE
+                alist-get                     process-get
+                frame-parameter               process-sentinel
+                terminal-parameter            window-buffer
+                keymap-parent                 window-display-table
+                match-data                    window-dedicated-p
+                overlay-get                   window-hscroll
+                overlay-start                 window-parameter
+                overlay-end                   window-point
+                process-buffer                window-start
+                process-filter                default-value
+  #+END_EXAMPLE
+
+=setf= signals an error if you pass a place form that it does not know how to handle.
+
+Note that for =nthcdr=, the list argument of the function must itself be a valid place form. For example, =(setf (nthcdr 0 foo) 7)= will set =foo= itself to 7.
+
+The macros =push= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#List-Variables][List Variables]]) and =pop= (see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#List-Elements][List Elements]]) can manipulate generalized variables, not just lists. =(pop=place=)= removes and returns the first element of the list stored in place. It is analogous to =(prog1 (car=place=) (setf=place=(cdr=place=)))=, except that it takes care to evaluate all subforms only once. =(push=x place=)= inserts x at the front of the list stored in place. It is analogous to =(setf=place=(cons=x place=))=, except for evaluation of the subforms. Note that =push= and =pop= on an =nthcdr= place can be used to insert or delete at any position in a list.
+
+The cl-lib library defines various extensions for generalized variables, including additional =setf= places. See [[https://www.gnu.org/software/emacs/manual/html_mono/cl.html#Generalized-Variables][Generalized Variables]].
+
+Previous: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Setting-Generalized-Variables][Setting Generalized Variables]], Up: [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Generalized-Variables][Generalized Variables]]
+
+** 12.17.2 Defining new =setf= forms
+     :PROPERTIES:
+     :CUSTOM_ID: defining-new-setf-forms
+     :END:
+
+This section describes how to define new forms that =setf= can operate on.
+
+--- Macro: *gv-define-simple-setter* name setter &optional fix-return
+
+#+BEGIN_QUOTE
+  This macro enables you to easily define =setf= methods for simple cases. name is the name of a function, macro, or special form. You can use this macro whenever name has a directly corresponding setter function that updates it, e.g., =(gv-define-simple-setter car setcar)=.
+
+  This macro translates a call of the form
+
+  #+BEGIN_EXAMPLE
+                (setf (name args...) value)
+  #+END_EXAMPLE
+
+  into
+
+  #+BEGIN_EXAMPLE
+                (setter args... value)
+  #+END_EXAMPLE
+
+  Such a =setf= call is documented to return value. This is no problem with, e.g., =car= and =setcar=, because =setcar= returns the value that it set. If your setter function does not return value, use a non-=nil= value for the fix-return argument of =gv-define-simple-setter=. This expands into something equivalent to
+
+  #+BEGIN_EXAMPLE
+                (let ((temp value))
+                  (setter args... temp)
+                  temp)
+  #+END_EXAMPLE
+
+  so ensuring that it returns the correct result.
+#+END_QUOTE
+
+--- Macro: *gv-define-setter* name arglist &rest body
+
+#+BEGIN_QUOTE
+  This macro allows for more complex =setf= expansions than the previous form. You may need to use this form, for example, if there is no simple setter function to call, or if there is one but it requires different arguments to the place form.
+
+  This macro expands the form =(setf (=name args=...)=value=)= by first binding the =setf= argument forms =(=value args=...)= according to arglist, and then executing body. body should return a Lisp form that does the assignment, and finally returns the value that was set. An example of using this macro is:
+
+  #+BEGIN_EXAMPLE
+                (gv-define-setter caar (val x) `(setcar (car ,x) ,val))
+  #+END_EXAMPLE
+#+END_QUOTE
+
+For more control over the expansion, see the macro =gv-define-expander=. The macro =gv-letplace= can be useful in defining macros that perform similarly to =setf=; for example, the =incf= macro of Common Lisp. Consult the source file gv.el for more details.
+
+#+BEGIN_QUOTE
+  *Common Lisp note:* Common Lisp defines another way to specify the =setf= behavior of a function, namely =setf= functions, whose names are lists =(setf=name=)= rather than symbols. For example, =(defun (setf foo) ...)= defines the function that is used when =setf= is applied to =foo=. Emacs does not support this. It is a compile-time error to use =setf= on a form that has not already had an appropriate expansion defined. In Common Lisp, this is not an error since the function =(setf=func=)= might be defined later.
+#+END_QUOTE
+
