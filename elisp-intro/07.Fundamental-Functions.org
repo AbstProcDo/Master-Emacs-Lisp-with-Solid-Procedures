@@ -1,0 +1,417 @@
+#+TITLE: 07.Fundamental-Functions
+* 7 =car=, =cdr=, =cons=: Fundamental Functions
+   :PROPERTIES:
+   :CUSTOM_ID: car-cdr-cons-fundamental-functions
+   :CLASS: chapter
+   :END:
+
+ In Lisp, =car=, =cdr=, and =cons= are fundamental functions. The =cons= function is used to construct lists, and the =car= and =cdr= functions are used to take them apart.
+
+In the walk through of the =copy-region-as-kill= function, we will see =cons= as well as two variants on =cdr=, namely, =setcdr= and =nthcdr=. (See [[#copy_002dregion_002das_002dkill][copy-region-as-kill]].)
+
+1) [[#Strange-Names][Strange Names]]: A historical aside: why the strange names?
+2) [[#car-_0026-cdr][car & cdr]]: Functions for extracting part of a list.
+3) [[#cons][cons]]: Constructing a list.
+4) [[#nthcdr][nthcdr]]: Calling =cdr= repeatedly.
+5) [[#nth][nth]]
+6) [[#setcar][setcar]]: Changing the first element of a list.
+7) [[#setcdr][setcdr]]: Changing the rest of a list.
+8) [[#cons-Exercise][cons Exercise]]
+
+* Strange Names
+    :PROPERTIES:
+    :CUSTOM_ID: strange-names
+    :CLASS: unnumberedsec
+    :END:
+
+The name of the =cons= function is not unreasonable: it is an abbreviation of the word “construct”. The origins of the names for =car= and =cdr=, on the other hand, are esoteric: =car= is an acronym from the phrase “Contents of the Address part of the Register”; and =cdr= (pronounced “could-er”) is an acronym from the phrase “Contents of the Decrement part of the Register”. These phrases refer to specific pieces of hardware on the very early computer on which the original Lisp was developed. Besides being obsolete, the phrases have been completely irrelevant for more than 25 years to anyone thinking about Lisp. Nonetheless, although a few brave scholars have begun to use more reasonable names for these functions, the old terms are still in use. In particular, since the terms are used in the Emacs Lisp source code, we will use them in this introduction.
+
+
+Next: [[#cons][cons]], Previous: [[#Strange-Names][Strange Names]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.1 =car= and =cdr=
+    :PROPERTIES:
+    :CUSTOM_ID: car-and-cdr
+    :CLASS: section
+    :END:
+
+The car of a list is, quite simply, the first item in the list. Thus the car of the list =(rose violet daisy buttercup)= is =rose=.
+
+If you are reading this in Info in GNU Emacs, you can see this by evaluating the following:
+
+#+begin_src elisp
+         (car '(rose violet daisy buttercup))
+#+end_src
+
+After evaluating the expression, =rose= will appear in the echo area.
+
+Clearly, a more reasonable name for the =car= function would be =first= and this is often suggested.
+
+=car= does not remove the first item from the list; it only reports what it is. After =car= has been applied to a list, the list is still the same as it was. In the jargon, =car= is “non-destructive”. This feature turns out to be important.
+
+The cdr of a list is the rest of the list, that is, the =cdr= function returns the part of the list that follows the first item. Thus, while the car of the list ='(rose violet daisy buttercup)= is =rose=, the rest of the list, the value returned by the =cdr= function, is =(violet daisy buttercup)=.
+
+You can see this by evaluating the following in the usual way:
+
+#+begin_src elisp
+         (cdr '(rose violet daisy buttercup))
+#+end_src
+
+When you evaluate this, =(violet daisy buttercup)= will appear in the echo area.
+
+Like =car=, =cdr= does not remove any elements from the list---it just returns a report of what the second and subsequent elements are.
+
+Incidentally, in the example, the list of flowers is quoted. If it were not, the Lisp interpreter would try to evaluate the list by calling =rose= as a function. In this example, we do not want to do that.
+
+Clearly, a more reasonable name for =cdr= would be =rest=.
+
+(There is a lesson here: when you name new functions, consider very carefully what you are doing, since you may be stuck with the names for far longer than you expect. The reason this document perpetuates these names is that the Emacs Lisp source code uses them, and if I did not use them, you would have a hard time reading the code; but do, please, try to avoid using these terms yourself. The people who come after you will be grateful to you.)
+
+When =car= and =cdr= are applied to a list made up of symbols, such as the list =(pine fir oak maple)=, the element of the list returned by the function =car= is the symbol =pine= without any parentheses around it. =pine= is the first element in the list. However, the cdr of the list is a list itself, =(fir oak maple)=, as you can see by evaluating the following expressions in the usual way:
+
+#+begin_src elisp
+         (car '(pine fir oak maple))
+
+         (cdr '(pine fir oak maple))
+#+end_src
+
+On the other hand, in a list of lists, the first element is itself a list. =car= returns this first element as a list. For example, the following list contains three sub-lists, a list of carnivores, a list of herbivores and a list of sea mammals:
+
+#+begin_src elisp
+         (car '((lion tiger cheetah)
+                (gazelle antelope zebra)
+                (whale dolphin seal)))
+#+end_src
+
+In this example, the first element or car of the list is the list of carnivores, =(lion tiger cheetah)=, and the rest of the list is =((gazelle antelope zebra) (whale dolphin seal))=.
+
+#+begin_src elisp
+         (cdr '((lion tiger cheetah)
+                (gazelle antelope zebra)
+                (whale dolphin seal)))
+#+end_src
+
+It is worth saying again that =car= and =cdr= are non-destructive---that is, they do not modify or change lists to which they are applied. This is very important for how they are used.
+
+Also, in the first chapter, in the discussion about atoms, I said that in Lisp, certain kinds of atom, such as an array, can be separated into parts; but the mechanism for doing this is different from the mechanism for splitting a list. As far as Lisp is concerned, the atoms of a list are unsplittable. (See [[#Lisp-Atoms][Lisp Atoms]].) The =car= and =cdr= functions are used for splitting lists and are considered fundamental to Lisp. Since they cannot split or gain access to the parts of an array, an array is considered an atom. Conversely, the other fundamental function, =cons=, can put together or construct a list, but not an array. (Arrays are handled by array-specific functions. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Arrays][Arrays]].)
+
+
+Next: [[#nthcdr][nthcdr]], Previous: [[#car-_0026-cdr][car & cdr]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.2 =cons=
+    :PROPERTIES:
+    :CUSTOM_ID: cons
+    :CLASS: section
+    :END:
+
+ The =cons= function constructs lists; it is the inverse of =car= and =cdr=. For example, =cons= can be used to make a four element list from the three element list, =(fir oak maple)=:
+
+#+begin_src elisp
+         (cons 'pine '(fir oak maple))
+#+end_src
+
+After evaluating this list, you will see
+
+#+begin_src elisp
+         (pine fir oak maple)
+#+end_src
+
+appear in the echo area. =cons= causes the creation of a new list in which the element is followed by the elements of the original list.
+
+We often say that =cons= puts a new element at the beginning of a list, or that it attaches or pushes elements onto the list, but this phrasing can be misleading, since =cons= does not change an existing list, but creates a new one.
+
+Like =car= and =cdr=, =cons= is non-destructive.
+
+- [[#Build-a-list][Build a list]]
+- [[#length][length]]: How to find the length of a list.
+
+
+Next: [[#length][length]], Up: [[#cons][cons]]
+
+** Build a list
+     :PROPERTIES:
+     :CUSTOM_ID: build-a-list
+     :CLASS: unnumberedsubsec
+     :END:
+
+=cons= must have a list to attach to.[[#fn-11][^{11}]] You cannot start from absolutely nothing. If you are building a list, you need to provide at least an empty list at the beginning. Here is a series of =cons= expressions that build up a list of flowers. If you are reading this in Info in GNU Emacs, you can evaluate each of the expressions in the usual way; the value is printed in this text after ‘⇒', which you may read as “evaluates to”.
+
+#+begin_src elisp
+         (cons 'buttercup ())
+              ⇒ (buttercup)
+
+         (cons 'daisy '(buttercup))
+              ⇒ (daisy buttercup)
+
+         (cons 'violet '(daisy buttercup))
+              ⇒ (violet daisy buttercup)
+
+         (cons 'rose '(violet daisy buttercup))
+              ⇒ (rose violet daisy buttercup)
+#+end_src
+
+In the first example, the empty list is shown as =()= and a list made up of =buttercup= followed by the empty list is constructed. As you can see, the empty list is not shown in the list that was constructed. All that you see is =(buttercup)=. The empty list is not counted as an element of a list because there is nothing in an empty list. Generally speaking, an empty list is invisible.
+
+The second example, =(cons 'daisy '(buttercup))= constructs a new, two element list by putting =daisy= in front of =buttercup=; and the third example constructs a three element list by putting =violet= in front of =daisy= and =buttercup=.
+
+
+Previous: [[#Build-a-list][Build a list]], Up: [[#cons][cons]]
+
+** 7.2.1 Find the Length of a List: =length=
+     :PROPERTIES:
+     :CUSTOM_ID: find-the-length-of-a-list-length
+     :CLASS: subsection
+     :END:
+
+ You can find out how many elements there are in a list by using the Lisp function =length=, as in the following examples:
+
+#+begin_src elisp
+         (length '(buttercup))
+              ⇒ 1
+
+         (length '(daisy buttercup))
+              ⇒ 2
+
+         (length (cons 'violet '(daisy buttercup)))
+              ⇒ 3
+#+end_src
+
+In the third example, the =cons= function is used to construct a three element list which is then passed to the =length= function as its argument.
+
+We can also use =length= to count the number of elements in an empty list:
+
+#+begin_src elisp
+         (length ())
+              ⇒ 0
+#+end_src
+
+As you would expect, the number of elements in an empty list is zero.
+
+An interesting experiment is to find out what happens if you try to find the length of no list at all; that is, if you try to call =length= without giving it an argument, not even an empty list:
+
+#+begin_src elisp
+         (length )
+#+end_src
+
+What you see, if you evaluate this, is the error message
+
+#+begin_src elisp
+         Lisp error: (wrong-number-of-arguments length 0)
+#+end_src
+
+This means that the function receives the wrong number of arguments, zero, when it expects some other number of arguments. In this case, one argument is expected, the argument being a list whose length the function is measuring. (Note that /one/ list is /one/ argument, even if the list has many elements inside it.)
+
+The part of the error message that says ‘length' is the name of the function.
+
+
+Next: [[#nth][nth]], Previous: [[#cons][cons]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.3 =nthcdr=
+    :PROPERTIES:
+    :CUSTOM_ID: nthcdr
+    :CLASS: section
+    :END:
+
+ The =nthcdr= function is associated with the =cdr= function. What it does is take the cdr of a list repeatedly.
+
+If you take the cdr of the list =(pine fir oak maple)=, you will be returned the list =(fir oak maple)=. If you repeat this on what was returned, you will be returned the list =(oak maple)=. (Of course, repeated cdring on the original list will just give you the original cdr since the function does not change the list. You need to evaluate the cdr of the cdr and so on.) If you continue this, eventually you will be returned an empty list, which in this case, instead of being shown as =()= is shown as =nil=.
+
+For review, here is a series of repeated cdrs, the text following the ‘⇒' shows what is returned.
+
+#+begin_src elisp
+         (cdr '(pine fir oak maple))
+              ⇒(fir oak maple)
+
+         (cdr '(fir oak maple))
+              ⇒ (oak maple)
+
+         (cdr '(oak maple))
+              ⇒(maple)
+
+         (cdr '(maple))
+              ⇒ nil
+
+         (cdr 'nil)
+              ⇒ nil
+
+         (cdr ())
+              ⇒ nil
+#+end_src
+
+You can also do several cdrs without printing the values in between, like this:
+
+#+begin_src elisp
+         (cdr (cdr '(pine fir oak maple)))
+              ⇒ (oak maple)
+#+end_src
+
+In this example, the Lisp interpreter evaluates the innermost list first. The innermost list is quoted, so it just passes the list as it is to the innermost =cdr=. This =cdr= passes a list made up of the second and subsequent elements of the list to the outermost =cdr=, which produces a list composed of the third and subsequent elements of the original list. In this example, the =cdr= function is repeated and returns a list that consists of the original list without its first two elements.
+
+The =nthcdr= function does the same as repeating the call to =cdr=. In the following example, the argument 2 is passed to the function =nthcdr=, along with the list, and the value returned is the list without its first two items, which is exactly the same as repeating =cdr= twice on the list:
+
+#+begin_src elisp
+         (nthcdr 2 '(pine fir oak maple))
+              ⇒ (oak maple)
+#+end_src
+
+Using the original four element list, we can see what happens when various numeric arguments are passed to =nthcdr=, including 0, 1, and 5:
+
+#+begin_src elisp
+         ;; Leave the list as it was.
+         (nthcdr 0 '(pine fir oak maple))
+              ⇒ (pine fir oak maple)
+
+         ;; Return a copy without the first element.
+         (nthcdr 1 '(pine fir oak maple))
+              ⇒ (fir oak maple)
+
+         ;; Return a copy of the list without three elements.
+         (nthcdr 3 '(pine fir oak maple))
+              ⇒ (maple)
+
+         ;; Return a copy lacking all four elements.
+         (nthcdr 4 '(pine fir oak maple))
+              ⇒ nil
+
+         ;; Return a copy lacking all elements.
+         (nthcdr 5 '(pine fir oak maple))
+              ⇒ nil
+#+end_src
+
+
+Next: [[#setcar][setcar]], Previous: [[#nthcdr][nthcdr]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.4 =nth=
+    :PROPERTIES:
+    :CUSTOM_ID: nth
+    :CLASS: section
+    :END:
+
+ The =nthcdr= function takes the cdr of a list repeatedly. The =nth= function takes the car of the result returned by =nthcdr=. It returns the Nth element of the list.
+
+Thus, if it were not defined in C for speed, the definition of =nth= would be:
+
+#+begin_src elisp
+         (defun nth (n list)
+           "Returns the Nth element of LIST.
+         N counts from zero.  If LIST is not that long, nil is returned."
+           (car (nthcdr n list)))
+#+end_src
+
+(Originally, =nth= was defined in Emacs Lisp in subr.el, but its definition was redone in C in the 1980s.)
+
+The =nth= function returns a single element of a list. This can be very convenient.
+
+Note that the elements are numbered from zero, not one. That is to say, the first element of a list, its car is the zeroth element. This zero-based counting often bothers people who are accustomed to the first element in a list being number one, which is one-based.
+
+For example:
+
+#+begin_src elisp
+         (nth 0 '("one" "two" "three"))
+             ⇒ "one"
+
+         (nth 1 '("one" "two" "three"))
+             ⇒ "two"
+#+end_src
+
+It is worth mentioning that =nth=, like =nthcdr= and =cdr=, does not change the original list---the function is non-destructive. This is in sharp contrast to the =setcar= and =setcdr= functions.
+
+
+Next: [[#setcdr][setcdr]], Previous: [[#nth][nth]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.5 =setcar=
+    :PROPERTIES:
+    :CUSTOM_ID: setcar
+    :CLASS: section
+    :END:
+
+ As you might guess from their names, the =setcar= and =setcdr= functions set the car or the cdr of a list to a new value. They actually change the original list, unlike =car= and =cdr= which leave the original list as it was. One way to find out how this works is to experiment. We will start with the =setcar= function.
+
+First, we can make a list and then set the value of a variable to the list, using the =setq= function. Here is a list of animals:
+
+#+begin_src elisp
+         (setq animals '(antelope giraffe lion tiger))
+#+end_src
+
+If you are reading this in Info inside of GNU Emacs, you can evaluate this expression in the usual fashion, by positioning the cursor after the expression and typing C-x C-e. (I'm doing this right here as I write this. This is one of the advantages of having the interpreter built into the computing environment. Incidentally, when there is nothing on the line after the final parentheses, such as a comment, point can be on the next line. Thus, if your cursor is in the first column of the next line, you do not need to move it. Indeed, Emacs permits any amount of white space after the final parenthesis.)
+
+When we evaluate the variable =animals=, we see that it is bound to the list =(antelope giraffe lion tiger)=:
+
+#+begin_src elisp
+         animals
+              ⇒ (antelope giraffe lion tiger)
+#+end_src
+
+Put another way, the variable =animals= points to the list =(antelope giraffe lion tiger)=.
+
+Next, evaluate the function =setcar= while passing it two arguments, the variable =animals= and the quoted symbol =hippopotamus=; this is done by writing the three element list =(setcar animals 'hippopotamus)= and then evaluating it in the usual fashion:
+
+#+begin_src elisp
+         (setcar animals 'hippopotamus)
+#+end_src
+
+After evaluating this expression, evaluate the variable =animals= again. You will see that the list of animals has changed:
+
+#+begin_src elisp
+         animals
+              ⇒ (hippopotamus giraffe lion tiger)
+#+end_src
+
+The first element on the list, =antelope= is replaced by =hippopotamus=.
+
+So we can see that =setcar= did not add a new element to the list as =cons= would have; it replaced =antelope= with =hippopotamus=; it /changed/ the list.
+
+
+Next: [[#cons-Exercise][cons Exercise]], Previous: [[#setcar][setcar]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.6 =setcdr=
+    :PROPERTIES:
+    :CUSTOM_ID: setcdr
+    :CLASS: section
+    :END:
+
+ The =setcdr= function is similar to the =setcar= function, except that the function replaces the second and subsequent elements of a list rather than the first element.
+
+(To see how to change the last element of a list, look ahead to [[#kill_002dnew-function][The =kill-new= function]], which uses the =nthcdr= and =setcdr= functions.)
+
+To see how this works, set the value of the variable to a list of domesticated animals by evaluating the following expression:
+
+#+begin_src elisp
+         (setq domesticated-animals '(horse cow sheep goat))
+#+end_src
+
+If you now evaluate the list, you will be returned the list =(horse cow sheep goat)=:
+
+#+begin_src elisp
+         domesticated-animals
+              ⇒ (horse cow sheep goat)
+#+end_src
+
+Next, evaluate =setcdr= with two arguments, the name of the variable which has a list as its value, and the list to which the cdr of the first list will be set;
+
+#+begin_src elisp
+         (setcdr domesticated-animals '(cat dog))
+#+end_src
+
+If you evaluate this expression, the list =(cat dog)= will appear in the echo area. This is the value returned by the function. The result we are interested in is the side effect, which we can see by evaluating the variable =domesticated-animals=:
+
+#+begin_src elisp
+         domesticated-animals
+              ⇒ (horse cat dog)
+#+end_src
+
+Indeed, the list is changed from =(horse cow sheep goat)= to =(horse cat dog)=. The cdr of the list is changed from =(cow sheep goat)= to =(cat dog)=.
+
+
+Previous: [[#setcdr][setcdr]], Up: [[#car-cdr-_0026-cons][car cdr & cons]]
+
+* 7.7 Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: exercise-1
+    :CLASS: section
+    :END:
+
+Construct a list of four birds by evaluating several expressions with =cons=. Find out what happens when you =cons= a list onto itself. Replace the first element of the list of four birds with a fish. Replace the rest of that list with a list of other fish.
+
+
+Next: [[#List-Implementation][List Implementation]], Previous: [[#car-cdr-_0026-cons][car cdr & cons]], Up: [[#Top][Top]]

@@ -1,0 +1,1283 @@
+#+TITLE: 11.Loops-and-Recursion
+* 11 Loops and Recursion
+   :PROPERTIES:
+   :CUSTOM_ID: loops-and-recursion
+   :CLASS: chapter
+   :END:
+
+ Emacs Lisp has two primary ways to cause an expression, or a series of expressions, to be evaluated repeatedly: one uses a =while= loop, and the other uses recursion.
+
+Repetition can be very valuable. For example, to move forward four sentences, you need only write a program that will move forward one sentence and then repeat the process four times. Since a computer does not get bored or tired, such repetitive action does not have the deleterious effects that excessive or the wrong kinds of repetition can have on humans.
+
+People mostly write Emacs Lisp functions using =while= loops and their kin; but you can use recursion, which provides a very powerful way to think about and then to solve problems[[#fn-13][^{13}]].
+
+1) [[#while][while]]: Causing a stretch of code to repeat.
+2) [[#dolist-dotimes][dolist dotimes]]
+3) [[#Recursion][Recursion]]: Causing a function to call itself.
+4) [[#Looping-exercise][Looping exercise]]
+
+
+
+* 11.1 =while=
+    :PROPERTIES:
+    :CUSTOM_ID: while
+    :CLASS: section
+    :END:
+
+ The =while= special form tests whether the value returned by evaluating its first argument is true or false. This is similar to what the Lisp interpreter does with an =if=; what the interpreter does next, however, is different.
+
+In a =while= expression, if the value returned by evaluating the first argument is false, the Lisp interpreter skips the rest of the expression (the body of the expression) and does not evaluate it. However, if the value is true, the Lisp interpreter evaluates the body of the expression and then again tests whether the first argument to =while= is true or false. If the value returned by evaluating the first argument is again true, the Lisp interpreter again evaluates the body of the expression.
+
+The template for a =while= expression looks like this:
+
+#+begin_src elisp
+         (while true-or-false-test
+           body...)
+#+end_src
+
+- [[#Looping-with-while][Looping with while]]: Repeat so long as test returns true.
+- [[#Loop-Example][Loop Example]]: A =while= loop that uses a list.
+- [[#print_002delements_002dof_002dlist][print-elements-of-list]]: Uses =while=, =car=, =cdr=.
+- [[#Incrementing-Loop][Incrementing Loop]]: A loop with an incrementing counter.
+- [[#Incrementing-Loop-Details][Incrementing Loop Details]]
+- [[#Decrementing-Loop][Decrementing Loop]]: A loop with a decrementing counter.
+
+
+Next: [[#Loop-Example][Loop Example]], Up: [[#while][while]]
+
+** Looping with =while=
+     :PROPERTIES:
+     :CUSTOM_ID: looping-with-while
+     :CLASS: unnumberedsubsec
+     :END:
+
+So long as the true-or-false-test of the =while= expression returns a true value when it is evaluated, the body is repeatedly evaluated. This process is called a loop since the Lisp interpreter repeats the same thing again and again, like an airplane doing a loop. When the result of evaluating the true-or-false-test is false, the Lisp interpreter does not evaluate the rest of the =while= expression and exits the loop.
+
+Clearly, if the value returned by evaluating the first argument to =while= is always true, the body following will be evaluated again and again ... and again ... forever. Conversely, if the value returned is never true, the expressions in the body will never be evaluated. The craft of writing a =while= loop consists of choosing a mechanism such that the true-or-false-test returns true just the number of times that you want the subsequent expressions to be evaluated, and then have the test return false.
+
+The value returned by evaluating a =while= is the value of the true-or-false-test. An interesting consequence of this is that a =while= loop that evaluates without error will return =nil= or false regardless of whether it has looped 1 or 100 times or none at all. A =while= expression that evaluates successfully never returns a true value! What this means is that =while= is always evaluated for its side effects, which is to say, the consequences of evaluating the expressions within the body of the =while= loop. This makes sense. It is not the mere act of looping that is desired, but the consequences of what happens when the expressions in the loop are repeatedly evaluated.
+
+
+Next: [[#print_002delements_002dof_002dlist][print-elements-of-list]], Previous: [[#Looping-with-while][Looping with while]], Up: [[#while][while]]
+
+** 11.1.1 A =while= Loop and a List
+     :PROPERTIES:
+     :CUSTOM_ID: a-while-loop-and-a-list
+     :CLASS: subsection
+     :END:
+
+A common way to control a =while= loop is to test whether a list has any elements. If it does, the loop is repeated; but if it does not, the repetition is ended. Since this is an important technique, we will create a short example to illustrate it.
+
+A simple way to test whether a list has elements is to evaluate the list: if it has no elements, it is an empty list and will return the empty list, =()=, which is a synonym for =nil= or false. On the other hand, a list with elements will return those elements when it is evaluated. Since Emacs Lisp considers as true any value that is not =nil=, a list that returns elements will test true in a =while= loop.
+
+For example, you can set the variable =empty-list= to =nil= by evaluating the following =setq= expression:
+
+#+begin_src elisp
+         (setq empty-list ())
+#+end_src
+
+After evaluating the =setq= expression, you can evaluate the variable =empty-list= in the usual way, by placing the cursor after the symbol and typing C-x C-e; =nil= will appear in your echo area:
+
+#+begin_src elisp
+         empty-list
+#+end_src
+
+On the other hand, if you set a variable to be a list with elements, the list will appear when you evaluate the variable, as you can see by evaluating the following two expressions:
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         animals
+#+end_src
+
+Thus, to create a =while= loop that tests whether there are any items in the list =animals=, the first part of the loop will be written like this:
+
+#+begin_src elisp
+         (while animals
+                ...
+#+end_src
+
+When the =while= tests its first argument, the variable =animals= is evaluated. It returns a list. So long as the list has elements, the =while= considers the results of the test to be true; but when the list is empty, it considers the results of the test to be false.
+
+To prevent the =while= loop from running forever, some mechanism needs to be provided to empty the list eventually. An oft-used technique is to have one of the subsequent forms in the =while= expression set the value of the list to be the cdr of the list. Each time the =cdr= function is evaluated, the list will be made shorter, until eventually only the empty list will be left. At this point, the test of the =while= loop will return false, and the arguments to the =while= will no longer be evaluated.
+
+For example, the list of animals bound to the variable =animals= can be set to be the cdr of the original list with the following expression:
+
+#+begin_src elisp
+         (setq animals (cdr animals))
+#+end_src
+
+If you have evaluated the previous expressions and then evaluate this expression, you will see =(giraffe lion tiger)= appear in the echo area. If you evaluate the expression again, =(lion tiger)= will appear in the echo area. If you evaluate it again and yet again, =(tiger)= appears and then the empty list, shown by =nil=.
+
+A template for a =while= loop that uses the =cdr= function repeatedly to cause the true-or-false-test eventually to test false looks like this:
+
+#+begin_src elisp
+         (while test-whether-list-is-empty
+           body...
+           set-list-to-cdr-of-list)
+#+end_src
+
+This test and use of =cdr= can be put together in a function that goes through a list and prints each element of the list on a line of its own.
+
+
+Next: [[#Incrementing-Loop][Incrementing Loop]], Previous: [[#Loop-Example][Loop Example]], Up: [[#while][while]]
+
+** 11.1.2 An Example: =print-elements-of-list=
+     :PROPERTIES:
+     :CUSTOM_ID: an-example-print-elements-of-list
+     :CLASS: subsection
+     :END:
+
+ The =print-elements-of-list= function illustrates a =while= loop with a list.
+
+The function requires several lines for its output. If you are reading this in a recent instance of GNU Emacs, you can evaluate the following expression inside of Info, as usual.
+
+If you are using an earlier version of Emacs, you need to copy the necessary expressions to your *scratch* buffer and evaluate them there. This is because the echo area had only one line in the earlier versions.
+
+You can copy the expressions by marking the beginning of the region with C-<SPC> (=set-mark-command=), moving the cursor to the end of the region and then copying the region using M-w (=kill-ring-save=, which calls =copy-region-as-kill= and then provides visual feedback). In the *scratch* buffer, you can yank the expressions back by typing C-y (=yank=).
+
+After you have copied the expressions to the *scratch* buffer, evaluate each expression in turn. Be sure to evaluate the last expression, =(print-elements-of-list animals)=, by typing C-u C-x C-e, that is, by giving an argument to =eval-last-sexp=. This will cause the result of the evaluation to be printed in the *scratch* buffer instead of being printed in the echo area. (Otherwise you will see something like this in your echo area: =^Jgazelle^J^Jgiraffe^J^Jlion^J^Jtiger^Jnil=, in which each ‘\^J' stands for a newline.)
+
+In a recent instance of GNU Emacs, you can evaluate these expressions directly in the Info buffer, and the echo area will grow to show the results.
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (defun print-elements-of-list (list)
+           "Print each element of LIST on a line of its own."
+           (while list
+             (print (car list))
+             (setq list (cdr list))))
+
+         (print-elements-of-list animals)
+#+end_src
+
+When you evaluate the three expressions in sequence, you will see this:
+
+#+begin_src elisp
+         gazelle
+
+         giraffe
+
+         lion
+
+         tiger
+         nil
+#+end_src
+
+Each element of the list is printed on a line of its own (that is what the function =print= does) and then the value returned by the function is printed. Since the last expression in the function is the =while= loop, and since =while= loops always return =nil=, a =nil= is printed after the last element of the list.
+
+
+Next: [[#Incrementing-Loop-Details][Incrementing Loop Details]], Previous: [[#print_002delements_002dof_002dlist][print-elements-of-list]], Up: [[#while][while]]
+
+** 11.1.3 A Loop with an Incrementing Counter
+     :PROPERTIES:
+     :CUSTOM_ID: a-loop-with-an-incrementing-counter
+     :CLASS: subsection
+     :END:
+
+A loop is not useful unless it stops when it ought. Besides controlling a loop with a list, a common way of stopping a loop is to write the first argument as a test that returns false when the correct number of repetitions are complete. This means that the loop must have a counter---an expression that counts how many times the loop repeats itself.
+
+
+Next: [[#Decrementing-Loop][Decrementing Loop]], Previous: [[#Incrementing-Loop][Incrementing Loop]], Up: [[#while][while]]
+
+** Details of an Incrementing Loop
+     :PROPERTIES:
+     :CUSTOM_ID: details-of-an-incrementing-loop
+     :CLASS: unnumberedsubsec
+     :END:
+
+The test for a loop with an incrementing counter can be an expression such as =(< count desired-number)= which returns =t= for true if the value of =count= is less than the =desired-number= of repetitions and =nil= for false if the value of =count= is equal to or is greater than the =desired-number=. The expression that increments the count can be a simple =setq= such as =(setq count (1+ count))=, where =1+= is a built-in function in Emacs Lisp that adds 1 to its argument. (The expression =(1+ count)= has the same result as =(+ count 1)=, but is easier for a human to read.)
+
+The template for a =while= loop controlled by an incrementing counter looks like this:
+
+#+begin_src elisp
+         set-count-to-initial-value
+         (while (< count desired-number)         ; true-or-false-test
+           body...
+           (setq count (1+ count)))              ; incrementer
+#+end_src
+
+Note that you need to set the initial value of =count=; usually it is set to 1.
+
+- [[#Incrementing-Example][Incrementing Example]]: Counting pebbles in a triangle.
+- [[#Inc-Example-parts][Inc Example parts]]: The parts of the function definition.
+- [[#Inc-Example-altogether][Inc Example altogether]]: Putting the function definition together.
+
+
+Next: [[#Inc-Example-parts][Inc Example parts]], Up: [[#Incrementing-Loop-Details][Incrementing Loop Details]]
+
+*** Example with incrementing counter
+      :PROPERTIES:
+      :CUSTOM_ID: example-with-incrementing-counter
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+Suppose you are playing on the beach and decide to make a triangle of pebbles, putting one pebble in the first row, two in the second row, three in the third row and so on, like this:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+                        *
+                       * *
+                      * * *
+                     * * * *
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+(About 2500 years ago, Pythagoras and others developed the beginnings of number theory by considering questions such as this.)
+
+Suppose you want to know how many pebbles you will need to make a triangle with 7 rows?
+
+Clearly, what you need to do is add up the numbers from 1 to 7. There are two ways to do this; start with the smallest number, one, and add up the list in sequence, 1, 2, 3, 4 and so on; or start with the largest number and add the list going down: 7, 6, 5, 4 and so on. Because both mechanisms illustrate common ways of writing =while= loops, we will create two examples, one counting up and the other counting down. In this first example, we will start with 1 and add 2, 3, 4 and so on.
+
+If you are just adding up a short list of numbers, the easiest way to do it is to add up all the numbers at once. However, if you do not know ahead of time how many numbers your list will have, or if you want to be prepared for a very long list, then you need to design your addition so that what you do is repeat a simple process many times instead of doing a more complex process once.
+
+For example, instead of adding up all the pebbles all at once, what you can do is add the number of pebbles in the first row, 1, to the number in the second row, 2, and then add the total of those two rows to the third row, 3. Then you can add the number in the fourth row, 4, to the total of the first three rows; and so on.
+
+The critical characteristic of the process is that each repetitive action is simple. In this case, at each step we add only two numbers, the number of pebbles in the row and the total already found. This process of adding two numbers is repeated again and again until the last row has been added to the total of all the preceding rows. In a more complex loop the repetitive action might not be so simple, but it will be simpler than doing everything all at once.
+
+
+Next: [[#Inc-Example-altogether][Inc Example altogether]], Previous: [[#Incrementing-Example][Incrementing Example]], Up: [[#Incrementing-Loop-Details][Incrementing Loop Details]]
+
+*** The parts of the function definition
+      :PROPERTIES:
+      :CUSTOM_ID: the-parts-of-the-function-definition
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+The preceding analysis gives us the bones of our function definition: first, we will need a variable that we can call =total= that will be the total number of pebbles. This will be the value returned by the function.
+
+Second, we know that the function will require an argument: this argument will be the total number of rows in the triangle. It can be called =number-of-rows=.
+
+Finally, we need a variable to use as a counter. We could call this variable =counter=, but a better name is =row-number=. That is because what the counter does in this function is count rows, and a program should be written to be as understandable as possible.
+
+When the Lisp interpreter first starts evaluating the expressions in the function, the value of =total= should be set to zero, since we have not added anything to it. Then the function should add the number of pebbles in the first row to the total, and then add the number of pebbles in the second to the total, and then add the number of pebbles in the third row to the total, and so on, until there are no more rows left to add.
+
+Both =total= and =row-number= are used only inside the function, so they can be declared as local variables with =let= and given initial values. Clearly, the initial value for =total= should be 0. The initial value of =row-number= should be 1, since we start with the first row. This means that the =let= statement will look like this:
+
+#+begin_src elisp
+           (let ((total 0)
+                 (row-number 1))
+             body...)
+#+end_src
+
+After the internal variables are declared and bound to their initial values, we can begin the =while= loop. The expression that serves as the test should return a value of =t= for true so long as the =row-number= is less than or equal to the =number-of-rows=. (If the expression tests true only so long as the row number is less than the number of rows in the triangle, the last row will never be added to the total; hence the row number has to be either less than or equal to the number of rows.)
+
+Lisp provides the =<== function that returns true if the value of its first argument is less than or equal to the value of its second argument and false otherwise. So the expression that the =while= will evaluate as its test should look like this:
+
+#+begin_src elisp
+         (<= row-number number-of-rows)
+#+end_src
+
+The total number of pebbles can be found by repeatedly adding the number of pebbles in a row to the total already found. Since the number of pebbles in the row is equal to the row number, the total can be found by adding the row number to the total. (Clearly, in a more complex situation, the number of pebbles in the row might be related to the row number in a more complicated way; if this were the case, the row number would be replaced by the appropriate expression.)
+
+#+begin_src elisp
+         (setq total (+ total row-number))
+#+end_src
+
+What this does is set the new value of =total= to be equal to the sum of adding the number of pebbles in the row to the previous total.
+
+After setting the value of =total=, the conditions need to be established for the next repetition of the loop, if there is one. This is done by incrementing the value of the =row-number= variable, which serves as a counter. After the =row-number= variable has been incremented, the true-or-false-test at the beginning of the =while= loop tests whether its value is still less than or equal to the value of the =number-of-rows= and if it is, adds the new value of the =row-number= variable to the =total= of the previous repetition of the loop.
+
+The built-in Emacs Lisp function =1+= adds 1 to a number, so the =row-number= variable can be incremented with this expression:
+
+#+begin_src elisp
+         (setq row-number (1+ row-number))
+#+end_src
+
+
+Previous: [[#Inc-Example-parts][Inc Example parts]], Up: [[#Incrementing-Loop-Details][Incrementing Loop Details]]
+
+*** Putting the function definition together
+      :PROPERTIES:
+      :CUSTOM_ID: putting-the-function-definition-together
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+We have created the parts for the function definition; now we need to put them together.
+
+First, the contents of the =while= expression:
+
+#+begin_src elisp
+         (while (<= row-number number-of-rows)   ; true-or-false-test
+           (setq total (+ total row-number))
+           (setq row-number (1+ row-number)))    ; incrementer
+#+end_src
+
+Along with the =let= expression varlist, this very nearly completes the body of the function definition. However, it requires one final element, the need for which is somewhat subtle.
+
+The final touch is to place the variable =total= on a line by itself after the =while= expression. Otherwise, the value returned by the whole function is the value of the last expression that is evaluated in the body of the =let=, and this is the value returned by the =while=, which is always =nil=.
+
+This may not be evident at first sight. It almost looks as if the incrementing expression is the last expression of the whole function. But that expression is part of the body of the =while=; it is the last element of the list that starts with the symbol =while=. Moreover, the whole of the =while= loop is a list within the body of the =let=.
+
+In outline, the function will look like this:
+
+#+begin_src elisp
+         (defun name-of-function (argument-list)
+           "documentation..."
+           (let (varlist)
+             (while (true-or-false-test)
+               body-of-while... )
+             ... ))                    ; Need final expression here.
+#+end_src
+
+The result of evaluating the =let= is what is going to be returned by the =defun= since the =let= is not embedded within any containing list, except for the =defun= as a whole. However, if the =while= is the last element of the =let= expression, the function will always return =nil=. This is not what we want! Instead, what we want is the value of the variable =total=. This is returned by simply placing the symbol as the last element of the list starting with =let=. It gets evaluated after the preceding elements of the list are evaluated, which means it gets evaluated after it has been assigned the correct value for the total.
+
+It may be easier to see this by printing the list starting with =let= all on one line. This format makes it evident that the varlist and =while= expressions are the second and third elements of the list starting with =let=, and the =total= is the last element:
+
+#+begin_src elisp
+         (let (varlist) (while (true-or-false-test) body-of-while... ) total)
+#+end_src
+
+Putting everything together, the =triangle= function definition looks like this:
+
+#+begin_src elisp
+         (defun triangle (number-of-rows)    ; Version with
+                                             ;   incrementing counter.
+           "Add up the number of pebbles in a triangle.
+         The first row has one pebble, the second row two pebbles,
+         the third row three pebbles, and so on.
+         The argument is NUMBER-OF-ROWS."
+           (let ((total 0)
+                 (row-number 1))
+             (while (<= row-number number-of-rows)
+               (setq total (+ total row-number))
+               (setq row-number (1+ row-number)))
+             total))
+#+end_src
+
+After you have installed =triangle= by evaluating the function, you can try it out. Here are two examples:
+
+#+begin_src elisp
+         (triangle 4)
+
+         (triangle 7)
+#+end_src
+
+The sum of the first four numbers is 10 and the sum of the first seven numbers is 28.
+
+
+Previous: [[#Incrementing-Loop-Details][Incrementing Loop Details]], Up: [[#while][while]]
+
+** 11.1.4 Loop with a Decrementing Counter
+     :PROPERTIES:
+     :CUSTOM_ID: loop-with-a-decrementing-counter
+     :CLASS: subsection
+     :END:
+
+Another common way to write a =while= loop is to write the test so that it determines whether a counter is greater than zero. So long as the counter is greater than zero, the loop is repeated. But when the counter is equal to or less than zero, the loop is stopped. For this to work, the counter has to start out greater than zero and then be made smaller and smaller by a form that is evaluated repeatedly.
+
+The test will be an expression such as =(> counter 0)= which returns =t= for true if the value of =counter= is greater than zero, and =nil= for false if the value of =counter= is equal to or less than zero. The expression that makes the number smaller and smaller can be a simple =setq= such as =(setq counter (1- counter))=, where =1-= is a built-in function in Emacs Lisp that subtracts 1 from its argument.
+
+The template for a decrementing =while= loop looks like this:
+
+#+begin_src elisp
+         (while (> counter 0)                    ; true-or-false-test
+           body...
+           (setq counter (1- counter)))          ; decrementer
+#+end_src
+
+- [[#Decrementing-Example][Decrementing Example]]: More pebbles on the beach.
+- [[#Dec-Example-parts][Dec Example parts]]: The parts of the function definition.
+- [[#Dec-Example-altogether][Dec Example altogether]]: Putting the function definition together.
+
+
+Next: [[#Dec-Example-parts][Dec Example parts]], Up: [[#Decrementing-Loop][Decrementing Loop]]
+
+*** Example with decrementing counter
+      :PROPERTIES:
+      :CUSTOM_ID: example-with-decrementing-counter
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+To illustrate a loop with a decrementing counter, we will rewrite the =triangle= function so the counter decreases to zero.
+
+This is the reverse of the earlier version of the function. In this case, to find out how many pebbles are needed to make a triangle with 3 rows, add the number of pebbles in the third row, 3, to the number in the preceding row, 2, and then add the total of those two rows to the row that precedes them, which is 1.
+
+Likewise, to find the number of pebbles in a triangle with 7 rows, add the number of pebbles in the seventh row, 7, to the number in the preceding row, which is 6, and then add the total of those two rows to the row that precedes them, which is 5, and so on. As in the previous example, each addition only involves adding two numbers, the total of the rows already added up and the number of pebbles in the row that is being added to the total. This process of adding two numbers is repeated again and again until there are no more pebbles to add.
+
+We know how many pebbles to start with: the number of pebbles in the last row is equal to the number of rows. If the triangle has seven rows, the number of pebbles in the last row is 7. Likewise, we know how many pebbles are in the preceding row: it is one less than the number in the row.
+
+
+Next: [[#Dec-Example-altogether][Dec Example altogether]], Previous: [[#Decrementing-Example][Decrementing Example]], Up: [[#Decrementing-Loop][Decrementing Loop]]
+
+*** The parts of the function definition
+      :PROPERTIES:
+      :CUSTOM_ID: the-parts-of-the-function-definition-1
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+We start with three variables: the total number of rows in the triangle; the number of pebbles in a row; and the total number of pebbles, which is what we want to calculate. These variables can be named =number-of-rows=, =number-of-pebbles-in-row=, and =total=, respectively.
+
+Both =total= and =number-of-pebbles-in-row= are used only inside the function and are declared with =let=. The initial value of =total= should, of course, be zero. However, the initial value of =number-of-pebbles-in-row= should be equal to the number of rows in the triangle, since the addition will start with the longest row.
+
+This means that the beginning of the =let= expression will look like this:
+
+#+begin_src elisp
+         (let ((total 0)
+               (number-of-pebbles-in-row number-of-rows))
+           body...)
+#+end_src
+
+The total number of pebbles can be found by repeatedly adding the number of pebbles in a row to the total already found, that is, by repeatedly evaluating the following expression:
+
+#+begin_src elisp
+         (setq total (+ total number-of-pebbles-in-row))
+#+end_src
+
+After the =number-of-pebbles-in-row= is added to the =total=, the =number-of-pebbles-in-row= should be decremented by one, since the next time the loop repeats, the preceding row will be added to the total.
+
+The number of pebbles in a preceding row is one less than the number of pebbles in a row, so the built-in Emacs Lisp function =1-= can be used to compute the number of pebbles in the preceding row. This can be done with the following expression:
+
+#+begin_src elisp
+         (setq number-of-pebbles-in-row
+               (1- number-of-pebbles-in-row))
+#+end_src
+
+Finally, we know that the =while= loop should stop making repeated additions when there are no pebbles in a row. So the test for the =while= loop is simply:
+
+#+begin_src elisp
+         (while (> number-of-pebbles-in-row 0)
+#+end_src
+
+
+Previous: [[#Dec-Example-parts][Dec Example parts]], Up: [[#Decrementing-Loop][Decrementing Loop]]
+
+*** Putting the function definition together
+      :PROPERTIES:
+      :CUSTOM_ID: putting-the-function-definition-together-1
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+We can put these expressions together to create a function definition that works. However, on examination, we find that one of the local variables is unneeded!
+
+The function definition looks like this:
+
+#+begin_src elisp
+         ;;; First subtractive version.
+         (defun triangle (number-of-rows)
+           "Add up the number of pebbles in a triangle."
+           (let ((total 0)
+                 (number-of-pebbles-in-row number-of-rows))
+             (while (> number-of-pebbles-in-row 0)
+               (setq total (+ total number-of-pebbles-in-row))
+               (setq number-of-pebbles-in-row
+                     (1- number-of-pebbles-in-row)))
+             total))
+#+end_src
+
+As written, this function works.
+
+However, we do not need =number-of-pebbles-in-row=.
+
+When the =triangle= function is evaluated, the symbol =number-of-rows= will be bound to a number, giving it an initial value. That number can be changed in the body of the function as if it were a local variable, without any fear that such a change will effect the value of the variable outside of the function. This is a very useful characteristic of Lisp; it means that the variable =number-of-rows= can be used anywhere in the function where =number-of-pebbles-in-row= is used.
+
+Here is a second version of the function written a bit more cleanly:
+
+#+begin_src elisp
+         (defun triangle (number)                ; Second version.
+           "Return sum of numbers 1 through NUMBER inclusive."
+           (let ((total 0))
+             (while (> number 0)
+               (setq total (+ total number))
+               (setq number (1- number)))
+             total))
+#+end_src
+
+In brief, a properly written =while= loop will consist of three parts:
+
+1. A test that will return false after the loop has repeated itself the correct number of times.
+2. An expression the evaluation of which will return the value desired after being repeatedly evaluated.
+3. An expression to change the value passed to the true-or-false-test so that the test returns false after the loop has repeated itself the right number of times.
+
+
+Next: [[#Recursion][Recursion]], Previous: [[#while][while]], Up: [[#Loops-_0026-Recursion][Loops & Recursion]]
+
+* 11.2 Save your time: =dolist= and =dotimes=
+    :PROPERTIES:
+    :CUSTOM_ID: save-your-time-dolist-and-dotimes
+    :CLASS: section
+    :END:
+
+In addition to =while=, both =dolist= and =dotimes= provide for looping. Sometimes these are quicker to write than the equivalent =while= loop. Both are Lisp macros. (See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Macros][Macros]]. )
+
+=dolist= works like a =while= loop that cdrs down a list: =dolist= automatically shortens the list each time it loops---takes the cdr of the list---and binds the car of each shorter version of the list to the first of its arguments.
+
+=dotimes= loops a specific number of times: you specify the number.
+
+- [[#dolist][dolist]]
+- [[#dotimes][dotimes]]
+
+
+Next: [[#dotimes][dotimes]], Up: [[#dolist-dotimes][dolist dotimes]]
+
+** The =dolist= Macro
+     :PROPERTIES:
+     :CUSTOM_ID: the-dolist-macro
+     :CLASS: unnumberedsubsec
+     :END:
+
+ Suppose, for example, you want to reverse a list, so that “first” “second” “third” becomes “third” “second” “first”.
+
+In practice, you would use the =reverse= function, like this:
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (reverse animals)
+#+end_src
+
+Here is how you could reverse the list using a =while= loop:
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (defun reverse-list-with-while (list)
+           "Using while, reverse the order of LIST."
+           (let (value)  ; make sure list starts empty
+             (while list
+               (setq value (cons (car list) value))
+               (setq list (cdr list)))
+             value))
+
+         (reverse-list-with-while animals)
+#+end_src
+
+And here is how you could use the =dolist= macro:
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (defun reverse-list-with-dolist (list)
+           "Using dolist, reverse the order of LIST."
+           (let (value)  ; make sure list starts empty
+             (dolist (element list value)
+               (setq value (cons element value)))))
+
+         (reverse-list-with-dolist animals)
+#+end_src
+
+In Info, you can place your cursor after the closing parenthesis of each expression and type C-x C-e; in each case, you should see
+
+#+begin_src elisp
+         (tiger lion giraffe gazelle)
+#+end_src
+
+in the echo area.
+
+For this example, the existing =reverse= function is obviously best. The =while= loop is just like our first example (see [[#Loop-Example][A =while= Loop and a List]]). The =while= first checks whether the list has elements; if so, it constructs a new list by adding the first element of the list to the existing list (which in the first iteration of the loop is =nil=). Since the second element is prepended in front of the first element, and the third element is prepended in front of the second element, the list is reversed.
+
+In the expression using a =while= loop, the =(setq list (cdr list))= expression shortens the list, so the =while= loop eventually stops. In addition, it provides the =cons= expression with a new first element by creating a new and shorter list at each repetition of the loop.
+
+The =dolist= expression does very much the same as the =while= expression, except that the =dolist= macro does some of the work you have to do when writing a =while= expression.
+
+Like a =while= loop, a =dolist= loops. What is different is that it automatically shortens the list each time it loops---it cdrs down the list on its own---and it automatically binds the car of each shorter version of the list to the first of its arguments.
+
+In the example, the car of each shorter version of the list is referred to using the symbol ‘element', the list itself is called ‘list', and the value returned is called ‘value'. The remainder of the =dolist= expression is the body.
+
+The =dolist= expression binds the car of each shorter version of the list to =element= and then evaluates the body of the expression; and repeats the loop. The result is returned in =value=.
+
+
+Previous: [[#dolist][dolist]], Up: [[#dolist-dotimes][dolist dotimes]]
+
+** The =dotimes= Macro
+     :PROPERTIES:
+     :CUSTOM_ID: the-dotimes-macro
+     :CLASS: unnumberedsubsec
+     :END:
+
+ The =dotimes= macro is similar to =dolist=, except that it loops a specific number of times.
+
+The first argument to =dotimes= is assigned the numbers 0, 1, 2 and so forth each time around the loop, and the value of the third argument is returned. You need to provide the value of the second argument, which is how many times the macro loops.
+
+For example, the following binds the numbers from 0 up to, but not including, the number 3 to the first argument, number, and then constructs a list of the three numbers. (The first number is 0, the second number is 1, and the third number is 2; this makes a total of three numbers in all, starting with zero as the first number.)
+
+#+begin_src elisp
+         (let (value)      ; otherwise a value is a void variable
+           (dotimes (number 3 value)
+             (setq value (cons number value))))
+
+         ⇒ (2 1 0)
+#+end_src
+
+=dotimes= returns =value=, so the way to use =dotimes= is to operate on some expression number number of times and then return the result, either as a list or an atom.
+
+Here is an example of a =defun= that uses =dotimes= to add up the number of pebbles in a triangle.
+
+#+begin_src elisp
+         (defun triangle-using-dotimes (number-of-rows)
+           "Using `dotimes', add up the number of pebbles in a triangle."
+         (let ((total 0))  ; otherwise a total is a void variable
+           (dotimes (number number-of-rows total)
+             (setq total (+ total (1+ number))))))
+
+         (triangle-using-dotimes 4)
+#+end_src
+
+
+Next: [[#Looping-exercise][Looping exercise]], Previous: [[#dolist-dotimes][dolist dotimes]], Up: [[#Loops-_0026-Recursion][Loops & Recursion]]
+
+* 11.3 Recursion
+    :PROPERTIES:
+    :CUSTOM_ID: recursion
+    :CLASS: section
+    :END:
+
+ A recursive function contains code that tells the Lisp interpreter to call a program that runs exactly like itself, but with slightly different arguments. The code runs exactly the same because it has the same name. However, even though the program has the same name, it is not the same entity. It is different. In the jargon, it is a different “instance”.
+
+Eventually, if the program is written correctly, the slightly different arguments will become sufficiently different from the first arguments that the final instance will stop.
+
+- [[#Building-Robots][Building Robots]]: Same model, different serial number ...
+- [[#Recursive-Definition-Parts][Recursive Definition Parts]]: Walk until you stop ...
+- [[#Recursion-with-list][Recursion with list]]: Using a list as the test whether to recurse.
+- [[#Recursive-triangle-function][Recursive triangle function]]
+- [[#Recursion-with-cond][Recursion with cond]]
+- [[#Recursive-Patterns][Recursive Patterns]]: Often used templates.
+- [[#No-Deferment][No Deferment]]: Don't store up work ...
+- [[#No-deferment-solution][No deferment solution]]
+
+
+Next: [[#Recursive-Definition-Parts][Recursive Definition Parts]], Up: [[#Recursion][Recursion]]
+
+** 11.3.1 Building Robots: Extending the Metaphor
+     :PROPERTIES:
+     :CUSTOM_ID: building-robots-extending-the-metaphor
+     :CLASS: subsection
+     :END:
+
+ It is sometimes helpful to think of a running program as a robot that does a job. In doing its job, a recursive function calls on a second robot to help it. The second robot is identical to the first in every way, except that the second robot helps the first and has been passed different arguments than the first.
+
+In a recursive function, the second robot may call a third; and the third may call a fourth, and so on. Each of these is a different entity; but all are clones.
+
+Since each robot has slightly different instructions---the arguments will differ from one robot to the next---the last robot should know when to stop.
+
+Let's expand on the metaphor in which a computer program is a robot.
+
+A function definition provides the blueprints for a robot. When you install a function definition, that is, when you evaluate a =defun= macro, you install the necessary equipment to build robots. It is as if you were in a factory, setting up an assembly line. Robots with the same name are built according to the same blueprints. So they have the same model number, but a different serial number.
+
+We often say that a recursive function “calls itself”. What we mean is that the instructions in a recursive function cause the Lisp interpreter to run a different function that has the same name and does the same job as the first, but with different arguments.
+
+It is important that the arguments differ from one instance to the next; otherwise, the process will never stop.
+
+
+Next: [[#Recursion-with-list][Recursion with list]], Previous: [[#Building-Robots][Building Robots]], Up: [[#Recursion][Recursion]]
+
+** 11.3.2 The Parts of a Recursive Definition
+     :PROPERTIES:
+     :CUSTOM_ID: the-parts-of-a-recursive-definition
+     :CLASS: subsection
+     :END:
+
+ A recursive function typically contains a conditional expression which has three parts:
+
+1. A true-or-false-test that determines whether the function is called again, here called the do-again-test.
+2. The name of the function. When this name is called, a new instance of the function---a new robot, as it were---is created and told what to do.
+3. An expression that returns a different value each time the function is called, here called the next-step-expression. Consequently, the argument (or arguments) passed to the new instance of the function will be different from that passed to the previous instance. This causes the conditional expression, the do-again-test, to test false after the correct number of repetitions.
+
+Recursive functions can be much simpler than any other kind of function. Indeed, when people first start to use them, they often look so mysteriously simple as to be incomprehensible. Like riding a bicycle, reading a recursive function definition takes a certain knack which is hard at first but then seems simple.
+
+There are several different common recursive patterns. A very simple pattern looks like this:
+
+#+begin_src elisp
+         (defun name-of-recursive-function (argument-list)
+           "documentation..."
+           (if do-again-test
+             body...
+             (name-of-recursive-function
+                  next-step-expression)))
+#+end_src
+
+Each time a recursive function is evaluated, a new instance of it is created and told what to do. The arguments tell the instance what to do.
+
+An argument is bound to the value of the next-step-expression. Each instance runs with a different value of the next-step-expression.
+
+The value in the next-step-expression is used in the do-again-test.
+
+The value returned by the next-step-expression is passed to the new instance of the function, which evaluates it (or some transmogrification of it) to determine whether to continue or stop. The next-step-expression is designed so that the do-again-test returns false when the function should no longer be repeated.
+
+The do-again-test is sometimes called the stop condition, since it stops the repetitions when it tests false.
+
+
+Next: [[#Recursive-triangle-function][Recursive triangle function]], Previous: [[#Recursive-Definition-Parts][Recursive Definition Parts]], Up: [[#Recursion][Recursion]]
+
+** 11.3.3 Recursion with a List
+     :PROPERTIES:
+     :CUSTOM_ID: recursion-with-a-list
+     :CLASS: subsection
+     :END:
+
+The example of a =while= loop that printed the elements of a list of numbers can be written recursively. Here is the code, including an expression to set the value of the variable =animals= to a list.
+
+If you are reading this in Info in Emacs, you can evaluate this expression directly in Info. Otherwise, you must copy the example to the *scratch* buffer and evaluate each expression there. Use C-u C-x C-e to evaluate the =(print-elements-recursively animals)= expression so that the results are printed in the buffer; otherwise the Lisp interpreter will try to squeeze the results into the one line of the echo area.
+
+Also, place your cursor immediately after the last closing parenthesis of the =print-elements-recursively= function, before the comment. Otherwise, the Lisp interpreter will try to evaluate the comment.
+
+
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (defun print-elements-recursively (list)
+           "Print each element of LIST on a line of its own.
+         Uses recursion."
+           (when list                            ; do-again-test
+                 (print (car list))              ; body
+                 (print-elements-recursively     ; recursive call
+                  (cdr list))))                  ; next-step-expression
+
+         (print-elements-recursively animals)
+#+end_src
+
+The =print-elements-recursively= function first tests whether there is any content in the list; if there is, the function prints the first element of the list, the car of the list. Then the function invokes itself, but gives itself as its argument, not the whole list, but the second and subsequent elements of the list, the cdr of the list.
+
+Put another way, if the list is not empty, the function invokes another instance of code that is similar to the initial code, but is a different thread of execution, with different arguments than the first instance.
+
+Put in yet another way, if the list is not empty, the first robot assembles a second robot and tells it what to do; the second robot is a different individual from the first, but is the same model.
+
+When the second evaluation occurs, the =when= expression is evaluated and if true, prints the first element of the list it receives as its argument (which is the second element of the original list). Then the function calls itself with the cdr of the list it is invoked with, which (the second time around) is the cdr of the cdr of the original list.
+
+Note that although we say that the function “calls itself”, what we mean is that the Lisp interpreter assembles and instructs a new instance of the program. The new instance is a clone of the first, but is a separate individual.
+
+Each time the function invokes itself, it does so on a shorter version of the original list. It creates a new instance that works on a shorter list.
+
+Eventually, the function invokes itself on an empty list. It creates a new instance whose argument is =nil=. The conditional expression tests the value of =list=. Since the value of =list= is =nil=, the =when= expression tests false so the then-part is not evaluated. The function as a whole then returns =nil=.
+
+When you evaluate the expression =(print-elements-recursively animals)= in the *scratch* buffer, you see this result:
+
+#+begin_src elisp
+         gazelle
+
+         giraffe
+
+         lion
+
+         tiger
+         nil
+#+end_src
+
+
+Next: [[#Recursion-with-cond][Recursion with cond]], Previous: [[#Recursion-with-list][Recursion with list]], Up: [[#Recursion][Recursion]]
+
+** 11.3.4 Recursion in Place of a Counter
+     :PROPERTIES:
+     :CUSTOM_ID: recursion-in-place-of-a-counter
+     :CLASS: subsection
+     :END:
+
+ The =triangle= function described in a previous section can also be written recursively. It looks like this:
+
+#+begin_src elisp
+         (defun triangle-recursively (number)
+           "Return the sum of the numbers 1 through NUMBER inclusive.
+         Uses recursion."
+           (if (= number 1)                    ; do-again-test
+               1                               ; then-part
+             (+ number                         ; else-part
+                (triangle-recursively          ; recursive call
+                 (1- number)))))               ; next-step-expression
+
+         (triangle-recursively 7)
+#+end_src
+
+You can install this function by evaluating it and then try it by evaluating =(triangle-recursively 7)=. (Remember to put your cursor immediately after the last parenthesis of the function definition, before the comment.) The function evaluates to 28.
+
+To understand how this function works, let's consider what happens in the various cases when the function is passed 1, 2, 3, or 4 as the value of its argument.
+
+- [[#Recursive-Example-arg-of-1-or-2][Recursive Example arg of 1 or 2]]
+- [[#Recursive-Example-arg-of-3-or-4][Recursive Example arg of 3 or 4]]
+
+
+Next: [[#Recursive-Example-arg-of-3-or-4][Recursive Example arg of 3 or 4]], Up: [[#Recursive-triangle-function][Recursive triangle function]]
+
+*** An argument of 1 or 2
+      :PROPERTIES:
+      :CUSTOM_ID: an-argument-of-1-or-2
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+First, what happens if the value of the argument is 1?
+
+The function has an =if= expression after the documentation string. It tests whether the value of =number= is equal to 1; if so, Emacs evaluates the then-part of the =if= expression, which returns the number 1 as the value of the function. (A triangle with one row has one pebble in it.)
+
+Suppose, however, that the value of the argument is 2. In this case, Emacs evaluates the else-part of the =if= expression.
+
+The else-part consists of an addition, the recursive call to =triangle-recursively= and a decrementing action; and it looks like this:
+
+#+begin_src elisp
+         (+ number (triangle-recursively (1- number)))
+#+end_src
+
+When Emacs evaluates this expression, the innermost expression is evaluated first; then the other parts in sequence. Here are the steps in detail:
+
+- /Step 1    Evaluate the innermost expression./ :: The innermost expression is =(1- number)= so Emacs decrements the value of =number= from 2 to 1.\\
+- /Step 2    Evaluate the/ =triangle-recursively= /function./ :: The Lisp interpreter creates an individual instance of =triangle-recursively=. It does not matter that this function is contained within itself. Emacs passes the result Step 1 as the argument used by this instance of the =triangle-recursively= function
+
+  In this case, Emacs evaluates =triangle-recursively= with an argument of 1. This means that this evaluation of =triangle-recursively= returns 1.\\
+
+- /Step 3    Evaluate the value of/ =number=/./ :: The variable =number= is the second element of the list that starts with =+=; its value is 2.\\
+- /Step 4    Evaluate the/ =+= /expression./ :: The =+= expression receives two arguments, the first from the evaluation of =number= (Step 3) and the second from the evaluation of =triangle-recursively= (Step 2).
+
+  The result of the addition is the sum of 2 plus 1, and the number 3 is returned, which is correct. A triangle with two rows has three pebbles in it.
+
+
+Previous: [[#Recursive-Example-arg-of-1-or-2][Recursive Example arg of 1 or 2]], Up: [[#Recursive-triangle-function][Recursive triangle function]]
+
+*** An argument of 3 or 4
+      :PROPERTIES:
+      :CUSTOM_ID: an-argument-of-3-or-4
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+Suppose that =triangle-recursively= is called with an argument of 3.
+
+- /Step 1    Evaluate the do-again-test./ :: The =if= expression is evaluated first. This is the do-again test and returns false, so the else-part of the =if= expression is evaluated. (Note that in this example, the do-again-test causes the function to call itself when it tests false, not when it tests true.)\\
+- /Step 2    Evaluate the innermost expression of the else-part./ :: The innermost expression of the else-part is evaluated, which decrements 3 to 2. This is the next-step-expression.\\
+- /Step 3    Evaluate the/ =triangle-recursively= /function./ :: The number 2 is passed to the =triangle-recursively= function.
+
+  We already know what happens when Emacs evaluates =triangle-recursively= with an argument of 2. After going through the sequence of actions described earlier, it returns a value of 3. So that is what will happen here.\\
+
+- /Step 4    Evaluate the addition./ :: 3 will be passed as an argument to the addition and will be added to the number with which the function was called, which is 3.
+
+The value returned by the function as a whole will be 6.
+
+Now that we know what will happen when =triangle-recursively= is called with an argument of 3, it is evident what will happen if it is called with an argument of 4:
+
+
+  In the recursive call, the evaluation of
+
+  #+begin_src elisp
+           (triangle-recursively (1- 4))
+  #+end_src
+
+  will return the value of evaluating
+
+  #+begin_src elisp
+           (triangle-recursively 3)
+  #+end_src
+
+  which is 6 and this value will be added to 4 by the addition in the third line.
+
+
+The value returned by the function as a whole will be 10.
+
+Each time =triangle-recursively= is evaluated, it evaluates a version of itself---a different instance of itself---with a smaller argument, until the argument is small enough so that it does not evaluate itself.
+
+Note that this particular design for a recursive function requires that operations be deferred.
+
+Before =(triangle-recursively 7)= can calculate its answer, it must call =(triangle-recursively 6)=; and before =(triangle-recursively 6)= can calculate its answer, it must call =(triangle-recursively 5)=; and so on. That is to say, the calculation that =(triangle-recursively 7)= makes must be deferred until =(triangle-recursively 6)= makes its calculation; and =(triangle-recursively 6)= must defer until =(triangle-recursively 5)= completes; and so on.
+
+If each of these instances of =triangle-recursively= are thought of as different robots, the first robot must wait for the second to complete its job, which must wait until the third completes, and so on.
+
+There is a way around this kind of waiting, which we will discuss in [[#No-Deferment][Recursion without Deferments]].
+
+
+Next: [[#Recursive-Patterns][Recursive Patterns]], Previous: [[#Recursive-triangle-function][Recursive triangle function]], Up: [[#Recursion][Recursion]]
+
+** 11.3.5 Recursion Example Using =cond=
+     :PROPERTIES:
+     :CUSTOM_ID: recursion-example-using-cond
+     :CLASS: subsection
+     :END:
+
+ The version of =triangle-recursively= described earlier is written with the =if= special form. It can also be written using another special form called =cond=. The name of the special form =cond= is an abbreviation of the word ‘conditional'.
+
+Although the =cond= special form is not used as often in the Emacs Lisp sources as =if=, it is used often enough to justify explaining it.
+
+The template for a =cond= expression looks like this:
+
+#+begin_src elisp
+         (cond
+          body...)
+#+end_src
+
+where the body is a series of lists.
+
+Written out more fully, the template looks like this:
+
+#+begin_src elisp
+         (cond
+          (first-true-or-false-test first-consequent)
+          (second-true-or-false-test second-consequent)
+          (third-true-or-false-test third-consequent)
+           ...)
+#+end_src
+
+When the Lisp interpreter evaluates the =cond= expression, it evaluates the first element (the car or true-or-false-test) of the first expression in a series of expressions within the body of the =cond=.
+
+If the true-or-false-test returns =nil= the rest of that expression, the consequent, is skipped and the true-or-false-test of the next expression is evaluated. When an expression is found whose true-or-false-test returns a value that is not =nil=, the consequent of that expression is evaluated. The consequent can be one or more expressions. If the consequent consists of more than one expression, the expressions are evaluated in sequence and the value of the last one is returned. If the expression does not have a consequent, the value of the true-or-false-test is returned.
+
+If none of the true-or-false-tests test true, the =cond= expression returns =nil=.
+
+Written using =cond=, the =triangle= function looks like this:
+
+#+begin_src elisp
+         (defun triangle-using-cond (number)
+           (cond ((<= number 0) 0)
+                 ((= number 1) 1)
+                 ((> number 1)
+                  (+ number (triangle-using-cond (1- number))))))
+#+end_src
+
+In this example, the =cond= returns 0 if the number is less than or equal to 0, it returns 1 if the number is 1 and it evaluates =(+ number (triangle-using-cond (1- number)))= if the number is greater than 1.
+
+
+Next: [[#No-Deferment][No Deferment]], Previous: [[#Recursion-with-cond][Recursion with cond]], Up: [[#Recursion][Recursion]]
+
+** 11.3.6 Recursive Patterns
+     :PROPERTIES:
+     :CUSTOM_ID: recursive-patterns
+     :CLASS: subsection
+     :END:
+
+ Here are three common recursive patterns. Each involves a list. Recursion does not need to involve lists, but Lisp is designed for lists and this provides a sense of its primal capabilities.
+
+- [[#Every][Every]]
+- [[#Accumulate][Accumulate]]
+- [[#Keep][Keep]]
+
+
+Next: [[#Accumulate][Accumulate]], Up: [[#Recursive-Patterns][Recursive Patterns]]
+
+*** Recursive Pattern: /every/
+      :PROPERTIES:
+      :CUSTOM_ID: recursive-pattern-every
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+ In the =every= recursive pattern, an action is performed on every element of a list.
+
+The basic pattern is:
+
+- If a list be empty, return =nil=.
+- Else, act on the beginning of the list (the car of the list)
+
+  - through a recursive call by the function on the rest (the cdr) of the list,
+  - and, optionally, combine the acted-on element, using =cons=, with the results of acting on the rest.
+
+Here is an example:
+
+#+begin_src elisp
+         (defun square-each (numbers-list)
+           "Square each of a NUMBERS LIST, recursively."
+           (if (not numbers-list)                ; do-again-test
+               nil
+             (cons
+              (* (car numbers-list) (car numbers-list))
+              (square-each (cdr numbers-list))))) ; next-step-expression
+
+         (square-each '(1 2 3))
+             ⇒ (1 4 9)
+#+end_src
+
+If =numbers-list= is empty, do nothing. But if it has content, construct a list combining the square of the first number in the list with the result of the recursive call.
+
+(The example follows the pattern exactly: =nil= is returned if the numbers' list is empty. In practice, you would write the conditional so it carries out the action when the numbers' list is not empty.)
+
+The =print-elements-recursively= function (see [[#Recursion-with-list][Recursion with a List]]) is another example of an =every= pattern, except in this case, rather than bring the results together using =cons=, we print each element of output.
+
+The =print-elements-recursively= function looks like this:
+
+#+begin_src elisp
+         (setq animals '(gazelle giraffe lion tiger))
+
+         (defun print-elements-recursively (list)
+           "Print each element of LIST on a line of its own.
+         Uses recursion."
+           (when list                            ; do-again-test
+                 (print (car list))              ; body
+                 (print-elements-recursively     ; recursive call
+                  (cdr list))))                  ; next-step-expression
+
+         (print-elements-recursively animals)
+#+end_src
+
+The pattern for =print-elements-recursively= is:
+
+- When the list is empty, do nothing.
+- But when the list has at least one element,
+
+  - act on the beginning of the list (the car of the list),
+  - and make a recursive call on the rest (the cdr) of the list.
+
+
+Next: [[#Keep][Keep]], Previous: [[#Every][Every]], Up: [[#Recursive-Patterns][Recursive Patterns]]
+
+*** Recursive Pattern: /accumulate/
+      :PROPERTIES:
+      :CUSTOM_ID: recursive-pattern-accumulate
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+ Another recursive pattern is called the =accumulate= pattern. In the =accumulate= recursive pattern, an action is performed on every element of a list and the result of that action is accumulated with the results of performing the action on the other elements.
+
+This is very like the =every= pattern using =cons=, except that =cons= is not used, but some other combiner.
+
+The pattern is:
+
+- If a list be empty, return zero or some other constant.
+- Else, act on the beginning of the list (the car of the list),
+
+  - and combine that acted-on element, using =+= or some other combining function, with
+  - a recursive call by the function on the rest (the cdr) of the list.
+
+Here is an example:
+
+#+begin_src elisp
+         (defun add-elements (numbers-list)
+           "Add the elements of NUMBERS-LIST together."
+           (if (not numbers-list)
+               0
+             (+ (car numbers-list) (add-elements (cdr numbers-list)))))
+
+         (add-elements '(1 2 3 4))
+             ⇒ 10
+#+end_src
+
+See [[#Files-List][Making a List of Files]], for an example of the accumulate pattern.
+
+
+Previous: [[#Accumulate][Accumulate]], Up: [[#Recursive-Patterns][Recursive Patterns]]
+
+*** Recursive Pattern: /keep/
+      :PROPERTIES:
+      :CUSTOM_ID: recursive-pattern-keep
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+ A third recursive pattern is called the =keep= pattern. In the =keep= recursive pattern, each element of a list is tested; the element is acted on and the results are kept only if the element meets a criterion.
+
+Again, this is very like the =every= pattern, except the element is skipped unless it meets a criterion.
+
+The pattern has three parts:
+
+- If a list be empty, return =nil=.
+- Else, if the beginning of the list (the car of the list) passes a test
+
+  - act on that element and combine it, using =cons= with
+  - a recursive call by the function on the rest (the cdr) of the list.
+
+- Otherwise, if the beginning of the list (the car of the list) fails the test
+
+  - skip on that element,
+  - and, recursively call the function on the rest (the cdr) of the list.
+
+Here is an example that uses =cond=:
+
+#+begin_src elisp
+         (defun keep-three-letter-words (word-list)
+           "Keep three letter words in WORD-LIST."
+           (cond
+            ;; First do-again-test: stop-condition
+            ((not word-list) nil)
+
+            ;; Second do-again-test: when to act
+            ((eq 3 (length (symbol-name (car word-list))))
+             ;; combine acted-on element with recursive call on shorter list
+             (cons (car word-list) (keep-three-letter-words (cdr word-list))))
+
+            ;; Third do-again-test: when to skip element;
+            ;;   recursively call shorter list with next-step expression
+            (t (keep-three-letter-words (cdr word-list)))))
+
+         (keep-three-letter-words '(one two three four five six))
+             ⇒ (one two six)
+#+end_src
+
+It goes without saying that you need not use =nil= as the test for when to stop; and you can, of course, combine these patterns.
+
+
+Next: [[#No-deferment-solution][No deferment solution]], Previous: [[#Recursive-Patterns][Recursive Patterns]], Up: [[#Recursion][Recursion]]
+
+** 11.3.7 Recursion without Deferments
+     :PROPERTIES:
+     :CUSTOM_ID: recursion-without-deferments
+     :CLASS: subsection
+     :END:
+
+ Let's consider again what happens with the =triangle-recursively= function. We will find that the intermediate calculations are deferred until all can be done.
+
+Here is the function definition:
+
+#+begin_src elisp
+         (defun triangle-recursively (number)
+           "Return the sum of the numbers 1 through NUMBER inclusive.
+         Uses recursion."
+           (if (= number 1)                    ; do-again-test
+               1                               ; then-part
+             (+ number                         ; else-part
+                (triangle-recursively          ; recursive call
+                 (1- number)))))               ; next-step-expression
+#+end_src
+
+What happens when we call this function with an argument of 7?
+
+The first instance of the =triangle-recursively= function adds the number 7 to the value returned by a second instance of =triangle-recursively=, an instance that has been passed an argument of 6. That is to say, the first calculation is:
+
+#+begin_src elisp
+         (+ 7 (triangle-recursively 6))
+#+end_src
+
+The first instance of =triangle-recursively=---you may want to think of it as a little robot---cannot complete its job. It must hand off the calculation for =(triangle-recursively 6)= to a second instance of the program, to a second robot. This second individual is completely different from the first one; it is, in the jargon, a “different instantiation”. Or, put another way, it is a different robot. It is the same model as the first; it calculates triangle numbers recursively; but it has a different serial number.
+
+And what does =(triangle-recursively 6)= return? It returns the number 6 added to the value returned by evaluating =triangle-recursively= with an argument of 5. Using the robot metaphor, it asks yet another robot to help it.
+
+Now the total is:
+
+#+begin_src elisp
+         (+ 7 6 (triangle-recursively 5))
+#+end_src
+
+And what happens next?
+
+#+begin_src elisp
+         (+ 7 6 5 (triangle-recursively 4))
+#+end_src
+
+Each time =triangle-recursively= is called, except for the last time, it creates another instance of the program---another robot---and asks it to make a calculation.
+
+Eventually, the full addition is set up and performed:
+
+#+begin_src elisp
+         (+ 7 6 5 4 3 2 1)
+#+end_src
+
+This design for the function defers the calculation of the first step until the second can be done, and defers that until the third can be done, and so on. Each deferment means the computer must remember what is being waited on. This is not a problem when there are only a few steps, as in this example. But it can be a problem when there are more steps.
+
+
+Previous: [[#No-Deferment][No Deferment]], Up: [[#Recursion][Recursion]]
+
+** 11.3.8 No Deferment Solution
+     :PROPERTIES:
+     :CUSTOM_ID: no-deferment-solution
+     :CLASS: subsection
+     :END:
+
+ The solution to the problem of deferred operations is to write in a manner that does not defer operations[[#fn-14][^{14}]]. This requires writing to a different pattern, often one that involves writing two function definitions, an initialization function and a helper function.
+
+The initialization function sets up the job; the helper function does the work.
+
+Here are the two function definitions for adding up numbers. They are so simple, I find them hard to understand.
+
+#+begin_src elisp
+         (defun triangle-initialization (number)
+           "Return the sum of the numbers 1 through NUMBER inclusive.
+         This is the initialization component of a two function
+         duo that uses recursion."
+           (triangle-recursive-helper 0 0 number))
+#+end_src
+
+#+begin_src elisp
+         (defun triangle-recursive-helper (sum counter number)
+           "Return SUM, using COUNTER, through NUMBER inclusive.
+         This is the helper component of a two function duo
+         that uses recursion."
+           (if (> counter number)
+               sum
+             (triangle-recursive-helper (+ sum counter)  ; sum
+                                        (1+ counter)     ; counter
+                                        number)))        ; number
+#+end_src
+
+Install both function definitions by evaluating them, then call =triangle-initialization= with 2 rows:
+
+#+begin_src elisp
+         (triangle-initialization 2)
+             ⇒ 3
+#+end_src
+
+The initialization function calls the first instance of the helper function with three arguments: zero, zero, and a number which is the number of rows in the triangle.
+
+The first two arguments passed to the helper function are initialization values. These values are changed when =triangle-recursive-helper= invokes new instances.[[#fn-15][^{15}]]
+
+Let's see what happens when we have a triangle that has one row. (This triangle will have one pebble in it!)
+
+=triangle-initialization= will call its helper with the arguments =0 0 1=. That function will run the conditional test whether =(> counter number)=:
+
+#+begin_src elisp
+         (> 0 1)
+#+end_src
+
+and find that the result is false, so it will invoke the else-part of the =if= clause:
+
+#+begin_src elisp
+             (triangle-recursive-helper
+              (+ sum counter)  ; sum plus counter ⇒ sum
+              (1+ counter)     ; increment counter ⇒ counter
+              number)          ; number stays the same
+#+end_src
+
+which will first compute:
+
+#+begin_src elisp
+         (triangle-recursive-helper (+ 0 0)  ; sum
+                                    (1+ 0)   ; counter
+                                    1)       ; number
+
+    which is:
+
+
+         (triangle-recursive-helper 0 1 1)
+#+end_src
+
+Again, =(> counter number)= will be false, so again, the Lisp interpreter will evaluate =triangle-recursive-helper=, creating a new instance with new arguments.
+
+This new instance will be;
+
+#+begin_src elisp
+             (triangle-recursive-helper
+              (+ sum counter)  ; sum plus counter ⇒ sum
+              (1+ counter)     ; increment counter ⇒ counter
+              number)          ; number stays the same
+
+
+    which is:
+
+
+         (triangle-recursive-helper 1 2 1)
+#+end_src
+
+In this case, the =(> counter number)= test will be true! So the instance will return the value of the sum, which will be 1, as expected.
+
+Now, let's pass =triangle-initialization= an argument of 2, to find out how many pebbles there are in a triangle with two rows.
+
+That function calls =(triangle-recursive-helper 0 0 2)=.
+
+In stages, the instances called will be:
+
+#+begin_src elisp
+                                   sum counter number
+         (triangle-recursive-helper 0    1       2)
+
+         (triangle-recursive-helper 1    2       2)
+
+         (triangle-recursive-helper 3    3       2)
+#+end_src
+
+When the last instance is called, the =(> counter number)= test will be true, so the instance will return the value of =sum=, which will be 3.
+
+This kind of pattern helps when you are writing functions that can use many resources in a computer.
+
+
+Previous: [[#Recursion][Recursion]], Up: [[#Loops-_0026-Recursion][Loops & Recursion]]
+
+* 11.4 Looping Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: looping-exercise
+    :CLASS: section
+    :END:
+
+- Write a function similar to =triangle= in which each row has a value which is the square of the row number. Use a =while= loop.
+- Write a function similar to =triangle= that multiplies instead of adds the values.
+- Rewrite these two functions recursively. Rewrite these functions using =cond=.
+- Write a function for Texinfo mode that creates an index entry at the beginning of a paragraph for every ‘@dfn' within the paragraph. (In a Texinfo file, ‘@dfn' marks a definition. This book is written in Texinfo.)
+
+  Many of the functions you will need are described in two of the previous chapters, [[#Cutting-_0026-Storing-Text][Cutting and Storing Text]], and [[#Yanking][Yanking Text Back]]. If you use =forward-paragraph= to put the index entry at the beginning of the paragraph, you will have to use C-h f (=describe-function=) to find out how to make the command go backwards.
+
+  For more information, see [[https://www.gnu.org/software/emacs/manual/html_mono/texinfo.html#Indicating][Indicating]], which goes to a Texinfo manual in the current directory. Or, if you are on the Internet, see [[https://www.gnu.org/software/texinfo/manual/texinfo/]]
+
+
+Next: [[#Counting-Words][Counting Words]], Previous: [[#Loops-_0026-Recursion][Loops & Recursion]], Up: [[#Top][Top]]

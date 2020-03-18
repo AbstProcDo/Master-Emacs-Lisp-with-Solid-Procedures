@@ -1,0 +1,1259 @@
+#+TITLE: Appendix-C-A-Graph-with-Labeled-Axes
+* Appendix C A Graph with Labeled Axes
+   :PROPERTIES:
+   :CUSTOM_ID: appendix-c-a-graph-with-labeled-axes
+   :CLASS: appendix
+   :END:
+
+Printed axes help you understand a graph. They convey scale. In an earlier chapter (see [[#Readying-a-Graph][Readying a Graph]]), we wrote the code to print the body of a graph. Here we write the code for printing and labeling vertical and horizontal axes, along with the body itself.
+
+- [[#Labeled-Example][Labeled Example]]
+- [[#print_002dgraph-Varlist][print-graph Varlist]]: =let= expression in =print-graph=.
+- [[#print_002dY_002daxis][print-Y-axis]]: Print a label for the vertical axis.
+- [[#print_002dX_002daxis][print-X-axis]]: Print a horizontal label.
+- [[#Print-Whole-Graph][Print Whole Graph]]: The function to print a complete graph.
+
+
+
+* Labeled Example Graph
+    :PROPERTIES:
+    :CUSTOM_ID: labeled-example-graph
+    :CLASS: unnumberedsec
+    :END:
+
+Since insertions fill a buffer to the right and below point, the new graph printing function should first print the Y or vertical axis, then the body of the graph, and finally the X or horizontal axis. This sequence lays out for us the contents of the function:
+
+1. Set up code.
+2. Print Y axis.
+3. Print body of graph.
+4. Print X axis.
+
+Here is an example of how a finished graph should look:
+
+#+begin_src elisp
+             10 -
+                           *
+                           *  *
+                           *  **
+                           *  ***
+              5 -      *   *******
+                     * *** *******
+                     *************
+                   ***************
+              1 - ****************
+                  |   |    |    |
+                  1   5   10   15
+#+end_src
+
+In this graph, both the vertical and the horizontal axes are labeled with numbers. However, in some graphs, the horizontal axis is time and would be better labeled with months, like this:
+
+#+begin_src elisp
+              5 -      *
+                     * ** *
+                     *******
+                   ********** **
+              1 - **************
+                  |    ^      |
+                  Jan  June   Jan
+#+end_src
+
+Indeed, with a little thought, we can easily come up with a variety of vertical and horizontal labeling schemes. Our task could become complicated. But complications breed confusion. Rather than permit this, it is better choose a simple labeling scheme for our first effort, and to modify or replace it later.
+
+These considerations suggest the following outline for the =print-graph= function:
+
+#+begin_src elisp
+         (defun print-graph (numbers-list)
+           "documentation..."
+           (let ((height  ...
+                 ...))
+             (print-Y-axis height ... )
+             (graph-body-print numbers-list)
+             (print-X-axis ... )))
+#+end_src
+
+We can work on each part of the =print-graph= function definition in turn.
+
+
+Next: [[#print_002dY_002daxis][print-Y-axis]], Previous: [[#Labeled-Example][Labeled Example]], Up: [[#Full-Graph][Full Graph]]
+
+* C.1 The =print-graph= Varlist
+    :PROPERTIES:
+    :CUSTOM_ID: c.1-the-print-graph-varlist
+    :CLASS: appendixsec
+    :END:
+
+ In writing the =print-graph= function, the first task is to write the varlist in the =let= expression. (We will leave aside for the moment any thoughts about making the function interactive or about the contents of its documentation string.)
+
+The varlist should set several values. Clearly, the top of the label for the vertical axis must be at least the height of the graph, which means that we must obtain this information here. Note that the =print-graph-body= function also requires this information. There is no reason to calculate the height of the graph in two different places, so we should change =print-graph-body= from the way we defined it earlier to take advantage of the calculation.
+
+Similarly, both the function for printing the X axis labels and the =print-graph-body= function need to learn the value of the width of each symbol. We can perform the calculation here and change the definition for =print-graph-body= from the way we defined it in the previous chapter.
+
+The length of the label for the horizontal axis must be at least as long as the graph. However, this information is used only in the function that prints the horizontal axis, so it does not need to be calculated here.
+
+These thoughts lead us directly to the following form for the varlist in the =let= for =print-graph=:
+
+#+begin_src elisp
+         (let ((height (apply 'max numbers-list)) ; First version.
+               (symbol-width (length graph-blank)))
+#+end_src
+
+As we shall see, this expression is not quite right.
+
+
+Next: [[#print_002dX_002daxis][print-X-axis]], Previous: [[#print_002dgraph-Varlist][print-graph Varlist]], Up: [[#Full-Graph][Full Graph]]
+
+* C.2 The =print-Y-axis= Function
+    :PROPERTIES:
+    :CUSTOM_ID: c.2-the-print-y-axis-function
+    :CLASS: appendixsec
+    :END:
+
+ The job of the =print-Y-axis= function is to print a label for the vertical axis that looks like this:
+
+#+begin_src elisp
+             10 -
+
+
+
+
+              5 -
+
+
+
+              1 -
+#+end_src
+
+The function should be passed the height of the graph, and then should construct and insert the appropriate numbers and marks.
+
+- [[#print_002dY_002daxis-in-Detail][print-Y-axis in Detail]]
+- [[#Height-of-label][Height of label]]: What height for the Y axis?
+- [[#Compute-a-Remainder][Compute a Remainder]]: How to compute the remainder of a division.
+- [[#Y-Axis-Element][Y Axis Element]]: Construct a line for the Y axis.
+- [[#Y_002daxis_002dcolumn][Y-axis-column]]: Generate a list of Y axis labels.
+- [[#print_002dY_002daxis-Penultimate][print-Y-axis Penultimate]]: A not quite final version.
+
+
+Next: [[#Height-of-label][Height of label]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** The =print-Y-axis= Function in Detail
+     :PROPERTIES:
+     :CUSTOM_ID: the-print-y-axis-function-in-detail
+     :CLASS: unnumberedsubsec
+     :END:
+
+It is easy enough to see in the figure what the Y axis label should look like; but to say in words, and then to write a function definition to do the job is another matter. It is not quite true to say that we want a number and a tic every five lines: there are only three lines between the ‘1' and the ‘5' (lines 2, 3, and 4), but four lines between the ‘5' and the ‘10' (lines 6, 7, 8, and 9). It is better to say that we want a number and a tic mark on the base line (number 1) and then that we want a number and a tic on the fifth line from the bottom and on every line that is a multiple of five.
+
+
+Next: [[#Compute-a-Remainder][Compute a Remainder]], Previous: [[#print_002dY_002daxis-in-Detail][print-Y-axis in Detail]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** What height should the label be?
+     :PROPERTIES:
+     :CUSTOM_ID: what-height-should-the-label-be
+     :CLASS: unnumberedsubsec
+     :END:
+
+The next issue is what height the label should be? Suppose the maximum height of tallest column of the graph is seven. Should the highest label on the Y axis be ‘5 -', and should the graph stick up above the label? Or should the highest label be ‘7 -', and mark the peak of the graph? Or should the highest label be =10 -=, which is a multiple of five, and be higher than the topmost value of the graph?
+
+The latter form is preferred. Most graphs are drawn within rectangles whose sides are an integral number of steps long---5, 10, 15, and so on for a step distance of five. But as soon as we decide to use a step height for the vertical axis, we discover that the simple expression in the varlist for computing the height is wrong. The expression is =(apply 'max numbers-list)=. This returns the precise height, not the maximum height plus whatever is necessary to round up to the nearest multiple of five. A more complex expression is required.
+
+As usual in cases like this, a complex problem becomes simpler if it is divided into several smaller problems.
+
+First, consider the case when the highest value of the graph is an integral multiple of five---when it is 5, 10, 15, or some higher multiple of five. We can use this value as the Y axis height.
+
+A fairly simply way to determine whether a number is a multiple of five is to divide it by five and see if the division results in a remainder. If there is no remainder, the number is a multiple of five. Thus, seven divided by five has a remainder of two, and seven is not an integral multiple of five. Put in slightly different language, more reminiscent of the classroom, five goes into seven once, with a remainder of two. However, five goes into ten twice, with no remainder: ten is an integral multiple of five.
+
+
+Next: [[#Y-Axis-Element][Y Axis Element]], Previous: [[#Height-of-label][Height of label]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** C.2.1 Side Trip: Compute a Remainder
+     :PROPERTIES:
+     :CUSTOM_ID: c.2.1-side-trip-compute-a-remainder
+     :CLASS: appendixsubsec
+     :END:
+
+In Lisp, the function for computing a remainder is =%=. The function returns the remainder of its first argument divided by its second argument. As it happens, =%= is a function in Emacs Lisp that you cannot discover using =apropos=: you find nothing if you type M-x apropos <RET> remainder <RET>. The only way to learn of the existence of =%= is to read about it in a book such as this or in the Emacs Lisp sources.
+
+You can try the =%= function by evaluating the following two expressions:
+
+#+begin_src elisp
+         (% 7 5)
+
+         (% 10 5)
+#+end_src
+
+The first expression returns 2 and the second expression returns 0.
+
+To test whether the returned value is zero or some other number, we can use the =zerop= function. This function returns =t= if its argument, which must be a number, is zero.
+
+#+begin_src elisp
+         (zerop (% 7 5))
+              ⇒ nil
+
+         (zerop (% 10 5))
+              ⇒ t
+#+end_src
+
+Thus, the following expression will return =t= if the height of the graph is evenly divisible by five:
+
+#+begin_src elisp
+         (zerop (% height 5))
+#+end_src
+
+(The value of =height=, of course, can be found from =(apply 'max numbers-list)=.)
+
+On the other hand, if the value of =height= is not a multiple of five, we want to reset the value to the next higher multiple of five. This is straightforward arithmetic using functions with which we are already familiar. First, we divide the value of =height= by five to determine how many times five goes into the number. Thus, five goes into twelve twice. If we add one to this quotient and multiply by five, we will obtain the value of the next multiple of five that is larger than the height. Five goes into twelve twice. Add one to two, and multiply by five; the result is fifteen, which is the next multiple of five that is higher than twelve. The Lisp expression for this is:
+
+#+begin_src elisp
+         (* (1+ (/ height 5)) 5)
+#+end_src
+
+For example, if you evaluate the following, the result is 15:
+
+#+begin_src elisp
+         (* (1+ (/ 12 5)) 5)
+#+end_src
+
+All through this discussion, we have been using 5 as the value for spacing labels on the Y axis; but we may want to use some other value. For generality, we should replace 5 with a variable to which we can assign a value. The best name I can think of for this variable is =Y-axis-label-spacing=.
+
+Using this term, and an =if= expression, we produce the following:
+
+#+begin_src elisp
+         (if (zerop (% height Y-axis-label-spacing))
+             height
+           ;; else
+           (* (1+ (/ height Y-axis-label-spacing))
+              Y-axis-label-spacing))
+#+end_src
+
+This expression returns the value of =height= itself if the height is an even multiple of the value of the =Y-axis-label-spacing= or else it computes and returns a value of =height= that is equal to the next higher multiple of the value of the =Y-axis-label-spacing=.
+
+We can now include this expression in the =let= expression of the =print-graph= function (after first setting the value of =Y-axis-label-spacing=):
+
+#+begin_src elisp
+         (defvar Y-axis-label-spacing 5
+           "Number of lines from one Y axis label to next.")
+
+         ...
+         (let* ((height (apply 'max numbers-list))
+                (height-of-top-line
+                 (if (zerop (% height Y-axis-label-spacing))
+                     height
+                   ;; else
+                   (* (1+ (/ height Y-axis-label-spacing))
+                      Y-axis-label-spacing)))
+                (symbol-width (length graph-blank))))
+         ...
+#+end_src
+
+(Note use of the =let*= function: the initial value of height is computed once by the =(apply 'max numbers-list)= expression and then the resulting value of =height= is used to compute its final value. See [[#fwd_002dpara-let][The =let*= expression]], for more about =let*=.)
+
+
+Next: [[#Y_002daxis_002dcolumn][Y-axis-column]], Previous: [[#Compute-a-Remainder][Compute a Remainder]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** C.2.2 Construct a Y Axis Element
+     :PROPERTIES:
+     :CUSTOM_ID: c.2.2-construct-a-y-axis-element
+     :CLASS: appendixsubsec
+     :END:
+
+When we print the vertical axis, we want to insert strings such as ‘5 -' and ‘10 - ' every five lines. Moreover, we want the numbers and dashes to line up, so shorter numbers must be padded with leading spaces. If some of the strings use two digit numbers, the strings with single digit numbers must include a leading blank space before the number.
+
+To figure out the length of the number, the =length= function is used. But the =length= function works only with a string, not with a number. So the number has to be converted from being a number to being a string. This is done with the =number-to-string= function. For example,
+
+#+begin_src elisp
+         (length (number-to-string 35))
+              ⇒ 2
+
+         (length (number-to-string 100))
+              ⇒ 3
+#+end_src
+
+(=number-to-string= is also called =int-to-string=; you will see this alternative name in various sources.)
+
+In addition, in each label, each number is followed by a string such as ‘ - ', which we will call the =Y-axis-tic= marker. This variable is defined with =defvar=:
+
+
+
+#+begin_src elisp
+         (defvar Y-axis-tic " - "
+            "String that follows number in a Y axis label.")
+#+end_src
+
+The length of the Y label is the sum of the length of the Y axis tic mark and the length of the number of the top of the graph.
+
+#+begin_src elisp
+         (length (concat (number-to-string height) Y-axis-tic)))
+#+end_src
+
+This value will be calculated by the =print-graph= function in its varlist as =full-Y-label-width= and passed on. (Note that we did not think to include this in the varlist when we first proposed it.)
+
+To make a complete vertical axis label, a tic mark is concatenated with a number; and the two together may be preceded by one or more spaces depending on how long the number is. The label consists of three parts: the (optional) leading spaces, the number, and the tic mark. The function is passed the value of the number for the specific row, and the value of the width of the top line, which is calculated (just once) by =print-graph=.
+
+#+begin_src elisp
+         (defun Y-axis-element (number full-Y-label-width)
+           "Construct a NUMBERed label element.
+         A numbered element looks like this `  5 - ',
+         and is padded as needed so all line up with
+         the element for the largest number."
+           (let* ((leading-spaces
+                  (- full-Y-label-width
+                     (length
+                      (concat (number-to-string number)
+                              Y-axis-tic)))))
+             (concat
+              (make-string leading-spaces ? )
+              (number-to-string number)
+              Y-axis-tic)))
+#+end_src
+
+The =Y-axis-element= function concatenates together the leading spaces, if any; the number, as a string; and the tic mark.
+
+To figure out how many leading spaces the label will need, the function subtracts the actual length of the label---the length of the number plus the length of the tic mark---from the desired label width.
+
+Blank spaces are inserted using the =make-string= function. This function takes two arguments: the first tells it how long the string will be and the second is a symbol for the character to insert, in a special format. The format is a question mark followed by a blank space, like this, ‘? '. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Character-Type][Character Type]], for a description of the syntax for characters. (Of course, you might want to replace the blank space by some other character ... You know what to do.)
+
+The =number-to-string= function is used in the concatenation expression, to convert the number to a string that is concatenated with the leading spaces and the tic mark.
+
+
+Next: [[#print_002dY_002daxis-Penultimate][print-Y-axis Penultimate]], Previous: [[#Y-Axis-Element][Y Axis Element]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** C.2.3 Create a Y Axis Column
+     :PROPERTIES:
+     :CUSTOM_ID: c.2.3-create-a-y-axis-column
+     :CLASS: appendixsubsec
+     :END:
+
+The preceding functions provide all the tools needed to construct a function that generates a list of numbered and blank strings to insert as the label for the vertical axis:
+
+
+
+#+begin_src elisp
+         (defun Y-axis-column (height width-of-label)
+           "Construct list of Y axis labels and blank strings.
+         For HEIGHT of line above base and WIDTH-OF-LABEL."
+           (let (Y-axis)
+             (while (> height 1)
+               (if (zerop (% height Y-axis-label-spacing))
+                   ;; Insert label.
+                   (setq Y-axis
+                         (cons
+                          (Y-axis-element height width-of-label)
+                          Y-axis))
+                 ;; Else, insert blanks.
+                 (setq Y-axis
+                       (cons
+                        (make-string width-of-label ? )
+                        Y-axis)))
+               (setq height (1- height)))
+             ;; Insert base line.
+             (setq Y-axis
+                   (cons (Y-axis-element 1 width-of-label) Y-axis))
+             (nreverse Y-axis)))
+#+end_src
+
+In this function, we start with the value of =height= and repetitively subtract one from its value. After each subtraction, we test to see whether the value is an integral multiple of the =Y-axis-label-spacing=. If it is, we construct a numbered label using the =Y-axis-element= function; if not, we construct a blank label using the =make-string= function. The base line consists of the number one followed by a tic mark.
+
+
+Previous: [[#Y_002daxis_002dcolumn][Y-axis-column]], Up: [[#print_002dY_002daxis][print-Y-axis]]
+
+** C.2.4 The Not Quite Final Version of =print-Y-axis=
+     :PROPERTIES:
+     :CUSTOM_ID: c.2.4-the-not-quite-final-version-of-print-y-axis
+     :CLASS: appendixsubsec
+     :END:
+
+The list constructed by the =Y-axis-column= function is passed to the =print-Y-axis= function, which inserts the list as a column.
+
+
+
+#+begin_src elisp
+         (defun print-Y-axis (height full-Y-label-width)
+           "Insert Y axis using HEIGHT and FULL-Y-LABEL-WIDTH.
+         Height must be the maximum height of the graph.
+         Full width is the width of the highest label element."
+         ;; Value of height and full-Y-label-width
+         ;; are passed by print-graph.
+           (let ((start (point)))
+             (insert-rectangle
+              (Y-axis-column height full-Y-label-width))
+             ;; Place point ready for inserting graph.
+             (goto-char start)
+             ;; Move point forward by value of full-Y-label-width
+             (forward-char full-Y-label-width)))
+#+end_src
+
+The =print-Y-axis= uses the =insert-rectangle= function to insert the Y axis labels created by the =Y-axis-column= function. In addition, it places point at the correct position for printing the body of the graph.
+
+You can test =print-Y-axis=:
+
+1. Install
+
+   #+begin_src elisp
+                 Y-axis-label-spacing
+                 Y-axis-tic
+                 Y-axis-element
+                 Y-axis-column
+                 print-Y-axis
+   #+end_src
+
+2. Copy the following expression:
+
+   #+begin_src elisp
+                 (print-Y-axis 12 5)
+   #+end_src
+
+3. Switch to the *scratch* buffer and place the cursor where you want the axis labels to start.
+4. Type M-: (=eval-expression=).
+5. Yank the =graph-body-print= expression into the minibuffer with C-y (=yank)=.
+6. Press <RET> to evaluate the expression.
+
+Emacs will print labels vertically, the top one being ‘10 - '. (The =print-graph= function will pass the value of =height-of-top-line=, which in this case will end up as 15, thereby getting rid of what might appear as a bug.)
+
+
+Next: [[#Print-Whole-Graph][Print Whole Graph]], Previous: [[#print_002dY_002daxis][print-Y-axis]], Up: [[#Full-Graph][Full Graph]]
+
+* C.3 The =print-X-axis= Function
+    :PROPERTIES:
+    :CUSTOM_ID: c.3-the-print-x-axis-function
+    :CLASS: appendixsec
+    :END:
+
+ X axis labels are much like Y axis labels, except that the ticks are on a line above the numbers. Labels should look like this:
+
+#+begin_src elisp
+             |   |    |    |
+             1   5   10   15
+#+end_src
+
+The first tic is under the first column of the graph and is preceded by several blank spaces. These spaces provide room in rows above for the Y axis labels. The second, third, fourth, and subsequent ticks are all spaced equally, according to the value of =X-axis-label-spacing=.
+
+The second row of the X axis consists of numbers, preceded by several blank spaces and also separated according to the value of the variable =X-axis-label-spacing=.
+
+The value of the variable =X-axis-label-spacing= should itself be measured in units of =symbol-width=, since you may want to change the width of the symbols that you are using to print the body of the graph without changing the ways the graph is labeled.
+
+- [[#Similarities-differences][Similarities differences]]: Much like =print-Y-axis=, but not exactly.
+- [[#X-Axis-Tic-Marks][X Axis Tic Marks]]: Create tic marks for the horizontal axis.
+
+
+Next: [[#X-Axis-Tic-Marks][X Axis Tic Marks]], Up: [[#print_002dX_002daxis][print-X-axis]]
+
+** Similarities and differences
+     :PROPERTIES:
+     :CUSTOM_ID: similarities-and-differences
+     :CLASS: unnumberedsubsec
+     :END:
+
+The =print-X-axis= function is constructed in more or less the same fashion as the =print-Y-axis= function except that it has two lines: the line of tic marks and the numbers. We will write a separate function to print each line and then combine them within the =print-X-axis= function.
+
+This is a three step process:
+
+1. Write a function to print the X axis tic marks, =print-X-axis-tic-line=.
+2. Write a function to print the X numbers, =print-X-axis-numbered-line=.
+3. Write a function to print both lines, the =print-X-axis= function, using =print-X-axis-tic-line= and =print-X-axis-numbered-line=.
+
+
+Previous: [[#Similarities-differences][Similarities differences]], Up: [[#print_002dX_002daxis][print-X-axis]]
+
+** C.3.1 X Axis Tic Marks
+     :PROPERTIES:
+     :CUSTOM_ID: c.3.1-x-axis-tic-marks
+     :CLASS: appendixsubsec
+     :END:
+
+The first function should print the X axis tic marks. We must specify the tic marks themselves and their spacing:
+
+#+begin_src elisp
+         (defvar X-axis-label-spacing
+           (if (boundp 'graph-blank)
+               (* 5 (length graph-blank)) 5)
+           "Number of units from one X axis label to next.")
+#+end_src
+
+(Note that the value of =graph-blank= is set by another =defvar=. The =boundp= predicate checks whether it has already been set; =boundp= returns =nil= if it has not. If =graph-blank= were unbound and we did not use this conditional construction, in a recent GNU Emacs, we would enter the debugger and see an error message saying ‘Debugger entered--Lisp error: (void-variable graph-blank)'.)
+
+Here is the =defvar= for =X-axis-tic-symbol=:
+
+#+begin_src elisp
+         (defvar X-axis-tic-symbol "|"
+           "String to insert to point to a column in X axis.")
+#+end_src
+
+The goal is to make a line that looks like this:
+
+#+begin_src elisp
+                |   |    |    |
+#+end_src
+
+The first tic is indented so that it is under the first column, which is indented to provide space for the Y axis labels.
+
+A tic element consists of the blank spaces that stretch from one tic to the next plus a tic symbol. The number of blanks is determined by the width of the tic symbol and the =X-axis-label-spacing=.
+
+The code looks like this:
+
+#+begin_src elisp
+         ;;; X-axis-tic-element
+         ...
+         (concat
+          (make-string
+           ;; Make a string of blanks.
+           (-  (* symbol-width X-axis-label-spacing)
+               (length X-axis-tic-symbol))
+           ? )
+          ;; Concatenate blanks with tic symbol.
+          X-axis-tic-symbol)
+         ...
+#+end_src
+
+Next, we determine how many blanks are needed to indent the first tic mark to the first column of the graph. This uses the value of =full-Y-label-width= passed it by the =print-graph= function.
+
+The code to make =X-axis-leading-spaces= looks like this:
+
+#+begin_src elisp
+         ;; X-axis-leading-spaces
+         ...
+         (make-string full-Y-label-width ? )
+         ...
+#+end_src
+
+We also need to determine the length of the horizontal axis, which is the length of the numbers list, and the number of ticks in the horizontal axis:
+
+#+begin_src elisp
+         ;; X-length
+         ...
+         (length numbers-list)
+
+         ;; tic-width
+         ...
+         (* symbol-width X-axis-label-spacing)
+
+         ;; number-of-X-ticks
+         (if (zerop (% (X-length tic-width)))
+             (/ (X-length tic-width))
+           (1+ (/ (X-length tic-width))))
+#+end_src
+
+All this leads us directly to the function for printing the X axis tic line:
+
+
+
+#+begin_src elisp
+         (defun print-X-axis-tic-line
+           (number-of-X-tics X-axis-leading-spaces X-axis-tic-element)
+           "Print ticks for X axis."
+             (insert X-axis-leading-spaces)
+             (insert X-axis-tic-symbol)  ; Under first column.
+             ;; Insert second tic in the right spot.
+             (insert (concat
+                      (make-string
+                       (-  (* symbol-width X-axis-label-spacing)
+                           ;; Insert white space up to second tic symbol.
+                           (* 2 (length X-axis-tic-symbol)))
+                       ? )
+                      X-axis-tic-symbol))
+             ;; Insert remaining ticks.
+             (while (> number-of-X-tics 1)
+               (insert X-axis-tic-element)
+               (setq number-of-X-tics (1- number-of-X-tics))))
+#+end_src
+
+The line of numbers is equally straightforward:
+
+First, we create a numbered element with blank spaces before each number:
+
+
+
+#+begin_src elisp
+         (defun X-axis-element (number)
+           "Construct a numbered X axis element."
+           (let ((leading-spaces
+                  (-  (* symbol-width X-axis-label-spacing)
+                      (length (number-to-string number)))))
+             (concat (make-string leading-spaces ? )
+                     (number-to-string number))))
+#+end_src
+
+Next, we create the function to print the numbered line, starting with the number 1 under the first column:
+
+
+
+#+begin_src elisp
+         (defun print-X-axis-numbered-line
+           (number-of-X-tics X-axis-leading-spaces)
+           "Print line of X-axis numbers"
+           (let ((number X-axis-label-spacing))
+             (insert X-axis-leading-spaces)
+             (insert "1")
+             (insert (concat
+                      (make-string
+                       ;; Insert white space up to next number.
+                       (-  (* symbol-width X-axis-label-spacing) 2)
+                       ? )
+                      (number-to-string number)))
+             ;; Insert remaining numbers.
+             (setq number (+ number X-axis-label-spacing))
+             (while (> number-of-X-tics 1)
+               (insert (X-axis-element number))
+               (setq number (+ number X-axis-label-spacing))
+               (setq number-of-X-tics (1- number-of-X-tics)))))
+#+end_src
+
+Finally, we need to write the =print-X-axis= that uses =print-X-axis-tic-line= and =print-X-axis-numbered-line=.
+
+The function must determine the local values of the variables used by both =print-X-axis-tic-line= and =print-X-axis-numbered-line=, and then it must call them. Also, it must print the carriage return that separates the two lines.
+
+The function consists of a varlist that specifies five local variables, and calls to each of the two line printing functions:
+
+
+
+#+begin_src elisp
+         (defun print-X-axis (numbers-list)
+           "Print X axis labels to length of NUMBERS-LIST."
+           (let* ((leading-spaces
+                   (make-string full-Y-label-width ? ))
+                ;; symbol-width is provided by graph-body-print
+                (tic-width (* symbol-width X-axis-label-spacing))
+                (X-length (length numbers-list))
+                (X-tic
+                 (concat
+                  (make-string
+                   ;; Make a string of blanks.
+                   (-  (* symbol-width X-axis-label-spacing)
+                       (length X-axis-tic-symbol))
+                   ? )
+                  ;; Concatenate blanks with tic symbol.
+                  X-axis-tic-symbol))
+                (tic-number
+                 (if (zerop (% X-length tic-width))
+                     (/ X-length tic-width)
+                   (1+ (/ X-length tic-width)))))
+             (print-X-axis-tic-line tic-number leading-spaces X-tic)
+             (insert "\n")
+             (print-X-axis-numbered-line tic-number leading-spaces)))
+#+end_src
+
+You can test =print-X-axis=:
+
+1. Install =X-axis-tic-symbol=, =X-axis-label-spacing=, =print-X-axis-tic-line=, as well as =X-axis-element=, =print-X-axis-numbered-line=, and =print-X-axis=.
+2. Copy the following expression:
+
+   #+begin_src elisp
+                 (progn
+                  (let ((full-Y-label-width 5)
+                        (symbol-width 1))
+                    (print-X-axis
+                     '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16))))
+   #+end_src
+
+3. Switch to the *scratch* buffer and place the cursor where you want the axis labels to start.
+4. Type M-: (=eval-expression=).
+5. Yank the test expression into the minibuffer with C-y (=yank)=.
+6. Press <RET> to evaluate the expression.
+
+Emacs will print the horizontal axis like this:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+              |   |    |    |    |
+              1   5   10   15   20
+#+end_src
+
+
+Previous: [[#print_002dX_002daxis][print-X-axis]], Up: [[#Full-Graph][Full Graph]]
+
+* C.4 Printing the Whole Graph
+    :PROPERTIES:
+    :CUSTOM_ID: c.4-printing-the-whole-graph
+    :CLASS: appendixsec
+    :END:
+
+ Now we are nearly ready to print the whole graph.
+
+The function to print the graph with the proper labels follows the outline we created earlier (see [[#Full-Graph][A Graph with Labeled Axes]]), but with additions.
+
+Here is the outline:
+
+#+begin_src elisp
+         (defun print-graph (numbers-list)
+           "documentation..."
+           (let ((height  ...
+                 ...))
+             (print-Y-axis height ... )
+             (graph-body-print numbers-list)
+             (print-X-axis ... )))
+#+end_src
+
+- [[#The-final-version][The final version]]: A few changes.
+- [[#Test-print_002dgraph][Test print-graph]]: Run a short test.
+- [[#Graphing-words-in-defuns][Graphing words in defuns]]: Executing the final code.
+- [[#lambda][lambda]]: How to write an anonymous function.
+- [[#mapcar][mapcar]]: Apply a function to elements of a list.
+- [[#Another-Bug][Another Bug]]: Yet another bug ... most insidious.
+- [[#Final-printed-graph][Final printed graph]]: The graph itself!
+
+
+Next: [[#Test-print_002dgraph][Test print-graph]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** Changes for the Final Version
+     :PROPERTIES:
+     :CUSTOM_ID: changes-for-the-final-version
+     :CLASS: unnumberedsubsec
+     :END:
+
+The final version is different from what we planned in two ways: first, it contains additional values calculated once in the varlist; second, it carries an option to specify the labels' increment per row. This latter feature turns out to be essential; otherwise, a graph may have more rows than fit on a display or on a sheet of paper.
+
+This new feature requires a change to the =Y-axis-column= function, to add =vertical-step= to it. The function looks like this:
+
+
+
+#+begin_src elisp
+         ;;; Final version.
+         (defun Y-axis-column
+           (height width-of-label &optional vertical-step)
+           "Construct list of labels for Y axis.
+         HEIGHT is maximum height of graph.
+         WIDTH-OF-LABEL is maximum width of label.
+         VERTICAL-STEP, an option, is a positive integer
+         that specifies how much a Y axis label increments
+         for each line.  For example, a step of 5 means
+         that each line is five units of the graph."
+           (let (Y-axis
+                 (number-per-line (or vertical-step 1)))
+             (while (> height 1)
+               (if (zerop (% height Y-axis-label-spacing))
+                   ;; Insert label.
+                   (setq Y-axis
+                         (cons
+                          (Y-axis-element
+                           (* height number-per-line)
+                           width-of-label)
+                          Y-axis))
+                 ;; Else, insert blanks.
+                 (setq Y-axis
+                       (cons
+                        (make-string width-of-label ? )
+                        Y-axis)))
+               (setq height (1- height)))
+             ;; Insert base line.
+             (setq Y-axis (cons (Y-axis-element
+                                 (or vertical-step 1)
+                                 width-of-label)
+                                Y-axis))
+             (nreverse Y-axis)))
+#+end_src
+
+The values for the maximum height of graph and the width of a symbol are computed by =print-graph= in its =let= expression; so =graph-body-print= must be changed to accept them.
+
+
+
+#+begin_src elisp
+         ;;; Final version.
+         (defun graph-body-print (numbers-list height symbol-width)
+           "Print a bar graph of the NUMBERS-LIST.
+         The numbers-list consists of the Y-axis values.
+         HEIGHT is maximum height of graph.
+         SYMBOL-WIDTH is number of each column."
+           (let (from-position)
+             (while numbers-list
+               (setq from-position (point))
+               (insert-rectangle
+                (column-of-graph height (car numbers-list)))
+               (goto-char from-position)
+               (forward-char symbol-width)
+               ;; Draw graph column by column.
+               (sit-for 0)
+               (setq numbers-list (cdr numbers-list)))
+             ;; Place point for X axis labels.
+             (forward-line height)
+             (insert "\n")))
+#+end_src
+
+Finally, the code for the =print-graph= function:
+
+
+
+#+begin_src elisp
+         ;;; Final version.
+         (defun print-graph
+           (numbers-list &optional vertical-step)
+           "Print labeled bar graph of the NUMBERS-LIST.
+         The numbers-list consists of the Y-axis values.
+
+         Optionally, VERTICAL-STEP, a positive integer,
+         specifies how much a Y axis label increments for
+         each line.  For example, a step of 5 means that
+         each row is five units."
+           (let* ((symbol-width (length graph-blank))
+                  ;; height is both the largest number
+                  ;; and the number with the most digits.
+                  (height (apply 'max numbers-list))
+                  (height-of-top-line
+                   (if (zerop (% height Y-axis-label-spacing))
+                       height
+                     ;; else
+                     (* (1+ (/ height Y-axis-label-spacing))
+                        Y-axis-label-spacing)))
+                  (vertical-step (or vertical-step 1))
+                  (full-Y-label-width
+                   (length
+                    (concat
+                     (number-to-string
+                      (* height-of-top-line vertical-step))
+                     Y-axis-tic))))
+
+             (print-Y-axis
+              height-of-top-line full-Y-label-width vertical-step)
+             (graph-body-print
+              numbers-list height-of-top-line symbol-width)
+             (print-X-axis numbers-list)))
+#+end_src
+
+
+Next: [[#Graphing-words-in-defuns][Graphing words in defuns]], Previous: [[#The-final-version][The final version]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.1 Testing =print-graph=
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.1-testing-print-graph
+     :CLASS: appendixsubsec
+     :END:
+
+We can test the =print-graph= function with a short list of numbers:
+
+1. Install the final versions of =Y-axis-column=, =graph-body-print=, and =print-graph= (in addition to the rest of the code.)
+2. Copy the following expression:
+
+   #+begin_src elisp
+                 (print-graph '(3 2 5 6 7 5 3 4 6 4 3 2 1))
+   #+end_src
+
+3. Switch to the *scratch* buffer and place the cursor where you want the axis labels to start.
+4. Type M-: (=eval-expression=).
+5. Yank the test expression into the minibuffer with C-y (=yank)=.
+6. Press <RET> to evaluate the expression.
+
+Emacs will print a graph that looks like this:
+
+#+begin_src elisp
+         10 -
+
+
+                  *
+                 **   *
+          5 -   ****  *
+                **** ***
+              * *********
+              ************
+          1 - *************
+
+              |   |    |    |
+              1   5   10   15
+#+end_src
+
+On the other hand, if you pass =print-graph= a =vertical-step= value of 2, by evaluating this expression:
+
+#+begin_src elisp
+         (print-graph '(3 2 5 6 7 5 3 4 6 4 3 2 1) 2)
+#+end_src
+
+The graph looks like this:
+
+#+begin_src elisp
+         20 -
+
+
+                  *
+                 **   *
+         10 -   ****  *
+                **** ***
+              * *********
+              ************
+          2 - *************
+
+              |   |    |    |
+              1   5   10   15
+#+end_src
+
+(A question: is the ‘2' on the bottom of the vertical axis a bug or a feature? If you think it is a bug, and should be a ‘1' instead, (or even a ‘0'), you can modify the sources.)
+
+
+Next: [[#lambda][lambda]], Previous: [[#Test-print_002dgraph][Test print-graph]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.2 Graphing Numbers of Words and Symbols
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.2-graphing-numbers-of-words-and-symbols
+     :CLASS: appendixsubsec
+     :END:
+
+Now for the graph for which all this code was written: a graph that shows how many function definitions contain fewer than 10 words and symbols, how many contain between 10 and 19 words and symbols, how many contain between 20 and 29 words and symbols, and so on.
+
+This is a multi-step process. First make sure you have loaded all the requisite code.
+
+It is a good idea to reset the value of =top-of-ranges= in case you have set it to some different value. You can evaluate the following:
+
+#+begin_src elisp
+         (setq top-of-ranges
+          '(10  20  30  40  50
+            60  70  80  90 100
+           110 120 130 140 150
+           160 170 180 190 200
+           210 220 230 240 250
+           260 270 280 290 300)
+#+end_src
+
+Next create a list of the number of words and symbols in each range.
+
+Evaluate the following:
+
+#+begin_src elisp
+         (setq list-for-graph
+                (defuns-per-range
+                  (sort
+                   (recursive-lengths-list-many-files
+                    (directory-files "/usr/local/emacs/lisp"
+                                     t ".+el$"))
+                   '<)
+                  top-of-ranges))
+#+end_src
+
+On my old machine, this took about an hour. It looked though 303 Lisp files in my copy of Emacs version 19.23. After all that computing, the =list-for-graph= had this value:
+
+#+begin_src elisp
+         (537 1027 955 785 594 483 349 292 224 199 166 120 116 99
+         90 80 67 48 52 45 41 33 28 26 25 20 12 28 11 13 220)
+#+end_src
+
+This means that my copy of Emacs had 537 function definitions with fewer than 10 words or symbols in them, 1,027 function definitions with 10 to 19 words or symbols in them, 955 function definitions with 20 to 29 words or symbols in them, and so on.
+
+Clearly, just by looking at this list we can see that most function definitions contain ten to thirty words and symbols.
+
+Now for printing. We do /not/ want to print a graph that is 1,030 lines high ... Instead, we should print a graph that is fewer than twenty-five lines high. A graph that height can be displayed on almost any monitor, and easily printed on a sheet of paper.
+
+This means that each value in =list-for-graph= must be reduced to one-fiftieth its present value.
+
+Here is a short function to do just that, using two functions we have not yet seen, =mapcar= and =lambda=.
+
+#+begin_src elisp
+         (defun one-fiftieth (full-range)
+           "Return list, each number one-fiftieth of previous."
+          (mapcar (lambda (arg) (/ arg 50)) full-range))
+#+end_src
+
+
+Next: [[#mapcar][mapcar]], Previous: [[#Graphing-words-in-defuns][Graphing words in defuns]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.3 A =lambda= Expression: Useful Anonymity
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.3-a-lambda-expression-useful-anonymity
+     :CLASS: appendixsubsec
+     :END:
+
+ =lambda= is the symbol for an anonymous function, a function without a name. Every time you use an anonymous function, you need to include its whole body.
+
+Thus,
+
+#+begin_src elisp
+         (lambda (arg) (/ arg 50))
+#+end_src
+
+is a function that returns the value resulting from dividing whatever is passed to it as =arg= by 50.
+
+Earlier, for example, we had a function =multiply-by-seven=; it multiplied its argument by 7. This function is similar, except it divides its argument by 50; and, it has no name. The anonymous equivalent of =multiply-by-seven= is:
+
+#+begin_src elisp
+         (lambda (number) (* 7 number))
+#+end_src
+
+(See [[#defun][The =defun= Macro]].)
+
+If we want to multiply 3 by 7, we can write:
+
+#+begin_src elisp
+         (multiply-by-seven 3)
+          \_______________/ ^
+                  |         |
+               function  argument
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+This expression returns 21.
+
+Similarly, we can write:
+
+#+begin_src elisp
+         ((lambda (number) (* 7 number)) 3)
+          \____________________________/ ^
+                        |                |
+               anonymous function     argument
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+If we want to divide 100 by 50, we can write:
+
+#+begin_src elisp
+         ((lambda (arg) (/ arg 50)) 100)
+          \______________________/  \_/
+                      |              |
+             anonymous function   argument
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+This expression returns 2. The 100 is passed to the function, which divides that number by 50.
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Lambda-Expressions][Lambda Expressions]], for more about =lambda=. Lisp and lambda expressions derive from the Lambda Calculus.
+
+
+Next: [[#Another-Bug][Another Bug]], Previous: [[#lambda][lambda]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.4 The =mapcar= Function
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.4-the-mapcar-function
+     :CLASS: appendixsubsec
+     :END:
+
+ =mapcar= is a function that calls its first argument with each element of its second argument, in turn. The second argument must be a sequence.
+
+The ‘map' part of the name comes from the mathematical phrase, “mapping over a domain”, meaning to apply a function to each of the elements in a domain. The mathematical phrase is based on the metaphor of a surveyor walking, one step at a time, over an area he is mapping. And ‘car', of course, comes from the Lisp notion of the first of a list.
+
+For example,
+
+#+begin_src elisp
+         (mapcar '1+ '(2 4 6))
+              ⇒ (3 5 7)
+#+end_src
+
+The function =1+= which adds one to its argument, is executed on /each/ element of the list, and a new list is returned.
+
+Contrast this with =apply=, which applies its first argument to all the remaining. (See [[#Readying-a-Graph][Readying a Graph]], for an explanation of =apply=.)
+
+In the definition of =one-fiftieth=, the first argument is the anonymous function:
+
+#+begin_src elisp
+         (lambda (arg) (/ arg 50))
+#+end_src
+
+and the second argument is =full-range=, which will be bound to =list-for-graph=.
+
+The whole expression looks like this:
+
+#+begin_src elisp
+         (mapcar (lambda (arg) (/ arg 50)) full-range))
+#+end_src
+
+See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Mapping-Functions][Mapping Functions]], for more about =mapcar=.
+
+Using the =one-fiftieth= function, we can generate a list in which each element is one-fiftieth the size of the corresponding element in =list-for-graph=.
+
+#+begin_src elisp
+         (setq fiftieth-list-for-graph
+               (one-fiftieth list-for-graph))
+#+end_src
+
+The resulting list looks like this:
+
+#+begin_src elisp
+         (10 20 19 15 11 9 6 5 4 3 3 2 2
+         1 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 4)
+#+end_src
+
+This, we are almost ready to print! (We also notice the loss of information: many of the higher ranges are 0, meaning that fewer than 50 defuns had that many words or symbols---but not necessarily meaning that none had that many words or symbols.)
+
+
+Next: [[#Final-printed-graph][Final printed graph]], Previous: [[#mapcar][mapcar]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.5 Another Bug ... Most Insidious
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.5-another-bug-...-most-insidious
+     :CLASS: appendixsubsec
+     :END:
+
+ I said “almost ready to print”! Of course, there is a bug in the =print-graph= function ... It has a =vertical-step= option, but not a =horizontal-step= option. The =top-of-range= scale goes from 10 to 300 by tens. But the =print-graph= function will print only by ones.
+
+This is a classic example of what some consider the most insidious type of bug, the bug of omission. This is not the kind of bug you can find by studying the code, for it is not in the code; it is an omitted feature. Your best actions are to try your program early and often; and try to arrange, as much as you can, to write code that is easy to understand and easy to change. Try to be aware, whenever you can, that whatever you have written, /will/ be rewritten, if not soon, eventually. A hard maxim to follow.
+
+It is the =print-X-axis-numbered-line= function that needs the work; and then the =print-X-axis= and the =print-graph= functions need to be adapted. Not much needs to be done; there is one nicety: the numbers ought to line up under the tic marks. This takes a little thought.
+
+Here is the corrected =print-X-axis-numbered-line=:
+
+#+begin_src elisp
+         (defun print-X-axis-numbered-line
+           (number-of-X-tics X-axis-leading-spaces
+            &optional horizontal-step)
+           "Print line of X-axis numbers"
+           (let ((number X-axis-label-spacing)
+                 (horizontal-step (or horizontal-step 1)))
+             (insert X-axis-leading-spaces)
+             ;; Delete extra leading spaces.
+             (delete-char
+              (- (1-
+                  (length (number-to-string horizontal-step)))))
+             (insert (concat
+                      (make-string
+                       ;; Insert white space.
+                       (-  (* symbol-width
+                              X-axis-label-spacing)
+                           (1-
+                            (length
+                             (number-to-string horizontal-step)))
+                           2)
+                       ? )
+                      (number-to-string
+                       (* number horizontal-step))))
+             ;; Insert remaining numbers.
+             (setq number (+ number X-axis-label-spacing))
+             (while (> number-of-X-tics 1)
+               (insert (X-axis-element
+                        (* number horizontal-step)))
+               (setq number (+ number X-axis-label-spacing))
+               (setq number-of-X-tics (1- number-of-X-tics)))))
+#+end_src
+
+If you are reading this in Info, you can see the new versions of =print-X-axis= =print-graph= and evaluate them. If you are reading this in a printed book, you can see the changed lines here (the full text is too much to print).
+
+#+begin_src elisp
+         (defun print-X-axis (numbers-list horizontal-step)
+           "Print X axis labels to length of NUMBERS-LIST.
+         Optionally, HORIZONTAL-STEP, a positive integer,
+         specifies how much an X  axis label increments for
+         each column."
+         ;; Value of symbol-width and full-Y-label-width
+         ;; are passed by print-graph.
+           (let* ((leading-spaces
+                   (make-string full-Y-label-width ? ))
+                ;; symbol-width is provided by graph-body-print
+                (tic-width (* symbol-width X-axis-label-spacing))
+                (X-length (length numbers-list))
+                (X-tic
+                 (concat
+                  (make-string
+                   ;; Make a string of blanks.
+                   (-  (* symbol-width X-axis-label-spacing)
+                       (length X-axis-tic-symbol))
+                   ? )
+                  ;; Concatenate blanks with tic symbol.
+                  X-axis-tic-symbol))
+                (tic-number
+                 (if (zerop (% X-length tic-width))
+                     (/ X-length tic-width)
+                   (1+ (/ X-length tic-width)))))
+
+             (print-X-axis-tic-line
+              tic-number leading-spaces X-tic)
+             (insert "\n")
+             (print-X-axis-numbered-line
+              tic-number leading-spaces horizontal-step)))
+#+end_src
+
+#+begin_src elisp
+         (defun print-graph
+           (numbers-list &optional vertical-step horizontal-step)
+           "Print labeled bar graph of the NUMBERS-LIST.
+         The numbers-list consists of the Y-axis values.
+
+         Optionally, VERTICAL-STEP, a positive integer,
+         specifies how much a Y axis label increments for
+         each line.  For example, a step of 5 means that
+         each row is five units.
+
+         Optionally, HORIZONTAL-STEP, a positive integer,
+         specifies how much an X  axis label increments for
+         each column."
+           (let* ((symbol-width (length graph-blank))
+                  ;; height is both the largest number
+                  ;; and the number with the most digits.
+                  (height (apply 'max numbers-list))
+                  (height-of-top-line
+                   (if (zerop (% height Y-axis-label-spacing))
+                       height
+                     ;; else
+                     (* (1+ (/ height Y-axis-label-spacing))
+                        Y-axis-label-spacing)))
+                  (vertical-step (or vertical-step 1))
+                  (full-Y-label-width
+                   (length
+                    (concat
+                     (number-to-string
+                      (* height-of-top-line vertical-step))
+                     Y-axis-tic))))
+             (print-Y-axis
+              height-of-top-line full-Y-label-width vertical-step)
+             (graph-body-print
+                 numbers-list height-of-top-line symbol-width)
+             (print-X-axis numbers-list horizontal-step)))
+#+end_src
+
+
+Previous: [[#Another-Bug][Another Bug]], Up: [[#Print-Whole-Graph][Print Whole Graph]]
+
+** C.4.6 The Printed Graph
+     :PROPERTIES:
+     :CUSTOM_ID: c.4.6-the-printed-graph
+     :CLASS: appendixsubsec
+     :END:
+
+When made and installed, you can call the =print-graph= command like this:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+         (print-graph fiftieth-list-for-graph 50 10)
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+Here is the graph:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+         1000 -  *
+                 **
+                 **
+                 **
+                 **
+          750 -  ***
+                 ***
+                 ***
+                 ***
+                 ****
+          500 - *****
+                ******
+                ******
+                ******
+                *******
+          250 - ********
+                *********                     *
+                ***********                   *
+                *************                 *
+           50 - ***************** *           *
+                |   |    |    |    |    |    |    |
+               10  50  100  150  200  250  300  350
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+The largest group of functions contain 10--19 words and symbols each.
+
+
+Next: [[#GNU-Free-Documentation-License][GNU Free Documentation License]], Previous: [[#Full-Graph][Full Graph]], Up: [[#Top][Top]]
+
+

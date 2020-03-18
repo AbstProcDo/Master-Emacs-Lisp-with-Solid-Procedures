@@ -1,0 +1,59 @@
+#+TITLE: Appendix-Footnotes
+* Footnotes
+     :PROPERTIES:
+     :CUSTOM_ID: footnotes
+     :END:
+
+[[[#fnd-1][1]]] A single-quote is an abbreviation for the special form =quote=; you need not think about special forms now. See [[#Complications][Complications]].
+
+[[[#fnd-2][2]]] Emacs shows integer values in decimal, in octal and in hex, and also as a character, but let's ignore this convenience feature for now.
+
+[[[#fnd-3][3]]] It is curious to track the path by which the word “argument” came to have two different meanings, one in mathematics and the other in everyday English. According to the Oxford English Dictionary, the word derives from the Latin for ‘to make clear, prove'; thus it came to mean, by one thread of derivation, “the evidence offered as proof”, which is to say, “the information offered”, which led to its meaning in Lisp. But in the other thread of derivation, it came to mean “to assert in a manner against which others may make counter assertions”, which led to the meaning of the word as a disputation. (Note here that the English word has two different definitions attached to it at the same time. By contrast, in Emacs Lisp, a symbol cannot have two different function definitions at the same time.)
+
+[[[#fnd-4][4]]] =(quote hello)= is an expansion of the abbreviation ='hello=.
+
+[[[#fnd-5][5]]] Actually, you can use =%s= to print a number. It is non-specific. =%d= prints only the part of a number left of a decimal point, and not anything that is not a number.
+
+[[[#fnd-6][6]]] Actually, by default, if the buffer from which you just switched is visible to you in another window, =other-buffer= will choose the most recent buffer that you cannot see; this is a subtlety that I often forget.
+
+[[[#fnd-7][7]]] Or rather, to save typing, you probably only typed RET if the default buffer was *scratch*, or if it was different, then you typed just part of the name, such as =*sc=, pressed your TAB key to cause it to expand to the full name, and then typed RET.
+
+[[[#fnd-8][8]]] Remember, this expression will move you to your most recent other buffer that you cannot see. If you really want to go to your most recently selected buffer, even if you can still see it, you need to evaluate the following more complex expression:
+
+#+begin_src elisp
+         (switch-to-buffer (other-buffer (current-buffer) t))
+#+end_src
+
+In this case, the first argument to =other-buffer= tells it which buffer to skip---the current one---and the second argument tells =other-buffer= it is OK to switch to a visible buffer. In regular use, =switch-to-buffer= takes you to a buffer not visible in windows since you would most likely use C-x o (=other-window=) to go to another visible buffer.
+
+[[[#fnd-9][9]]] According to Jared Diamond in Guns, Germs, and Steel, “... zebras become impossibly dangerous as they grow older” but the claim here is that they do not become fierce like a tiger. (1997, W. W. Norton and Co., ISBN 0-393-03894-2, page 171)
+
+[[[#fnd-10][10]]] If instead of showing the source code for a Lisp function, Emacs asks you which tags table to visit, invoke M-. from a buffer whose major mode is Emacs Lisp or Lisp Interaction.
+
+[[[#fnd-11][11]]] Actually, you can =cons= an element to an atom to produce a dotted pair. Dotted pairs are not discussed here; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dotted-Pair-Notation][Dotted Pair Notation]].
+
+[[[#fnd-12][12]]] More precisely, and requiring more expert knowledge to understand, the two integers are of type =Lisp_Object=, which can also be a C union instead of an integer type.
+
+[[[#fnd-13][13]]] You can write recursive functions to be frugal or wasteful of mental or computer resources; as it happens, methods that people find easy---that are frugal of mental resources---sometimes use considerable computer resources. Emacs was designed to run on machines that we now consider limited and its default settings are conservative. You may want to increase the values of =max-specpdl-size= and =max-lisp-eval-depth=. In my .emacs file, I set them to 15 and 30 times their default value.
+
+[[[#fnd-14][14]]] The phrase tail recursive is used to describe such a process, one that uses constant space.
+
+[[[#fnd-15][15]]] The jargon is mildly confusing: =triangle-recursive-helper= uses a process that is iterative in a procedure that is recursive. The process is called iterative because the computer need only record the three values, =sum=, =counter=, and =number=; the procedure is recursive because the function calls itself. On the other hand, both the process and the procedure used by =triangle-recursively= are called recursive. The word “recursive” has different meanings in the two contexts.
+
+[[[#fnd-16][16]]] You may also add .el to ~/.emacs and call it a ~/.emacs.el file. In the past, you were forbidden to type the extra keystrokes that the name ~/.emacs.el requires, but now you may. The new format is consistent with the Emacs Lisp file naming conventions; the old format saves typing.
+
+[[[#fnd-17][17]]] When I start instances of Emacs that do not load my .emacs file or any site file, I also turn off blinking:
+
+#+begin_src elisp
+         emacs -q --no-site-file -eval '(blink-cursor-mode nil)'
+
+
+    Or nowadays, using an even more sophisticated set of options,
+
+
+         emacs -Q -D
+#+end_src
+
+[[[#fnd-18][18]]] I also run more modern window managers, such as Enlightenment, Gnome, or KDE; in those cases, I often specify an image rather than a plain color.
+
+--------------

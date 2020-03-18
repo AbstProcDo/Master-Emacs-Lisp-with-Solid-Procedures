@@ -1,0 +1,12 @@
+#+TITLE: About-the-Author
+* About the Author
+   :PROPERTIES:
+   :CUSTOM_ID: about-the-author
+   :CLASS: unnumbered
+   :END:
+
+
+  Robert J. Chassell has worked with GNU Emacs since 1985. He writes and edits, teaches Emacs and Emacs Lisp, and speaks throughout the world on software freedom. Chassell was a founding Director and Treasurer of the Free Software Foundation, Inc. He is co-author of the Texinfo manual, and has edited more than a dozen other books. He graduated from Cambridge University, in England. He has an abiding interest in social and economic history and flies his own airplane.
+
+
+--------------

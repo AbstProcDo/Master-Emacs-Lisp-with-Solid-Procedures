@@ -1,0 +1,865 @@
+#+TITLE: 01.List-Processing
+* 1 List Processing
+   :PROPERTIES:
+   :CUSTOM_ID: list-processing
+   :CLASS: chapter
+   :END:
+   :LOGBOOK:
+   CLOCK: [2020-03-18 Wed 15:29]--[2020-03-18 Wed 15:38] =>  0:09
+   :END:
+
+~To the untutored eye, Lisp is a strange programming language~. In Lisp code there are parentheses everywhere. Some people even claim that the name stands for “Lots of Isolated Silly Parentheses”. But the claim is unwarranted. Lisp stands for LISt Processing, and the programming language handles /lists/ (and lists of lists) by putting them between parentheses. The parentheses mark the boundaries of the list. Sometimes a list is preceded by an apostrophe ‘'', called a single-quote in Lisp.[fn:1]Lists are the basis of Lisp.
+
+1) [[#Lisp-Lists][Lisp Lists]]: What are lists?
+2) [[#Run-a-Program][Run a Program]]: Any list in Lisp is a program ready to run.
+3) [[#Making-Errors][Making Errors]]: Generating an error message.
+4) [[#Names-_0026-Definitions][Names & Definitions]]: Names of symbols and function definitions.
+5) [[#Lisp-Interpreter][Lisp Interpreter]]: What the Lisp interpreter does.
+6) [[#Evaluation][Evaluation]]: Running a program.
+7) [[#Variables][Variables]]: Returning a value from a variable.
+8) [[#Arguments][Arguments]]: Passing information to a function.
+9) [[#set-_0026-setq][set & setq]]: Setting the value of a variable.
+10) [[#Summary][Summary]]: The major points.
+11) [[#Error-Message-Exercises][Error Message Exercises]]
+
+* 1.1 Lisp Lists
+    :PROPERTIES:
+    :CUSTOM_ID: lisp-lists
+    :CLASS: section
+    :END:
+
+ In Lisp, a list looks like this: ='(rose violet daisy buttercup)=. This list is preceded by a single apostrophe. It could just as well be written as follows, which looks more like the kind of list you are likely to be familiar with:
+
+#+begin_src elisp
+         '(rose
+           violet
+           daisy
+           buttercup)
+#+end_src
+
+The elements of this list are the names of the four different flowers, separated from each other by whitespace and surrounded by parentheses, like flowers in a field with a stone wall around them.
+
+- [[#Numbers-Lists][Numbers Lists]]: List have numbers, other lists, in them.
+- [[#Lisp-Atoms][Lisp Atoms]]: Elemental entities.
+- [[#Whitespace-in-Lists][Whitespace in Lists]]: Formatting lists to be readable.
+- [[#Typing-Lists][Typing Lists]]: How GNU Emacs helps you type lists.
+
+
+
+
+** Numbers, Lists inside of Lists
+     :PROPERTIES:
+     :CUSTOM_ID: numbers-lists-inside-of-lists
+     :CLASS: unnumberedsubsec
+     :END:
+
+Lists can also have numbers in them, as in this list: =(+ 2 2)=. This list has a plus-sign, ‘+', followed by two ‘2's, each separated by whitespace.
+
+In Lisp, both data and programs are represented the same way; that is, they are both lists of words, numbers, or other lists, separated by whitespace and surrounded by parentheses. (Since a program looks like data, one program may easily serve as data for another; this is a very powerful feature of Lisp.) (Incidentally, these two parenthetical remarks are /not/ Lisp lists, because they contain ‘;' and ‘.' as punctuation marks.)
+
+Here is another list, this time with a list inside of it:
+
+#+begin_src elisp
+         '(this list has (a list inside of it))
+#+end_src
+
+The components of this list are the words ‘this', ‘list', ‘has', and the list ‘(a list inside of it)'. The interior list is made up of the words ‘a', ‘list', ‘inside', ‘of', ‘it'.
+
+
+
+
+** 1.1.1 Lisp Atoms
+     :PROPERTIES:
+     :CUSTOM_ID: lisp-atoms
+     :CLASS: subsection
+     :END:
+
+ In Lisp, what we have been calling words are called atoms. This term comes from the historical meaning of the word atom, which means “indivisible”. As far as Lisp is concerned, the words we have been using in the lists cannot be divided into any smaller parts and still mean the same thing as part of a program; likewise with numbers and single character symbols like ‘+'. On the other hand, unlike an ancient atom, a list can be split into parts. (See [[#car-cdr-_0026-cons][=car= =cdr= & =cons= Fundamental Functions]].)
+
+In a list, atoms are separated from each other by whitespace. They can be right next to a parenthesis.
+
+Technically speaking, a list in Lisp consists of parentheses surrounding atoms separated by whitespace or surrounding other lists or surrounding both atoms and other lists. A list can have just one atom in it or have nothing in it at all. A list with nothing in it looks like this: =()=, and is called the empty list. Unlike anything else, an empty list is considered both an atom and a list at the same time.
+
+The printed representation of both atoms and lists are called symbolic expressions or, more concisely, s-expressions. The word expression by itself can refer to either the printed representation, or to the atom or list as it is held internally in the computer. Often, people use the term expression indiscriminately. (Also, in many texts, the word form is used as a synonym for expression.)
+
+Incidentally, the atoms that make up our universe were named such when they were thought to be indivisible; but it has been found that physical atoms are not indivisible. Parts can split off an atom or it can fission into two parts of roughly equal size. Physical atoms were named prematurely, before their truer nature was found. In Lisp, certain kinds of atom, such as an array, can be separated into parts; but the mechanism for doing this is different from the mechanism for splitting a list. As far as list operations are concerned, the atoms of a list are unsplittable.
+
+As in English, the meanings of the component letters of a Lisp atom are different from the meaning the letters make as a word. For example, the word for the South American sloth, the ‘ai', is completely different from the two words, ‘a', and ‘i'.
+
+There are many kinds of atom in nature but only a few in Lisp: for example, numbers, such as 37, 511, or 1729, and symbols, such as ‘+', ‘foo', or ‘forward-line'. The words we have listed in the examples above are all symbols. In everyday Lisp conversation, the word “atom” is not often used, because programmers usually try to be more specific about what kind of atom they are dealing with. Lisp programming is mostly about symbols (and sometimes numbers) within lists. (Incidentally, the preceding three word parenthetical remark is a proper list in Lisp, since it consists of atoms, which in this case are symbols, separated by whitespace and enclosed by parentheses, without any non-Lisp punctuation.)
+
+Text between double quotation marks---even sentences or paragraphs---is also an atom. Here is an example:
+
+#+begin_src elisp
+         '(this list includes "text between quotation marks.")
+#+end_src
+
+In Lisp, all of the quoted text including the punctuation mark and the blank spaces is a single atom. This kind of atom is called a string (for “string of characters”) and is the sort of thing that is used for messages that a computer can print for a human to read. Strings are a different kind of atom than numbers or symbols and are used differently.
+
+
+
+
+** 1.1.2 Whitespace in Lists
+     :PROPERTIES:
+     :CUSTOM_ID: whitespace-in-lists
+     :CLASS: subsection
+     :END:
+
+ The amount of whitespace in a list does not matter. From the point of view of the Lisp language,
+
+#+begin_src elisp
+         '(this list
+            looks like this)
+#+end_src
+
+is exactly the same as this:
+
+#+begin_src elisp
+         '(this list looks like this)
+#+end_src
+
+Both examples show what to Lisp is the same list, the list made up of the symbols ‘this', ‘list', ‘looks', ‘like', and ‘this' in that order.
+
+Extra whitespace and newlines are designed to make a list more readable by humans. When Lisp reads the expression, it gets rid of all the extra whitespace (but it needs to have at least one space between atoms in order to tell them apart.)
+
+Odd as it seems, the examples we have seen cover almost all of what Lisp lists look like! Every other list in Lisp looks more or less like one of these examples, except that the list may be longer and more complex. In brief, a list is between parentheses, a string is between quotation marks, a symbol looks like a word, and a number looks like a number. (For certain situations, square brackets, dots and a few other special characters may be used; however, we will go quite far without them.)
+
+
+
+
+** 1.1.3 GNU Emacs Helps You Type Lists
+     :PROPERTIES:
+     :CUSTOM_ID: gnu-emacs-helps-you-type-lists
+     :CLASS: subsection
+     :END:
+
+When you type a Lisp expression in GNU Emacs using either Lisp Interaction mode or Emacs Lisp mode, you have available to you several commands to format the Lisp expression so it is easy to read. For example, pressing the <TAB> key automatically indents the line the cursor is on by the right amount. A command to properly indent the code in a region is customarily bound to =M-C-\=.
+ # 得到: 应用M-C-\调整
+
+Indentation is designed so that you can see which elements of a list belong to which list---elements of a sub-list are indented more than the elements of the enclosing list.
+
+In addition, when you type a closing parenthesis, Emacs momentarily jumps the cursor back to the matching opening parenthesis, so you can see which one it is. This is very useful, since every list you type in Lisp must have its closing parenthesis match its opening parenthesis. (See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Major-Modes][Major Modes]], for more information about Emacs's modes.)
+
+
+
+
+* 1.2 Run a Program
+    :PROPERTIES:
+    :CUSTOM_ID: run-a-program
+    :CLASS: section
+    :END:
+
+A list in Lisp---any list---is a program ready to run. If you run it (for which the Lisp jargon is evaluate), the computer will do one of three things: do nothing except return to you the list itself; send you an error message; or, treat the first symbol in the list as a command to do something. (Usually, of course, it is the last of these three things that you really want!)
+
+The single apostrophe, ='=, that I put in front of some of the example lists in preceding sections is called a quote; when it precedes a list, it tells Lisp to do nothing with the list, other than take it as it is written. But if there is no quote preceding a list, the first item of the list is special: it is a command for the computer to obey. (In Lisp, these commands are called /functions/.) The list =(+ 2 2)= shown above did not have a quote in front of it, so Lisp understands that the =+= is an instruction to do something with the rest of the list: add the numbers that follow.
+
+If you are reading this inside of GNU Emacs in Info, here is how you can evaluate such a list: place your cursor immediately after the right hand parenthesis of the following list and then type C-x C-e:
+
+#+begin_src elisp
+         (+ 2 2)
+#+end_src
+
+You will see the number =4= appear in the echo area[[#fn-2][^{2}]]. (What you have just done is evaluate the list. The echo area is the line at the bottom of the screen that displays or echoes text.) Now try the same thing with a quoted list: place the cursor right after the following list and type C-x C-e:
+
+#+begin_src elisp
+         '(this is a quoted list)
+#+end_src
+
+You will see =(this is a quoted list)= appear in the echo area.
+
+In both cases, what you are doing is giving a command to the program inside of GNU Emacs called the Lisp interpreter---giving the interpreter a command to evaluate the expression. The name of the Lisp interpreter comes from the word for the task done by a human who comes up with the meaning of an expression---who interprets it.
+
+You can also evaluate an atom that is not part of a list---one that is not surrounded by parentheses; again, the Lisp interpreter translates from the humanly readable expression to the language of the computer. But before discussing this (see [[#Variables][Variables]]), we will discuss what the Lisp interpreter does when you make an error.
+
+
+
+
+* 1.3 Generate an Error Message
+    :PROPERTIES:
+    :CUSTOM_ID: generate-an-error-message
+    :CLASS: section
+    :END:
+
+ Partly so you won't worry if you do it accidentally, we will now give a command to the Lisp interpreter that generates an error message. This is a harmless activity; and indeed, we will often try to generate error messages intentionally. Once you understand the jargon, error messages can be informative. Instead of being called “error” messages, they should be called “help” messages. They are like signposts to a traveler in a strange country; deciphering them can be hard, but once understood, they can point the way.
+
+The error message is generated by a built-in GNU Emacs debugger. We will enter the debugger. You get out of the debugger by typing =q=.
+# 得到:退出debugger的方法.
+What we will do is evaluate a list that is not quoted and does not have a meaningful command as its first element. Here is a list almost exactly the same as the one we just used, but without the single-quote in front of it. Position the cursor right after it and type C-x C-e:
+
+#+begin_src elisp
+         (this is an unquoted list)
+#+end_src
+
+A *Backtrace* window will open up and you should see the following in it:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error: (void-function this)
+           (this is an unquoted list)
+           eval((this is an unquoted list) nil)
+           elisp--eval-last-sexp(nil)
+           eval-last-sexp(nil)
+           funcall-interactively(eval-last-sexp nil)
+           call-interactively(eval-last-sexp nil nil)
+           command-execute(eval-last-sexp)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+Your cursor will be in this window (you may have to wait a few seconds before it becomes visible). To quit the debugger and make the debugger window go away, type:
+
+#+begin_src elisp
+         q
+#+end_src
+
+Please type q right now, so you become confident that you can get out of the debugger. Then, type C-x C-e again to re-enter it.
+
+Based on what we already know, we can almost read this error message.
+
+You read the *Backtrace* buffer from the bottom up; it tells you what Emacs did. When you typed C-x C-e, you made an interactive call to the command =eval-last-sexp=. =eval= is an abbreviation for “evaluate” and =sexp= is an abbreviation for “symbolic expression”. The command means “evaluate last symbolic expression”, which is the expression just before your cursor.
+
+Each line above tells you what the Lisp interpreter evaluated next. The most recent action is at the top. The buffer is called the *Backtrace* buffer because it enables you to track Emacs backwards.
+
+At the top of the *Backtrace* buffer, you see the line:
+
+#+begin_src elisp
+         Debugger entered--Lisp error: (void-function this)
+#+end_src
+
+The Lisp interpreter tried to evaluate the first atom of the list, the word ‘this'. It is this action that generated the error message ‘void-function this'.
+
+The message contains the words ‘void-function' and ‘this'.
+
+The word ‘function' was mentioned once before. It is a very important word. For our purposes, we can define it by saying that a function is a set of instructions to the computer that tell the computer to do something.
+
+Now we can begin to understand the error message: ‘void-function this'. The function (that is, the word ‘this') does not have a definition of any set of instructions for the computer to carry out.
+
+The slightly odd word, ‘void-function', is designed to cover the way Emacs Lisp is implemented, which is that when a symbol does not have a function definition attached to it, the place that should contain the instructions is void.
+
+On the other hand, since we were able to add 2 plus 2 successfully, by evaluating =(+ 2 2)=, we can infer that the symbol =+= must have a set of instructions for the computer to obey and those instructions must be to add the numbers that follow the =+=.
+
+It is possible to prevent Emacs entering the debugger in cases like this. We do not explain how to do that here, but we will mention what the result looks like, because you may encounter a similar situation if there is a bug in some Emacs code that you are using. In such cases, you will see only one line of error message; it will appear in the echo area and look like this:
+
+#+begin_src elisp
+         Symbol's function definition is void: this
+#+end_src
+
+The message goes away as soon as you type a key, even just to move the cursor.
+
+We know the meaning of the word ‘Symbol'. It refers to the first atom of the list, the word ‘this'. The word ‘function' refers to the instructions that tell the computer what to do. (Technically, the symbol tells the computer where to find the instructions, but this is a complication we can ignore for the moment.)
+
+The error message can be understood: ‘Symbol's function definition is void: this'. The symbol (that is, the word ‘this') lacks instructions for the computer to carry out.
+
+
+
+
+* 1.4 Symbol Names and Function Definitions
+    :PROPERTIES:
+    :CUSTOM_ID: symbol-names-and-function-definitions
+    :CLASS: section
+    :END:
+
+ We can articulate another characteristic of Lisp based on what we have discussed so far---an important characteristic: a symbol, like =+=, is not itself the set of instructions for the computer to carry out. Instead, the symbol is used, perhaps temporarily, as a way of locating the definition or set of instructions. What we see is the name through which the instructions can be found. Names of people work the same way. I can be referred to as ‘Bob'; however, I am not the letters ‘B', ‘o', ‘b' but am, or was, the consciousness consistently associated with a particular life-form. The name is not me, but it can be used to refer to me.
+
+In Lisp, one set of instructions can be attached to several names. For example, the computer instructions for adding numbers can be linked to the symbol =plus= as well as to the symbol =+= (and are in some dialects of Lisp). Among humans, I can be referred to as ‘Robert' as well as ‘Bob' and by other words as well.
+
+On the other hand, a symbol can have only one function definition attached to it at a time. Otherwise, the computer would be confused as to which definition to use. If this were the case among people, only one person in the world could be named ‘Bob'. However, the function definition to which the name refers can be changed readily. (See [[#Install][Install a Function Definition]].)
+
+Since Emacs Lisp is large, it is customary to name symbols in a way that identifies the part of Emacs to which the function belongs. Thus, all the names for functions that deal with Texinfo start with ‘texinfo-' and those for functions that deal with reading mail start with ‘rmail-'.
+
+
+
+
+* 1.5 The Lisp Interpreter
+    :PROPERTIES:
+    :CUSTOM_ID: the-lisp-interpreter
+    :CLASS: section
+    :END:
+
+Based on what we have seen, we can now start to figure out what the Lisp interpreter does when we command it to evaluate a list. First, it looks to see whether there is a quote before the list; if there is, the interpreter just gives us the list. On the other hand, if there is no quote, the interpreter looks at the first element in the list and sees whether it has a function definition. If it does, the interpreter carries out the instructions in the function definition. Otherwise, the interpreter prints an error message.
+
+This is how Lisp works. Simple. There are added complications which we will get to in a minute, but these are the fundamentals. Of course, to write Lisp programs, you need to know how to write function definitions and attach them to names, and how to do this without confusing either yourself or the computer.
+
+- [[#Complications][Complications]]: Variables, Special forms, Lists within.
+- [[#Byte-Compiling][Byte Compiling]]: Specially processing code for speed.
+
+
+** Complications
+     :PROPERTIES:
+     :CUSTOM_ID: complications
+     :CLASS: unnumberedsubsec
+     :END:
+
+Now, for the first complication. In addition to lists, the Lisp interpreter can evaluate a symbol that is not quoted and does not have parentheses around it. The Lisp interpreter will attempt to determine the symbol's value as a variable. This situation is described in the section on variables. (See [[#Variables][Variables]].)
+
+The second complication occurs because some functions are unusual and do not work in the usual manner. Those that don't are called special forms. They are used for special jobs, like defining a function, and there are not many of them. In the next few chapters, you will be introduced to several of the more important special forms.
+
+As well as special forms, there are also macros. A macro is a construct defined in Lisp, which differs from a function in that it translates a Lisp expression into another expression that is to be evaluated in place of the original expression. (See [[#Lisp-macro][Lisp macro]].)
+
+For the purposes of this introduction, you do not need to worry too much about whether something is a special form, macro, or ordinary function. For example, =if= is a special form (see [[#if][if]]), but =when= is a macro (see [[#Lisp-macro][Lisp macro]]). In earlier versions of Emacs, =defun= was a special form, but now it is a macro (see [[#defun][defun]]). It still behaves in the same way.
+
+The final complication is this: if the function that the Lisp interpreter is looking at is not a special form, and if it is part of a list, the Lisp interpreter looks to see whether the list has a list inside of it. If there is an inner list, the Lisp interpreter first figures out what it should do with the inside list, and then it works on the outside list. If there is yet another list embedded inside the inner list, it works on that one first, and so on. It always works on the innermost list first. The interpreter works on the innermost list first, to evaluate the result of that list. The result may be used by the enclosing expression.
+
+Otherwise, the interpreter works left to right, from one expression to the next.
+
+
+** 1.5.1 Byte Compiling
+     :PROPERTIES:
+     :CUSTOM_ID: byte-compiling
+     :CLASS: subsection
+     :END:
+
+ One other aspect of interpreting: the Lisp interpreter is able to interpret two kinds of entity: humanly readable code, on which we will focus exclusively, and specially processed code, called byte compiled code, which is not humanly readable. Byte compiled code runs faster than humanly readable code.
+
+You can transform humanly readable code into byte compiled code by running one of the compile commands such as =byte-compile-file=. Byte compiled code is usually stored in a file that ends with a .elc extension rather than a .el extension. You will see both kinds of file in the emacs/lisp directory; the files to read are those with .el extensions.
+
+As a practical matter, for most things you might do to customize or extend Emacs, you do not need to byte compile; and I will not discuss the topic here. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Byte-Compilation][Byte Compilation]], for a full description of byte compilation.
+
+
+
+
+* 1.6 Evaluation
+    :PROPERTIES:
+    :CUSTOM_ID: evaluation
+    :CLASS: section
+    :END:
+
+ When the Lisp interpreter works on an expression, the term for the activity is called evaluation. We say that the interpreter “evaluates the expression”. I've used this term several times before. The word comes from its use in everyday language, “to ascertain the value or amount of; to appraise”, according to Webster's New Collegiate Dictionary.
+
+- [[#How-the-Interpreter-Acts][How the Interpreter Acts]]: Returns and Side Effects...
+- [[#Evaluating-Inner-Lists][Evaluating Inner Lists]]: Lists within lists...
+
+
+** How the Lisp Interpreter Acts
+     :PROPERTIES:
+     :CUSTOM_ID: how-the-lisp-interpreter-acts
+     :CLASS: unnumberedsubsec
+     :END:
+
+After evaluating an expression, the Lisp interpreter will most likely return the value that the computer produces by carrying out the instructions it found in the function definition, or perhaps it will give up on that function and produce an error message. (The interpreter may also find itself tossed, so to speak, to a different function or it may attempt to repeat continually what it is doing for ever and ever in an infinite loop. These actions are less common; and we can ignore them.) Most frequently, the interpreter returns a value.
+
+At the same time the interpreter returns a value, it may do something else as well, such as move a cursor or copy a file; this other kind of action is called a side effect. Actions that we humans think are important, such as printing results, are often side effects to the Lisp interpreter. It is fairly easy to learn to use side effects.
+
+In summary, evaluating a symbolic expression most commonly causes the Lisp interpreter to return a value and perhaps carry out a side effect; or else produce an error.
+
+
+
+
+** 1.6.1 Evaluating Inner Lists
+     :PROPERTIES:
+     :CUSTOM_ID: evaluating-inner-lists
+     :CLASS: subsection
+     :END:
+
+ If evaluation applies to a list that is inside another list, the outer list may use the value returned by the first evaluation as information when the outer list is evaluated. This explains why inner expressions are evaluated first: the values they return are used by the outer expressions.
+
+We can investigate this process by evaluating another addition example. Place your cursor after the following expression and type C-x C-e:
+
+#+begin_src elisp
+         (+ 2 (+ 3 3))
+#+end_src
+
+The number 8 will appear in the echo area.
+
+What happens is that the Lisp interpreter first evaluates the inner expression, =(+ 3 3)=, for which the value 6 is returned; then it evaluates the outer expression as if it were written =(+ 2 6)=, which returns the value 8. Since there are no more enclosing expressions to evaluate, the interpreter prints that value in the echo area.
+
+Now it is easy to understand the name of the command invoked by the keystrokes C-x C-e: the name is =eval-last-sexp=. The letters =sexp= are an abbreviation for “symbolic expression”, and =eval= is an abbreviation for “evaluate”. The command evaluates the last symbolic expression.
+
+As an experiment, you can try evaluating the expression by putting the cursor at the beginning of the next line immediately following the expression, or inside the expression.
+
+Here is another copy of the expression:
+
+#+begin_src elisp
+         (+ 2 (+ 3 3))
+#+end_src
+
+If you place the cursor at the beginning of the blank line that immediately follows the expression and type C-x C-e, you will still get the value 8 printed in the echo area. Now try putting the cursor inside the expression. If you put it right after the next to last parenthesis (so it appears to sit on top of the last parenthesis), you will get a 6 printed in the echo area! This is because the command evaluates the expression =(+ 3 3)=.
+
+Now put the cursor immediately after a number. Type C-x C-e and you will get the number itself. In Lisp, if you evaluate a number, you get the number itself---this is how numbers differ from symbols. If you evaluate a list starting with a symbol like =+=, you will get a value returned that is the result of the computer carrying out the instructions in the function definition attached to that name. If a symbol by itself is evaluated, something different happens, as we will see in the next section.
+
+
+
+
+* 1.7 Variables
+    :PROPERTIES:
+    :CUSTOM_ID: variables
+    :CLASS: section
+    :END:
+
+ In Emacs Lisp, a symbol can have a value attached to it just as it can have a function definition attached to it. The two are different. The function definition is a set of instructions that a computer will obey. A value, on the other hand, is something, such as number or a name, that can vary (which is why such a symbol is called a variable). The value of a symbol can be any expression in Lisp, such as a symbol, number, list, or string. A symbol that has a value is often called a variable.
+
+A symbol can have both a function definition and a value attached to it at the same time. Or it can have just one or the other. The two are separate. This is somewhat similar to the way the name Cambridge can refer to the city in Massachusetts and have some information attached to the name as well, such as “great programming center”.
+
+Another way to think about this is to imagine a symbol as being a chest of drawers. The function definition is put in one drawer, the value in another, and so on. What is put in the drawer holding the value can be changed without affecting the contents of the drawer holding the function definition, and vice versa.
+
+- [[#fill_002dcolumn-Example][fill-column Example]]
+- [[#Void-Function][Void Function]]: The error message for a symbol without a function.
+- [[#Void-Variable][Void Variable]]: The error message for a symbol without a value.
+
+
+** =fill-column=, an Example Variable
+     :PROPERTIES:
+     :CUSTOM_ID: fill-column-an-example-variable
+     :CLASS: unnumberedsubsec
+     :END:
+
+The variable =fill-column= illustrates a symbol with a value attached to it: in every GNU Emacs buffer, this symbol is set to some value, usually 72 or 70, but sometimes to some other value. To find the value of this symbol, evaluate it by itself. If you are reading this in Info inside of GNU Emacs, you can do this by putting the cursor after the symbol and typing C-x C-e:
+
+#+begin_src elisp
+         fill-column
+#+end_src
+
+After I typed C-x C-e, Emacs printed the number 72 in my echo area. This is the value for which =fill-column= is set for me as I write this. It may be different for you in your Info buffer. Notice that the value returned as a variable is printed in exactly the same way as the value returned by a function carrying out its instructions. From the point of view of the Lisp interpreter, a value returned is a value returned. What kind of expression it came from ceases to matter once the value is known.
+
+A symbol can have any value attached to it or, to use the jargon, we can bind the variable to a value: to a number, such as 72; to a string, ="such as this"=; to a list, such as =(spruce pine oak)=; we can even bind a variable to a function definition.
+
+A symbol can be bound to a value in several ways. See [[#set-_0026-setq][Setting the Value of a Variable]], for information about one way to do this.
+
+
+
+
+** 1.7.1 Error Message for a Symbol Without a Function
+     :PROPERTIES:
+     :CUSTOM_ID: error-message-for-a-symbol-without-a-function
+     :CLASS: subsection
+     :END:
+
+ When we evaluated =fill-column= to find its value as a variable, we did not place parentheses around the word. This is because we did not intend to use it as a function name.
+
+If =fill-column= were the first or only element of a list, the Lisp interpreter would attempt to find the function definition attached to it. But =fill-column= has no function definition. Try evaluating this:
+
+#+begin_src elisp
+         (fill-column)
+#+end_src
+
+You will create a *Backtrace* buffer that says:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error: (void-function fill-column)
+           (fill-column)
+           eval((fill-column) nil)
+           elisp--eval-last-sexp(nil)
+           eval-last-sexp(nil)
+           funcall-interactively(eval-last-sexp nil)
+           call-interactively(eval-last-sexp nil nil)
+           command-execute(eval-last-sexp)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+(Remember, to quit the debugger and make the debugger window go away, type q in the *Backtrace* buffer.)
+
+
+
+** 1.7.2 Error Message for a Symbol Without a Value
+     :PROPERTIES:
+     :CUSTOM_ID: error-message-for-a-symbol-without-a-value
+     :CLASS: subsection
+     :END:
+
+ If you attempt to evaluate a symbol that does not have a value bound to it, you will receive an error message. You can see this by experimenting with our 2 plus 2 addition. In the following expression, put your cursor right after the =+=, before the first number 2, type C-x C-e:
+
+#+begin_src elisp
+         (+ 2 2)
+#+end_src
+
+In GNU Emacs 22, you will create a *Backtrace* buffer that says:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error: (void-variable +)
+           eval(+)
+           elisp--eval-last-sexp(nil)
+           eval-last-sexp(nil)
+           funcall-interactively(eval-last-sexp nil)
+           call-interactively(eval-last-sexp nil nil)
+           command-execute(eval-last-sexp)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+(Again, you can quit the debugger by typing q in the *Backtrace* buffer.)
+
+This backtrace is different from the very first error message we saw, which said, ‘Debugger entered--Lisp error: (void-function this)'. In this case, the function does not have a value as a variable; while in the other error message, the function (the word ‘this') did not have a definition.
+
+In this experiment with the =+=, what we did was cause the Lisp interpreter to evaluate the =+= and look for the value of the variable instead of the function definition. We did this by placing the cursor right after the symbol rather than after the parenthesis of the enclosing list as we did before. As a consequence, the Lisp interpreter evaluated the preceding s-expression, which in this case was =+= by itself.
+
+Since =+= does not have a value bound to it, just the function definition, the error message reported that the symbol's value as a variable was void.
+
+
+
+
+* 1.8 Arguments
+    :PROPERTIES:
+    :CUSTOM_ID: arguments
+    :CLASS: section
+    :END:
+
+ To see how information is passed to functions, let's look again at our old standby, the addition of two plus two. In Lisp, this is written as follows:
+
+#+begin_src elisp
+         (+ 2 2)
+#+end_src
+
+If you evaluate this expression, the number 4 will appear in your echo area. What the Lisp interpreter does is add the numbers that follow the =+=.
+
+The numbers added by =+= are called the arguments of the function =+=. These numbers are the information that is given to or passed to the function.
+
+The word “argument” comes from the way it is used in mathematics and does not refer to a disputation between two people; instead it refers to the information presented to the function, in this case, to the =+=. In Lisp, the arguments to a function are the atoms or lists that follow the function. The values returned by the evaluation of these atoms or lists are passed to the function. Different functions require different numbers of arguments; some functions require none at all.[[#fn-3][^{3}]]
+
+1) [[#Data-types][Data types]]: Types of data passed to a function.
+2) [[#Args-as-Variable-or-List][Args as Variable or List]]: An argument can be the value of a variable or list.
+3) [[#Variable-Number-of-Arguments][Variable Number of Arguments]]: Some functions may take a variable number of arguments.
+4) [[#Wrong-Type-of-Argument][Wrong Type of Argument]]: Passing an argument of the wrong type to a function.
+5) [[#message][message]]: A useful function for sending messages.
+
+** 1.8.1 Arguments' Data Types
+     :PROPERTIES:
+     :CUSTOM_ID: arguments-data-types
+     :CLASS: subsection
+     :END:
+
+ The type of data that should be passed to a function depends on what kind of information it uses. The arguments to a function such as =+= must have values that are numbers, since =+= adds numbers. Other functions use different kinds of data for their arguments.
+
+For example, the =concat= function links together or unites two or more strings of text to produce a string. The arguments are strings. Concatenating the two character strings =abc=, =def= produces the single string =abcdef=. This can be seen by evaluating the following:
+
+#+begin_src elisp
+         (concat "abc" "def")
+#+end_src
+
+The value produced by evaluating this expression is ="abcdef"=.
+
+A function such as =substring= uses both a string and numbers as arguments. The function returns a part of the string, a substring of the first argument. This function takes three arguments. Its first argument is the string of characters, the second and third arguments are numbers that indicate the beginning (inclusive) and end (exclusive) of the substring. The numbers are a count of the number of characters (including spaces and punctuation) from the beginning of the string. Note that the characters in a string are numbered from zero, not one.
+
+For example, if you evaluate the following:
+
+#+begin_src elisp
+         (substring "The quick brown fox jumped." 16 19)
+#+end_src
+
+you will see ="fox"= appear in the echo area. The arguments are the string and the two numbers.
+
+Note that the string passed to =substring= is a single atom even though it is made up of several words separated by spaces. Lisp counts everything between the two quotation marks as part of the string, including the spaces. You can think of the =substring= function as a kind of atom smasher since it takes an otherwise indivisible atom and extracts a part. However, =substring= is only able to extract a substring from an argument that is a string, not from another type of atom such as a number or symbol.
+
+
+
+** 1.8.2 An Argument as the Value of a Variable or List
+     :PROPERTIES:
+     :CUSTOM_ID: an-argument-as-the-value-of-a-variable-or-list
+     :CLASS: subsection
+     :END:
+
+An argument can be a symbol that returns a value when it is evaluated. For example, when the symbol =fill-column= by itself is evaluated, it returns a number. This number can be used in an addition.
+
+Position the cursor after the following expression and type C-x C-e:
+
+#+begin_src elisp
+         (+ 2 fill-column)
+#+end_src
+
+The value will be a number two more than what you get by evaluating =fill-column= alone. For me, this is 74, because my value of =fill-column= is 72.
+
+As we have just seen, an argument can be a symbol that returns a value when evaluated. In addition, an argument can be a list that returns a value when it is evaluated. For example, in the following expression, the arguments to the function =concat= are the strings ="The "= and =" red foxes."= and the list =(number-to-string (+ 2 fill-column))=.
+
+#+begin_src elisp
+         (concat "The " (number-to-string (+ 2 fill-column)) " red foxes.")
+#+end_src
+
+If you evaluate this expression---and if, as with my Emacs, =fill-column= evaluates to 72---="The 74 red foxes."= will appear in the echo area. (Note that you must put spaces after the word ‘The' and before the word ‘red' so they will appear in the final string. The function =number-to-string= converts the integer that the addition function returns to a string. =number-to-string= is also known as =int-to-string=.)
+
+
+
+** 1.8.3 Variable Number of Arguments
+     :PROPERTIES:
+     :CUSTOM_ID: variable-number-of-arguments
+     :CLASS: subsection
+     :END:
+
+ Some functions, such as =concat=, =+= or =*=, take any number of arguments. (The =*= is the symbol for multiplication.) This can be seen by evaluating each of the following expressions in the usual way. What you will see in the echo area is printed in this text after ‘⇒', which you may read as “evaluates to”.
+
+In the first set, the functions have no arguments:
+
+#+begin_src elisp
+         (+)       ⇒ 0
+
+         (*)       ⇒ 1
+#+end_src
+
+In this set, the functions have one argument each:
+
+#+begin_src elisp
+         (+ 3)     ⇒ 3
+
+         (* 3)     ⇒ 3
+#+end_src
+
+In this set, the functions have three arguments each:
+
+#+begin_src elisp
+         (+ 3 4 5) ⇒ 12
+
+         (* 3 4 5) ⇒ 60
+#+end_src
+
+
+
+** 1.8.4 Using the Wrong Type Object as an Argument
+     :PROPERTIES:
+     :CUSTOM_ID: using-the-wrong-type-object-as-an-argument
+     :CLASS: subsection
+     :END:
+
+ When a function is passed an argument of the wrong type, the Lisp interpreter produces an error message. For example, the =+= function expects the values of its arguments to be numbers. As an experiment we can pass it the quoted symbol =hello= instead of a number. Position the cursor after the following expression and type C-x C-e:
+
+#+begin_src elisp
+         (+ 2 'hello)
+#+end_src
+
+When you do this you will generate an error message. What has happened is that =+= has tried to add the 2 to the value returned by ='hello=, but the value returned by ='hello= is the symbol =hello=, not a number. Only numbers can be added. So =+= could not carry out its addition.
+
+You will create and enter a *Backtrace* buffer that says:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error:
+                  (wrong-type-argument number-or-marker-p hello)
+           +(2 hello)
+           eval((+ 2 'hello) nil)
+           elisp--eval-last-sexp(t)
+           eval-last-sexp(nil)
+           funcall-interactively(eval-print-last-sexp nil)
+           call-interactively(eval-print-last-sexp nil nil)
+           command-execute(eval-print-last-sexp)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+As usual, the error message tries to be helpful and makes sense after you learn how to read it.[[#fn-4][^{4}]]
+
+The first part of the error message is straightforward; it says ‘wrong type argument'.
+
+The symbol =number-or-marker-p= says that the Lisp interpreter is trying to determine whether the information presented it (the value of the argument) is a number or a marker (a special object representing a buffer position). What it does is test to see whether the =+= is being given numbers to add. It also tests to see whether the argument is something called a marker, which is a specific feature of Emacs Lisp. (In Emacs, locations in a buffer are recorded as markers. When the mark is set with the C-@ or C-<SPC> command, its position is kept as a marker. The mark can be considered a number---the number of characters the location is from the beginning of the buffer.) In Emacs Lisp, =+= can be used to add the numeric value of marker positions as numbers.
+
+The ‘p' of =number-or-marker-p= is the embodiment of a practice started in the early days of Lisp programming. The ‘p' stands for “predicate”. In the jargon used by the early Lisp researchers, a predicate refers to a function to determine whether some property is true or false. So the ‘p' tells us that =number-or-marker-p= is the name of a function that determines whether it is true or false that the argument supplied is a number or a marker. Other Lisp symbols that end in ‘p' include =zerop=, a function that tests whether its argument has the value of zero, and =listp=, a function that tests whether its argument is a list.
+
+Finally, the last part of the error message is the symbol =hello=. This is the value of the argument that was passed to =+=. If the addition had been passed the correct type of object, the value passed would have been a number, such as 37, rather than a symbol like =hello=. But then you would not have got the error message.
+
+
+
+** 1.8.5 The =message= Function
+     :PROPERTIES:
+     :CUSTOM_ID: the-message-function
+     :CLASS: subsection
+     :END:
+
+ Like =+=, the =message= function takes a variable number of arguments. It is used to send messages to the user and is so useful that we will describe it here.
+
+A message is printed in the echo area. For example, you can print a message in your echo area by evaluating the following list:
+
+#+begin_src elisp
+         (message "This message appears in the echo area!")
+#+end_src
+
+The whole string between double quotation marks is a single argument and is printed /in toto/. (Note that in this example, the message itself will appear in the echo area within double quotes; that is because you see the value returned by the =message= function. In most uses of =message= in programs that you write, the text will be printed in the echo area as a side-effect, without the quotes. See [[#multiply_002dby_002dseven-in-detail][=multiply-by-seven= in detail]], for an example of this.)
+
+However, if there is a ‘%s' in the quoted string of characters, the =message= function does not print the ‘%s' as such, but looks to the argument that follows the string. It evaluates the second argument and prints the value at the location in the string where the ‘%s' is.
+
+You can see this by positioning the cursor after the following expression and typing C-x C-e:
+
+#+begin_src elisp
+         (message "The name of this buffer is: %s." (buffer-name))
+#+end_src
+
+In Info, ="The name of this buffer is: *info*."= will appear in the echo area. The function =buffer-name= returns the name of the buffer as a string, which the =message= function inserts in place of =%s=.
+
+To print a value as an integer, use ‘%d' in the same way as ‘%s'. For example, to print a message in the echo area that states the value of the =fill-column=, evaluate the following:
+
+#+begin_src elisp
+         (message "The value of fill-column is %d." fill-column)
+#+end_src
+
+On my system, when I evaluate this list, ="The value of fill-column is 72."= appears in my echo area[[#fn-5][^{5}]].
+
+If there is more than one ‘%s' in the quoted string, the value of the first argument following the quoted string is printed at the location of the first ‘%s' and the value of the second argument is printed at the location of the second ‘%s', and so on.
+
+For example, if you evaluate the following,
+
+#+begin_src elisp
+         (message "There are %d %s in the office!"
+                  (- fill-column 14) "pink elephants")
+#+end_src
+
+a rather whimsical message will appear in your echo area. On my system it says, ="There are 58 pink elephants in the office!"=.
+
+The expression =(- fill-column 14)= is evaluated and the resulting number is inserted in place of the ‘%d'; and the string in double quotes, ="pink elephants"=, is treated as a single argument and inserted in place of the ‘%s'. (That is to say, a string between double quotes evaluates to itself, like a number.)
+
+Finally, here is a somewhat complex example that not only illustrates the computation of a number, but also shows how you can use an expression within an expression to generate the text that is substituted for ‘%s':
+
+#+begin_src elisp
+         (message "He saw %d %s"
+                  (- fill-column 32)
+                  (concat "red "
+                          (substring
+                           "The quick brown foxes jumped." 16 21)
+                          " leaping."))
+#+end_src
+
+In this example, =message= has three arguments: the string, ="He saw %d %s"=, the expression, =(- fill-column 32)=, and the expression beginning with the function =concat=. The value resulting from the evaluation of =(- fill-column 32)= is inserted in place of the ‘%d'; and the value returned by the expression beginning with =concat= is inserted in place of the ‘%s'.
+
+When your fill column is 70 and you evaluate the expression, the message ="He saw 38 red foxes leaping."= appears in your echo area.
+
+
+
+
+* 1.9 Setting the Value of a Variable
+    :PROPERTIES:
+    :CUSTOM_ID: setting-the-value-of-a-variable
+    :CLASS: section
+    :END:
+
+There are several ways by which a variable can be given a value. One of the ways is to use either the function =set= or the function =setq=. Another way is to use =let= (see [[#let][let]]). (The jargon for this process is to bind a variable to a value.)
+
+The following sections not only describe how =set= and =setq= work but also illustrate how arguments are passed.
+
+- [[#Using-set][Using set]]: Setting values.
+- [[#Using-setq][Using setq]]: Setting a quoted value.
+- [[#Counting][Counting]]: Using =setq= to count.
+
+
+
+** 1.9.1 Using =set=
+     :PROPERTIES:
+     :CUSTOM_ID: using-set
+     :CLASS: subsection
+     :END:
+
+ To set the value of the symbol =flowers= to the list ='(rose violet daisy buttercup)=, evaluate the following expression by positioning the cursor after the expression and typing C-x C-e.
+
+#+begin_src elisp
+         (set 'flowers '(rose violet daisy buttercup))
+#+end_src
+
+The list =(rose violet daisy buttercup)= will appear in the echo area. This is what is /returned/ by the =set= function. As a side effect, the symbol =flowers= is bound to the list; that is, the symbol =flowers=, which can be viewed as a variable, is given the list as its value. (This process, by the way, illustrates how a side effect to the Lisp interpreter, setting the value, can be the primary effect that we humans are interested in. This is because every Lisp function must return a value if it does not get an error, but it will only have a side effect if it is designed to have one.)
+
+After evaluating the =set= expression, you can evaluate the symbol =flowers= and it will return the value you just set. Here is the symbol. Place your cursor after it and type C-x C-e.
+
+#+begin_src elisp
+         flowers
+#+end_src
+
+When you evaluate =flowers=, the list =(rose violet daisy buttercup)= appears in the echo area.
+
+Incidentally, if you evaluate ='flowers=, the variable with a quote in front of it, what you will see in the echo area is the symbol itself, =flowers=. Here is the quoted symbol, so you can try this:
+
+#+begin_src elisp
+         'flowers
+#+end_src
+
+Note also, that when you use =set=, you need to quote both arguments to =set=, unless you want them evaluated. Since we do not want either argument evaluated, neither the variable =flowers= nor the list =(rose violet daisy buttercup)=, both are quoted. (When you use =set= without quoting its first argument, the first argument is evaluated before anything else is done. If you did this and =flowers= did not have a value already, you would get an error message that the ‘Symbol's value as variable is void'; on the other hand, if =flowers= did return a value after it was evaluated, the =set= would attempt to set the value that was returned. There are situations where this is the right thing for the function to do; but such situations are rare.)
+
+
+
+
+** 1.9.2 Using =setq=
+     :PROPERTIES:
+     :CUSTOM_ID: using-setq
+     :CLASS: subsection
+     :END:
+
+ As a practical matter, you almost always quote the first argument to =set=. The combination of =set= and a quoted first argument is so common that it has its own name: the special form =setq=. This special form is just like =set= except that the first argument is quoted automatically, so you don't need to type the quote mark yourself. Also, as an added convenience, =setq= permits you to set several different variables to different values, all in one expression.
+
+To set the value of the variable =carnivores= to the list ='(lion tiger leopard)= using =setq=, the following expression is used:
+
+#+begin_src elisp
+         (setq carnivores '(lion tiger leopard))
+#+end_src
+
+This is exactly the same as using =set= except the first argument is automatically quoted by =setq=. (The ‘q' in =setq= means =quote=.)
+
+With =set=, the expression would look like this:
+
+#+begin_src elisp
+         (set 'carnivores '(lion tiger leopard))
+#+end_src
+
+Also, =setq= can be used to assign different values to different variables. The first argument is bound to the value of the second argument, the third argument is bound to the value of the fourth argument, and so on. For example, you could use the following to assign a list of trees to the symbol =trees= and a list of herbivores to the symbol =herbivores=:
+
+#+begin_src elisp
+         (setq trees '(pine fir oak maple)
+               herbivores '(gazelle antelope zebra))
+#+end_src
+
+(The expression could just as well have been on one line, but it might not have fit on a page; and humans find it easier to read nicely formatted lists.)
+
+Although I have been using the term “assign”, there is another way of thinking about the workings of =set= and =setq=; and that is to say that =set= and =setq= make the symbol /point/ to the list. This latter way of thinking is very common and in forthcoming chapters we shall come upon at least one symbol that has “pointer” as part of its name. The name is chosen because the symbol has a value, specifically a list, attached to it; or, expressed another way, the symbol is set to point to the list.
+
+
+
+
+** 1.9.3 Counting
+     :PROPERTIES:
+     :CUSTOM_ID: counting
+     :CLASS: subsection
+     :END:
+
+ Here is an example that shows how to use =setq= in a counter. You might use this to count how many times a part of your program repeats itself. First set a variable to zero; then add one to the number each time the program repeats itself. To do this, you need a variable that serves as a counter, and two expressions: an initial =setq= expression that sets the counter variable to zero; and a second =setq= expression that increments the counter each time it is evaluated.
+
+#+begin_src elisp
+         (setq counter 0)                ; Let's call this the initializer.
+
+         (setq counter (+ counter 1))    ; This is the incrementer.
+
+         counter                         ; This is the counter.
+#+end_src
+
+(The text following the ‘;' are comments. See [[#Change-a-defun][Change a Function Definition]].)
+
+If you evaluate the first of these expressions, the initializer, =(setq counter 0)=, and then evaluate the third expression, =counter=, the number =0= will appear in the echo area. If you then evaluate the second expression, the incrementer, =(setq counter (+ counter 1))=, the counter will get the value 1. So if you again evaluate =counter=, the number =1= will appear in the echo area. Each time you evaluate the second expression, the value of the counter will be incremented.
+
+When you evaluate the incrementer, =(setq counter (+ counter 1))=, the Lisp interpreter first evaluates the innermost list; this is the addition. In order to evaluate this list, it must evaluate the variable =counter= and the number =1=. When it evaluates the variable =counter=, it receives its current value. It passes this value and the number =1= to the =+= which adds them together. The sum is then returned as the value of the inner list and passed to the =setq= which sets the variable =counter= to this new value. Thus, the value of the variable, =counter=, is changed.
+
+
+
+
+* 1.10 Summary
+    :PROPERTIES:
+    :CUSTOM_ID: summary
+    :CLASS: section
+    :END:
+
+Learning Lisp is like climbing a hill in which the first part is the steepest. You have now climbed the most difficult part; what remains becomes easier as you progress onwards.
+
+In summary,
+
+1) Lisp programs are made up of expressions, which are lists or single atoms.
+2) Lists are made up of zero or more atoms or inner lists, separated by whitespace and surrounded by parentheses. A list can be empty.
+3) Atoms are multi-character symbols, like =forward-paragraph=, single character symbols like =+=, strings of characters between double quotation marks, or numbers.
+4) A number evaluates to itself.
+5) A string between double quotes also evaluates to itself.
+6) When you evaluate a symbol by itself, its value is returned.
+7) When you evaluate a list, the Lisp interpreter looks at the first symbol in the list and then at the function definition bound to that symbol. Then the instructions in the function definition are carried out.
+8) A single-quote ‘'' tells the Lisp interpreter that it should return the following expression as written, and not evaluate it as it would if the quote were not there.
+9) Arguments are the information passed to a function. The arguments to a function are computed by evaluating the rest of the elements of the list of which the function is the first element.
+10) A function always returns a value when it is evaluated (unless it gets an error); in addition, it may also carry out some action that is a side effect. In many cases, a function's primary purpose is to create a side effect.
+
+
+
+
+* 1.11 Exercises
+    :PROPERTIES:
+    :CUSTOM_ID: exercises
+    :CLASS: section
+    :END:
+
+A few simple exercises:
+
+- Generate an error message by evaluating an appropriate symbol that is not within parentheses.
+- Generate an error message by evaluating an appropriate symbol that is between parentheses.
+- Create a counter that increments by two rather than one.
+- Write an expression that prints a message in the echo area when evaluated.
+
+
+
+
+** Footnotes
+
+[fn:1] A single-quote is an abbreviation for the special form quote; you need not think about special forms now. See Complications.
+* 总结
+没有什么内容.

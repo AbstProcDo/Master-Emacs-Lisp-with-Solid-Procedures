@@ -1,0 +1,392 @@
+#+TITLE: 15.Readying-a-Graph
+* 15 Readying a Graph
+   :PROPERTIES:
+   :CUSTOM_ID: readying-a-graph
+   :CLASS: chapter
+   :END:
+
+ Our goal is to construct a graph showing the numbers of function definitions of various lengths in the Emacs lisp sources.
+
+As a practical matter, if you were creating a graph, you would probably use a program such as =gnuplot= to do the job. (=gnuplot= is nicely integrated into GNU Emacs.) In this case, however, we create one from scratch, and in the process we will re-acquaint ourselves with some of what we learned before and learn more.
+
+In this chapter, we will first write a simple graph printing function. This first definition will be a prototype, a rapidly written function that enables us to reconnoiter this unknown graph-making territory. We will discover dragons, or find that they are myth. After scouting the terrain, we will feel more confident and enhance the function to label the axes automatically.
+
+1) [[#Columns-of-a-graph][Columns of a graph]]
+2) [[#graph_002dbody_002dprint][graph-body-print]]: How to print the body of a graph.
+3) [[#recursive_002dgraph_002dbody_002dprint][recursive-graph-body-print]]
+4) [[#Printed-Axes][Printed Axes]]
+5) [[#Line-Graph-Exercise][Line Graph Exercise]]
+
+
+
+* Printing the Columns of a Graph
+    :PROPERTIES:
+    :CUSTOM_ID: printing-the-columns-of-a-graph
+    :CLASS: unnumberedsec
+    :END:
+
+Since Emacs is designed to be flexible and work with all kinds of terminals, including character-only terminals, the graph will need to be made from one of the typewriter symbols. An asterisk will do; as we enhance the graph-printing function, we can make the choice of symbol a user option.
+
+We can call this function =graph-body-print=; it will take a =numbers-list= as its only argument. At this stage, we will not label the graph, but only print its body.
+
+The =graph-body-print= function inserts a vertical column of asterisks for each element in the =numbers-list=. The height of each line is determined by the value of that element of the =numbers-list=.
+
+Inserting columns is a repetitive act; that means that this function can be written either with a =while= loop or recursively.
+
+Our first challenge is to discover how to print a column of asterisks. Usually, in Emacs, we print characters onto a screen horizontally, line by line, by typing. We have two routes we can follow: write our own column-insertion function or discover whether one exists in Emacs.
+
+To see whether there is one in Emacs, we can use the M-x apropos command. This command is like the C-h a (=command-apropos=) command, except that the latter finds only those functions that are commands. The M-x apropos command lists all symbols that match a regular expression, including functions that are not interactive.  What we want to look for is some command that prints or inserts columns. Very likely, the name of the function will contain either the word “print” or the word “insert” or the word “column”. Therefore, we can simply type M-x apropos <RET> print\|insert\|column <RET> and look at the result. On my system, this command once took quite some time, and then produced a list of 79 functions and variables. Now it does not take much time at all and produces a list of 211 functions and variables. Scanning down the list, the only function that looks as if it might do the job is =insert-rectangle=.
+
+Indeed, this is the function we want; its documentation says:
+
+#+begin_src elisp
+         insert-rectangle:
+         Insert text of RECTANGLE with upper left corner at point.
+         RECTANGLE's first line is inserted at point,
+         its second line is inserted at a point vertically under point, etc.
+         RECTANGLE should be a list of strings.
+         After this command, the mark is at the upper left corner
+         and point is at the lower right corner.
+#+end_src
+
+We can run a quick test, to make sure it does what we expect of it.
+
+Here is the result of placing the cursor after the =insert-rectangle= expression and typing C-u C-x C-e (=eval-last-sexp=). The function inserts the strings ‘"first"', ‘"second"', and ‘"third"' at and below point. Also the function returns =nil=.
+
+#+begin_src elisp
+         (insert-rectangle '("first" "second" "third"))first
+                                                       second
+                                                       thirdnil
+#+end_src
+
+Of course, we won't be inserting the text of the =insert-rectangle= expression itself into the buffer in which we are making the graph, but will call the function from our program. We shall, however, have to make sure that point is in the buffer at the place where the =insert-rectangle= function will insert its column of strings.
+
+If you are reading this in Info, you can see how this works by switching to another buffer, such as the *scratch* buffer, placing point somewhere in the buffer, typing M-:, typing the =insert-rectangle= expression into the minibuffer at the prompt, and then typing <RET>. This causes Emacs to evaluate the expression in the minibuffer, but to use as the value of point the position of point in the *scratch* buffer. (M-: is the keybinding for =eval-expression=. Also, =nil= does not appear in the *scratch* buffer since the expression is evaluated in the minibuffer.)
+
+We find when we do this that point ends up at the end of the last inserted line---that is to say, this function moves point as a side-effect. If we were to repeat the command, with point at this position, the next insertion would be below and to the right of the previous insertion. We don't want this! If we are going to make a bar graph, the columns need to be beside each other.
+
+So we discover that each cycle of the column-inserting =while= loop must reposition point to the place we want it, and that place will be at the top, not the bottom, of the column. Moreover, we remember that when we print a graph, we do not expect all the columns to be the same height. This means that the top of each column may be at a different height from the previous one. We cannot simply reposition point to the same line each time, but moved over to the right---or perhaps we can...
+
+We are planning to make the columns of the bar graph out of asterisks. The number of asterisks in the column is the number specified by the current element of the =numbers-list=. We need to construct a list of asterisks of the right length for each call to =insert-rectangle=. If this list consists solely of the requisite number of asterisks, then we will have to position point the right number of lines above the base for the graph to print correctly. This could be difficult.
+
+Alternatively, if we can figure out some way to pass =insert-rectangle= a list of the same length each time, then we can place point on the same line each time, but move it over one column to the right for each new column. If we do this, however, some of the entries in the list passed to =insert-rectangle= must be blanks rather than asterisks. For example, if the maximum height of the graph is 5, but the height of the column is 3, then =insert-rectangle= requires an argument that looks like this:
+
+#+begin_src elisp
+         (" " " " "*" "*" "*")
+#+end_src
+
+This last proposal is not so difficult, so long as we can determine the column height. There are two ways for us to specify the column height: we can arbitrarily state what it will be, which would work fine for graphs of that height; or we can search through the list of numbers and use the maximum height of the list as the maximum height of the graph. If the latter operation were difficult, then the former procedure would be easiest, but there is a function built into Emacs that determines the maximum of its arguments. We can use that function. The function is called =max= and it returns the largest of all its arguments, which must be numbers. Thus, for example,
+
+#+begin_src elisp
+         (max  3 4 6 5 7 3)
+#+end_src
+
+returns 7. (A corresponding function called =min= returns the smallest of all its arguments.)  However, we cannot simply call =max= on the =numbers-list=; the =max= function expects numbers as its argument, not a list of numbers. Thus, the following expression,
+
+#+begin_src elisp
+         (max  '(3 4 6 5 7 3))
+#+end_src
+
+produces the following error message;
+
+#+begin_src elisp
+         Wrong type of argument:  number-or-marker-p, (3 4 6 5 7 3)
+#+end_src
+
+We need a function that passes a list of arguments to a function. This function is =apply=. This function applies its first argument (a function) to its remaining arguments, the last of which may be a list.
+
+For example,
+
+#+begin_src elisp
+         (apply 'max 3 4 7 3 '(4 8 5))
+#+end_src
+
+returns 8.
+
+(Incidentally, I don't know how you would learn of this function without a book such as this. It is possible to discover other functions, like =search-forward= or =insert-rectangle=, by guessing at a part of their names and then using =apropos=. Even though its base in metaphor is clear---apply its first argument to the rest---I doubt a novice would come up with that particular word when using =apropos= or other aid. Of course, I could be wrong; after all, the function was first named by someone who had to invent it.)
+
+The second and subsequent arguments to =apply= are optional, so we can use =apply= to call a function and pass the elements of a list to it, like this, which also returns 8:
+
+#+begin_src elisp
+         (apply 'max '(4 8 5))
+#+end_src
+
+This latter way is how we will use =apply=. The =recursive-lengths-list-many-files= function returns a numbers' list to which we can apply =max= (we could also apply =max= to the sorted numbers' list; it does not matter whether the list is sorted or not.)
+
+Hence, the operation for finding the maximum height of the graph is this:
+
+#+begin_src elisp
+         (setq max-graph-height (apply 'max numbers-list))
+#+end_src
+
+Now we can return to the question of how to create a list of strings for a column of the graph. Told the maximum height of the graph and the number of asterisks that should appear in the column, the function should return a list of strings for the =insert-rectangle= command to insert.
+
+Each column is made up of asterisks or blanks. Since the function is passed the value of the height of the column and the number of asterisks in the column, the number of blanks can be found by subtracting the number of asterisks from the height of the column. Given the number of blanks and the number of asterisks, two =while= loops can be used to construct the list:
+
+#+begin_src elisp
+         ;;; First version.
+         (defun column-of-graph (max-graph-height actual-height)
+           "Return list of strings that is one column of a graph."
+           (let ((insert-list nil)
+                 (number-of-top-blanks
+                  (- max-graph-height actual-height)))
+
+             ;; Fill in asterisks.
+             (while (> actual-height 0)
+               (setq insert-list (cons "*" insert-list))
+               (setq actual-height (1- actual-height)))
+
+             ;; Fill in blanks.
+             (while (> number-of-top-blanks 0)
+               (setq insert-list (cons " " insert-list))
+               (setq number-of-top-blanks
+                     (1- number-of-top-blanks)))
+
+             ;; Return whole list.
+             insert-list))
+#+end_src
+
+If you install this function and then evaluate the following expression you will see that it returns the list as desired:
+
+#+begin_src elisp
+         (column-of-graph 5 3)
+#+end_src
+
+returns
+
+#+begin_src elisp
+         (" " " " "*" "*" "*")
+#+end_src
+
+As written, =column-of-graph= contains a major flaw: the symbols used for the blank and for the marked entries in the column are hard-coded as a space and asterisk. This is fine for a prototype, but you, or another user, may wish to use other symbols. For example, in testing the graph function, you may want to use a period in place of the space, to make sure the point is being repositioned properly each time the =insert-rectangle= function is called; or you might want to substitute a ‘+' sign or other symbol for the asterisk. You might even want to make a graph-column that is more than one display column wide. The program should be more flexible. The way to do that is to replace the blank and the asterisk with two variables that we can call =graph-blank= and =graph-symbol= and define those variables separately.
+
+Also, the documentation is not well written. These considerations lead us to the second version of the function:
+
+#+begin_src elisp
+         (defvar graph-symbol "*"
+           "String used as symbol in graph, usually an asterisk.")
+
+         (defvar graph-blank " "
+           "String used as blank in graph, usually a blank space.
+         graph-blank must be the same number of columns wide
+         as graph-symbol.")
+#+end_src
+
+(For an explanation of =defvar=, see [[#defvar][Initializing a Variable with =defvar=]].)
+
+#+begin_src elisp
+         ;;; Second version.
+         (defun column-of-graph (max-graph-height actual-height)
+           "Return MAX-GRAPH-HEIGHT strings; ACTUAL-HEIGHT are graph-symbols.
+         The graph-symbols are contiguous entries at the end
+         of the list.
+         The list will be inserted as one column of a graph.
+         The strings are either graph-blank or graph-symbol."
+
+           (let ((insert-list nil)
+                 (number-of-top-blanks
+                  (- max-graph-height actual-height)))
+
+             ;; Fill in graph-symbols.
+             (while (> actual-height 0)
+               (setq insert-list (cons graph-symbol insert-list))
+               (setq actual-height (1- actual-height)))
+
+             ;; Fill in graph-blanks.
+             (while (> number-of-top-blanks 0)
+               (setq insert-list (cons graph-blank insert-list))
+               (setq number-of-top-blanks
+                     (1- number-of-top-blanks)))
+
+             ;; Return whole list.
+             insert-list))
+#+end_src
+
+If we wished, we could rewrite =column-of-graph= a third time to provide optionally for a line graph as well as for a bar graph. This would not be hard to do. One way to think of a line graph is that it is no more than a bar graph in which the part of each bar that is below the top is blank. To construct a column for a line graph, the function first constructs a list of blanks that is one shorter than the value, then it uses =cons= to attach a graph symbol to the list; then it uses =cons= again to attach the top blanks to the list.
+
+It is easy to see how to write such a function, but since we don't need it, we will not do it. But the job could be done, and if it were done, it would be done with =column-of-graph=. Even more important, it is worth noting that few changes would have to be made anywhere else. The enhancement, if we ever wish to make it, is simple.
+
+Now, finally, we come to our first actual graph printing function. This prints the body of a graph, not the labels for the vertical and horizontal axes, so we can call this =graph-body-print=.
+
+
+Next: [[#recursive_002dgraph_002dbody_002dprint][recursive-graph-body-print]], Previous: [[#Columns-of-a-graph][Columns of a graph]], Up: [[#Readying-a-Graph][Readying a Graph]]
+
+* 15.1 The =graph-body-print= Function
+    :PROPERTIES:
+    :CUSTOM_ID: the-graph-body-print-function
+    :CLASS: section
+    :END:
+
+ After our preparation in the preceding section, the =graph-body-print= function is straightforward. The function will print column after column of asterisks and blanks, using the elements of a numbers' list to specify the number of asterisks in each column. This is a repetitive act, which means we can use a decrementing =while= loop or recursive function for the job. In this section, we will write the definition using a =while= loop.
+
+The =column-of-graph= function requires the height of the graph as an argument, so we should determine and record that as a local variable.
+
+This leads us to the following template for the =while= loop version of this function:
+
+#+begin_src elisp
+         (defun graph-body-print (numbers-list)
+           "documentation..."
+           (let ((height  ...
+                  ...))
+
+             (while numbers-list
+               insert-columns-and-reposition-point
+               (setq numbers-list (cdr numbers-list)))))
+#+end_src
+
+We need to fill in the slots of the template.
+
+Clearly, we can use the =(apply 'max numbers-list)= expression to determine the height of the graph.
+
+The =while= loop will cycle through the =numbers-list= one element at a time. As it is shortened by the =(setq numbers-list (cdr numbers-list))= expression, the car of each instance of the list is the value of the argument for =column-of-graph=.
+
+At each cycle of the =while= loop, the =insert-rectangle= function inserts the list returned by =column-of-graph=. Since the =insert-rectangle= function moves point to the lower right of the inserted rectangle, we need to save the location of point at the time the rectangle is inserted, move back to that position after the rectangle is inserted, and then move horizontally to the next place from which =insert-rectangle= is called.
+
+If the inserted columns are one character wide, as they will be if single blanks and asterisks are used, the repositioning command is simply =(forward-char 1)=; however, the width of a column may be greater than one. This means that the repositioning command should be written =(forward-char symbol-width)=. The =symbol-width= itself is the length of a =graph-blank= and can be found using the expression =(length graph-blank)=. The best place to bind the =symbol-width= variable to the value of the width of graph column is in the varlist of the =let= expression.
+
+These considerations lead to the following function definition:
+
+#+begin_src elisp
+         (defun graph-body-print (numbers-list)
+           "Print a bar graph of the NUMBERS-LIST.
+         The numbers-list consists of the Y-axis values."
+
+           (let ((height (apply 'max numbers-list))
+                 (symbol-width (length graph-blank))
+                 from-position)
+
+             (while numbers-list
+               (setq from-position (point))
+               (insert-rectangle
+                (column-of-graph height (car numbers-list)))
+               (goto-char from-position)
+               (forward-char symbol-width)
+               ;; Draw graph column by column.
+               (sit-for 0)
+               (setq numbers-list (cdr numbers-list)))
+             ;; Place point for X axis labels.
+             (forward-line height)
+             (insert "\n")
+         ))
+#+end_src
+
+The one unexpected expression in this function is the =(sit-for 0)= expression in the =while= loop. This expression makes the graph printing operation more interesting to watch than it would be otherwise. The expression causes Emacs to sit or do nothing for a zero length of time and then redraw the screen. Placed here, it causes Emacs to redraw the screen column by column. Without it, Emacs would not redraw the screen until the function exits.
+
+We can test =graph-body-print= with a short list of numbers.
+
+1. Install =graph-symbol=, =graph-blank=, =column-of-graph=, which are in [[#Columns-of-a-graph][Columns of a graph]], and =graph-body-print=.
+2. Copy the following expression:
+
+   #+begin_src elisp
+                 (graph-body-print '(1 2 3 4 6 4 3 5 7 6 5 2 3))
+   #+end_src
+
+3. Switch to the *scratch* buffer and place the cursor where you want the graph to start.
+4. Type M-: (=eval-expression=).
+5. Yank the =graph-body-print= expression into the minibuffer with C-y (=yank)=.
+6. Press <RET> to evaluate the =graph-body-print= expression.
+
+Emacs will print a graph like this:
+
+#+begin_src elisp
+                             *
+                         *   **
+                         *  ****
+                        *** ****
+                       ********* *
+                      ************
+                     *************
+#+end_src
+
+
+Next: [[#Printed-Axes][Printed Axes]], Previous: [[#graph_002dbody_002dprint][graph-body-print]], Up: [[#Readying-a-Graph][Readying a Graph]]
+
+* 15.2 The =recursive-graph-body-print= Function
+    :PROPERTIES:
+    :CUSTOM_ID: the-recursive-graph-body-print-function
+    :CLASS: section
+    :END:
+
+ The =graph-body-print= function may also be written recursively. The recursive solution is divided into two parts: an outside wrapper that uses a =let= expression to determine the values of several variables that need only be found once, such as the maximum height of the graph, and an inside function that is called recursively to print the graph.
+
+The wrapper is uncomplicated:
+
+#+begin_src elisp
+         (defun recursive-graph-body-print (numbers-list)
+           "Print a bar graph of the NUMBERS-LIST.
+         The numbers-list consists of the Y-axis values."
+           (let ((height (apply 'max numbers-list))
+                 (symbol-width (length graph-blank))
+                 from-position)
+             (recursive-graph-body-print-internal
+              numbers-list
+              height
+              symbol-width)))
+#+end_src
+
+The recursive function is a little more difficult. It has four parts: the do-again-test, the printing code, the recursive call, and the next-step-expression. The do-again-test is a =when= expression that determines whether the =numbers-list= contains any remaining elements; if it does, the function prints one column of the graph using the printing code and calls itself again. The function calls itself again according to the value produced by the next-step-expression which causes the call to act on a shorter version of the =numbers-list=.
+
+#+begin_src elisp
+         (defun recursive-graph-body-print-internal
+           (numbers-list height symbol-width)
+           "Print a bar graph.
+         Used within recursive-graph-body-print function."
+
+           (when numbers-list
+                 (setq from-position (point))
+                 (insert-rectangle
+                  (column-of-graph height (car numbers-list)))
+                 (goto-char from-position)
+                 (forward-char symbol-width)
+                 (sit-for 0)     ; Draw graph column by column.
+                 (recursive-graph-body-print-internal
+                  (cdr numbers-list) height symbol-width)))
+#+end_src
+
+After installation, this expression can be tested; here is a sample:
+
+#+begin_src elisp
+         (recursive-graph-body-print '(3 2 5 6 7 5 3 4 6 4 3 2 1))
+#+end_src
+
+Here is what =recursive-graph-body-print= produces:
+
+#+begin_src elisp
+                         *
+                        **   *
+                       ****  *
+                       **** ***
+                     * *********
+                     ************
+                     *************
+#+end_src
+
+Either of these two functions, =graph-body-print= or =recursive-graph-body-print=, create the body of a graph.
+
+
+Next: [[#Line-Graph-Exercise][Line Graph Exercise]], Previous: [[#recursive_002dgraph_002dbody_002dprint][recursive-graph-body-print]], Up: [[#Readying-a-Graph][Readying a Graph]]
+
+* 15.3 Need for Printed Axes
+    :PROPERTIES:
+    :CUSTOM_ID: need-for-printed-axes
+    :CLASS: section
+    :END:
+
+A graph needs printed axes, so you can orient yourself. For a do-once project, it may be reasonable to draw the axes by hand using Emacs's Picture mode; but a graph drawing function may be used more than once.
+
+For this reason, I have written enhancements to the basic =print-graph-body= function that automatically print labels for the horizontal and vertical axes. Since the label printing functions do not contain much new material, I have placed their description in an appendix. See [[#Full-Graph][A Graph with Labeled Axes]].
+
+
+Previous: [[#Printed-Axes][Printed Axes]], Up: [[#Readying-a-Graph][Readying a Graph]]
+
+* 15.4 Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: exercise-3
+    :CLASS: section
+    :END:
+
+Write a line graph version of the graph printing functions.
+
+
+Next: [[#Debugging][Debugging]], Previous: [[#Readying-a-Graph][Readying a Graph]], Up: [[#Top][Top]]
+

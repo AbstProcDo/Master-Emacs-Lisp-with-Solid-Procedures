@@ -1,0 +1,653 @@
+#+TITLE: 05.A-Few-Complex-Function
+* 5 A Few More Complex Functions
+   :PROPERTIES:
+   :CUSTOM_ID: a-few-more-complex-functions
+   :CLASS: chapter
+   :END:
+
+In this chapter, we build on what we have learned in previous chapters by looking at more complex functions. The =copy-to-buffer= function illustrates use of two =save-excursion= expressions in one definition, while the =insert-buffer= function illustrates use of an asterisk in an =interactive= expression, use of =or=, and the important distinction between a name and the object to which the name refers.
+
+1) [[#copy_002dto_002dbuffer][copy-to-buffer]]: With =set-buffer=, =get-buffer-create=.
+2) [[#insert_002dbuffer][insert-buffer]]: Read-only, and with =or=.
+3) [[#beginning_002dof_002dbuffer][beginning-of-buffer]]: Shows =goto-char=, =point-min=, and =push-mark=.
+4) [[#Second-Buffer-Related-Review][Second Buffer Related Review]]
+5) [[#optional-Exercise][optional Exercise]]
+
+
+
+* 5.1 The Definition of =copy-to-buffer=
+    :PROPERTIES:
+    :CUSTOM_ID: the-definition-of-copy-to-buffer
+    :CLASS: section
+    :END:
+
+ After understanding how =append-to-buffer= works, it is easy to understand =copy-to-buffer=. This function copies text into a buffer, but instead of adding to the second buffer, it replaces all the previous text in the second buffer.
+
+The body of =copy-to-buffer= looks like this,
+
+#+begin_src elisp
+         ...
+         (interactive "BCopy to buffer: \nr")
+         (let ((oldbuf (current-buffer)))
+           (with-current-buffer (get-buffer-create buffer)
+             (barf-if-buffer-read-only)
+             (erase-buffer)
+             (save-excursion
+               (insert-buffer-substring oldbuf start end)))))
+#+end_src
+
+The =copy-to-buffer= function has a simpler =interactive= expression than =append-to-buffer=.
+
+The definition then says
+
+#+begin_src elisp
+         (with-current-buffer (get-buffer-create buffer) ...
+#+end_src
+
+First, look at the earliest inner expression; that is evaluated first. That expression starts with =get-buffer-create buffer=. The function tells the computer to use the buffer with the name specified as the one to which you are copying, or if such a buffer does not exist, to create it. Then, the =with-current-buffer= function evaluates its body with that buffer temporarily current.
+
+(This demonstrates another way to shift the computer's attention but not the user's. The =append-to-buffer= function showed how to do the same with =save-excursion= and =set-buffer=. =with-current-buffer= is a newer, and arguably easier, mechanism.)
+
+The =barf-if-buffer-read-only= function sends you an error message saying the buffer is read-only if you cannot modify it.
+
+The next line has the =erase-buffer= function as its sole contents. That function erases the buffer.
+
+Finally, the last two lines contain the =save-excursion= expression with =insert-buffer-substring= as its body. The =insert-buffer-substring= expression copies the text from the buffer you are in (and you have not seen the computer shift its attention, so you don't know that that buffer is now called =oldbuf=).
+
+Incidentally, this is what is meant by “replacement”. To replace text, Emacs erases the previous text and then inserts new text.
+
+In outline, the body of =copy-to-buffer= looks like this:
+
+#+begin_src elisp
+         (let (bind-oldbuf-to-value-of-current-buffer)
+             (with-the-buffer-you-are-copying-to
+               (but-do-not-erase-or-copy-to-a-read-only-buffer)
+               (erase-buffer)
+               (save-excursion
+                 insert-substring-from-oldbuf-into-buffer)))
+#+end_src
+
+
+Next: [[#beginning_002dof_002dbuffer][beginning-of-buffer]], Previous: [[#copy_002dto_002dbuffer][copy-to-buffer]], Up: [[#More-Complex][More Complex]]
+
+* 5.2 The Definition of =insert-buffer=
+    :PROPERTIES:
+    :CUSTOM_ID: the-definition-of-insert-buffer
+    :CLASS: section
+    :END:
+
+ =insert-buffer= is yet another buffer-related function. This command copies another buffer /into/ the current buffer. It is the reverse of =append-to-buffer= or =copy-to-buffer=, since they copy a region of text /from/ the current buffer to another buffer.
+
+Here is a discussion based on the original code. The code was simplified in 2003 and is harder to understand.
+
+(See [[#New-insert_002dbuffer][New Body for =insert-buffer=]], to see a discussion of the new body.)
+
+In addition, this code illustrates the use of =interactive= with a buffer that might be read-only and the important distinction between the name of an object and the object actually referred to.
+
+- [[#insert_002dbuffer-code][insert-buffer code]]
+- [[#insert_002dbuffer-interactive][insert-buffer interactive]]: When you can read, but not write.
+- [[#insert_002dbuffer-body][insert-buffer body]]: The body has an =or= and a =let=.
+- [[#if-_0026-or][if & or]]: Using an =if= instead of an =or=.
+- [[#Insert-or][Insert or]]: How the =or= expression works.
+- [[#Insert-let][Insert let]]: Two =save-excursion= expressions.
+- [[#New-insert_002dbuffer][New insert-buffer]]
+
+
+Next: [[#insert_002dbuffer-interactive][insert-buffer interactive]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** The Code for =insert-buffer=
+     :PROPERTIES:
+     :CUSTOM_ID: the-code-for-insert-buffer
+     :CLASS: unnumberedsubsec
+     :END:
+
+Here is the earlier code:
+
+#+begin_src elisp
+         (defun insert-buffer (buffer)
+           "Insert after point the contents of BUFFER.
+         Puts mark after the inserted text.
+         BUFFER may be a buffer or a buffer name."
+           (interactive "*bInsert buffer: ")
+           (or (bufferp buffer)
+               (setq buffer (get-buffer buffer)))
+           (let (start end newmark)
+             (save-excursion
+               (save-excursion
+                 (set-buffer buffer)
+                 (setq start (point-min) end (point-max)))
+               (insert-buffer-substring buffer start end)
+               (setq newmark (point)))
+             (push-mark newmark)))
+#+end_src
+
+As with other function definitions, you can use a template to see an outline of the function:
+
+#+begin_src elisp
+         (defun insert-buffer (buffer)
+           "documentation..."
+           (interactive "*bInsert buffer: ")
+           body...)
+#+end_src
+
+
+Next: [[#insert_002dbuffer-body][insert-buffer body]], Previous: [[#insert_002dbuffer-code][insert-buffer code]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.1 The Interactive Expression in =insert-buffer=
+     :PROPERTIES:
+     :CUSTOM_ID: the-interactive-expression-in-insert-buffer
+     :CLASS: subsection
+     :END:
+
+ In =insert-buffer=, the argument to the =interactive= declaration has two parts, an asterisk, ‘*', and ‘bInsert buffer: '.
+
+- [[#Read_002donly-buffer][Read-only buffer]]: When a buffer cannot be modified.
+- [[#b-for-interactive][b for interactive]]: An existing buffer or else its name.
+
+
+Next: [[#b-for-interactive][b for interactive]], Up: [[#insert_002dbuffer-interactive][insert-buffer interactive]]
+
+*** A Read-only Buffer
+      :PROPERTIES:
+      :CUSTOM_ID: a-read-only-buffer
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+ The asterisk is for the situation when the current buffer is a read-only buffer---a buffer that cannot be modified. If =insert-buffer= is called when the current buffer is read-only, a message to this effect is printed in the echo area and the terminal may beep or blink at you; you will not be permitted to insert anything into current buffer. The asterisk does not need to be followed by a newline to separate it from the next argument.
+
+
+Previous: [[#Read_002donly-buffer][Read-only buffer]], Up: [[#insert_002dbuffer-interactive][insert-buffer interactive]]
+
+*** ‘b' in an Interactive Expression
+      :PROPERTIES:
+      :CUSTOM_ID: b-in-an-interactive-expression
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+The next argument in the interactive expression starts with a lower case ‘b'. (This is different from the code for =append-to-buffer=, which uses an upper-case ‘B'. See [[#append_002dto_002dbuffer][The Definition of =append-to-buffer=]].) The lower-case ‘b' tells the Lisp interpreter that the argument for =insert-buffer= should be an existing buffer or else its name. (The upper-case ‘B' option provides for the possibility that the buffer does not exist.) Emacs will prompt you for the name of the buffer, offering you a default buffer, with name completion enabled. If the buffer does not exist, you receive a message that says “No match”; your terminal may beep at you as well.
+
+The new and simplified code generates a list for =interactive=. It uses the =barf-if-buffer-read-only= and =read-buffer= functions with which we are already familiar and the =progn= special form with which we are not. (It will be described later.)
+
+
+Next: [[#if-_0026-or][if & or]], Previous: [[#insert_002dbuffer-interactive][insert-buffer interactive]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.2 The Body of the =insert-buffer= Function
+     :PROPERTIES:
+     :CUSTOM_ID: the-body-of-the-insert-buffer-function
+     :CLASS: subsection
+     :END:
+
+The body of the =insert-buffer= function has two major parts: an =or= expression and a =let= expression. The purpose of the =or= expression is to ensure that the argument =buffer= is bound to a buffer and not just the name of a buffer. The body of the =let= expression contains the code which copies the other buffer into the current buffer.
+
+In outline, the two expressions fit into the =insert-buffer= function like this:
+
+#+begin_src elisp
+         (defun insert-buffer (buffer)
+           "documentation..."
+           (interactive "*bInsert buffer: ")
+           (or ...
+               ...
+           (let (varlist)
+               body-of-let... )
+#+end_src
+
+To understand how the =or= expression ensures that the argument =buffer= is bound to a buffer and not to the name of a buffer, it is first necessary to understand the =or= function.
+
+Before doing this, let me rewrite this part of the function using =if= so that you can see what is done in a manner that will be familiar.
+
+
+Next: [[#Insert-or][Insert or]], Previous: [[#insert_002dbuffer-body][insert-buffer body]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.3 =insert-buffer= With an =if= Instead of an =or=
+     :PROPERTIES:
+     :CUSTOM_ID: insert-buffer-with-an-if-instead-of-an-or
+     :CLASS: subsection
+     :END:
+
+The job to be done is to make sure the value of =buffer= is a buffer itself and not the name of a buffer. If the value is the name, then the buffer itself must be got.
+
+You can imagine yourself at a conference where an usher is wandering around holding a list with your name on it and looking for you: the usher is bound to your name, not to you; but when the usher finds you and takes your arm, the usher becomes bound to you.
+
+In Lisp, you might describe this situation like this:
+
+#+begin_src elisp
+         (if (not (holding-on-to-guest))
+             (find-and-take-arm-of-guest))
+#+end_src
+
+We want to do the same thing with a buffer---if we do not have the buffer itself, we want to get it.
+
+Using a predicate called =bufferp= that tells us whether we have a buffer (rather than its name), we can write the code like this:
+
+#+begin_src elisp
+         (if (not (bufferp buffer))              ; if-part
+             (setq buffer (get-buffer buffer)))  ; then-part
+#+end_src
+
+Here, the true-or-false-test of the =if= expression is =(not (bufferp buffer))=; and the then-part is the expression =(setq buffer (get-buffer buffer))=.
+
+In the test, the function =bufferp= returns true if its argument is a buffer---but false if its argument is the name of the buffer. (The last character of the function name =bufferp= is the character ‘p'; as we saw earlier, such use of ‘p' is a convention that indicates that the function is a predicate, which is a term that means that the function will determine whether some property is true or false. See [[#Wrong-Type-of-Argument][Using the Wrong Type Object as an Argument]].)
+
+The function =not= precedes the expression =(bufferp buffer)=, so the true-or-false-test looks like this:
+
+#+begin_src elisp
+         (not (bufferp buffer))
+#+end_src
+
+=not= is a function that returns true if its argument is false and false if its argument is true. So if =(bufferp buffer)= returns true, the =not= expression returns false and vice versa.
+
+Using this test, the =if= expression works as follows: when the value of the variable =buffer= is actually a buffer rather than its name, the true-or-false-test returns false and the =if= expression does not evaluate the then-part. This is fine, since we do not need to do anything to the variable =buffer= if it really is a buffer.
+
+On the other hand, when the value of =buffer= is not a buffer itself, but the name of a buffer, the true-or-false-test returns true and the then-part of the expression is evaluated. In this case, the then-part is =(setq buffer (get-buffer buffer))=. This expression uses the =get-buffer= function to return an actual buffer itself, given its name. The =setq= then sets the variable =buffer= to the value of the buffer itself, replacing its previous value (which was the name of the buffer).
+
+
+Next: [[#Insert-let][Insert let]], Previous: [[#if-_0026-or][if & or]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.4 The =or= in the Body
+     :PROPERTIES:
+     :CUSTOM_ID: the-or-in-the-body
+     :CLASS: subsection
+     :END:
+
+The purpose of the =or= expression in the =insert-buffer= function is to ensure that the argument =buffer= is bound to a buffer and not just to the name of a buffer. The previous section shows how the job could have been done using an =if= expression. However, the =insert-buffer= function actually uses =or=. To understand this, it is necessary to understand how =or= works.
+
+An =or= function can have any number of arguments. It evaluates each argument in turn and returns the value of the first of its arguments that is not =nil=. Also, and this is a crucial feature of =or=, it does not evaluate any subsequent arguments after returning the first non-=nil= value.
+
+The =or= expression looks like this:
+
+#+begin_src elisp
+         (or (bufferp buffer)
+             (setq buffer (get-buffer buffer)))
+#+end_src
+
+The first argument to =or= is the expression =(bufferp buffer)=. This expression returns true (a non-=nil= value) if the buffer is actually a buffer, and not just the name of a buffer. In the =or= expression, if this is the case, the =or= expression returns this true value and does not evaluate the next expression---and this is fine with us, since we do not want to do anything to the value of =buffer= if it really is a buffer.
+
+On the other hand, if the value of =(bufferp buffer)= is =nil=, which it will be if the value of =buffer= is the name of a buffer, the Lisp interpreter evaluates the next element of the =or= expression. This is the expression =(setq buffer (get-buffer buffer))=. This expression returns a non-=nil= value, which is the value to which it sets the variable =buffer=---and this value is a buffer itself, not the name of a buffer.
+
+The result of all this is that the symbol =buffer= is always bound to a buffer itself rather than to the name of a buffer. All this is necessary because the =set-buffer= function in a following line only works with a buffer itself, not with the name to a buffer.
+
+Incidentally, using =or=, the situation with the usher would be written like this:
+
+#+begin_src elisp
+         (or (holding-on-to-guest) (find-and-take-arm-of-guest))
+#+end_src
+
+
+Next: [[#New-insert_002dbuffer][New insert-buffer]], Previous: [[#Insert-or][Insert or]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.5 The =let= Expression in =insert-buffer=
+     :PROPERTIES:
+     :CUSTOM_ID: the-let-expression-in-insert-buffer
+     :CLASS: subsection
+     :END:
+
+After ensuring that the variable =buffer= refers to a buffer itself and not just to the name of a buffer, the =insert-buffer function= continues with a =let= expression. This specifies three local variables, =start=, =end=, and =newmark= and binds them to the initial value =nil=. These variables are used inside the remainder of the =let= and temporarily hide any other occurrence of variables of the same name in Emacs until the end of the =let=.
+
+The body of the =let= contains two =save-excursion= expressions. First, we will look at the inner =save-excursion= expression in detail. The expression looks like this:
+
+#+begin_src elisp
+         (save-excursion
+           (set-buffer buffer)
+           (setq start (point-min) end (point-max)))
+#+end_src
+
+The expression =(set-buffer buffer)= changes Emacs's attention from the current buffer to the one from which the text will copied. In that buffer, the variables =start= and =end= are set to the beginning and end of the buffer, using the commands =point-min= and =point-max=. Note that we have here an illustration of how =setq= is able to set two variables in the same expression. The first argument of =setq= is set to the value of its second, and its third argument is set to the value of its fourth.
+
+After the body of the inner =save-excursion= is evaluated, the =save-excursion= restores the original buffer, but =start= and =end= remain set to the values of the beginning and end of the buffer from which the text will be copied.
+
+The outer =save-excursion= expression looks like this:
+
+#+begin_src elisp
+         (save-excursion
+           (inner-save-excursion-expression
+              (go-to-new-buffer-and-set-start-and-end)
+           (insert-buffer-substring buffer start end)
+           (setq newmark (point)))
+#+end_src
+
+The =insert-buffer-substring= function copies the text /into/ the current buffer /from/ the region indicated by =start= and =end= in =buffer=. Since the whole of the second buffer lies between =start= and =end=, the whole of the second buffer is copied into the buffer you are editing. Next, the value of point, which will be at the end of the inserted text, is recorded in the variable =newmark=.
+
+After the body of the outer =save-excursion= is evaluated, point is relocated to its original place.
+
+However, it is convenient to locate a mark at the end of the newly inserted text and locate point at its beginning. The =newmark= variable records the end of the inserted text. In the last line of the =let= expression, the =(push-mark newmark)= expression function sets a mark to this location. (The previous location of the mark is still accessible; it is recorded on the mark ring and you can go back to it with C-u C-<SPC>.) Meanwhile, point is located at the beginning of the inserted text, which is where it was before you called the insert function, the position of which was saved by the first =save-excursion=.
+
+The whole =let= expression looks like this:
+
+#+begin_src elisp
+         (let (start end newmark)
+           (save-excursion
+             (save-excursion
+               (set-buffer buffer)
+               (setq start (point-min) end (point-max)))
+             (insert-buffer-substring buffer start end)
+             (setq newmark (point)))
+           (push-mark newmark))
+#+end_src
+
+Like the =append-to-buffer= function, the =insert-buffer= function uses =let=, =save-excursion=, and =set-buffer=. In addition, the function illustrates one way to use =or=. All these functions are building blocks that we will find and use again and again.
+
+
+Previous: [[#Insert-let][Insert let]], Up: [[#insert_002dbuffer][insert-buffer]]
+
+** 5.2.6 New Body for =insert-buffer=
+     :PROPERTIES:
+     :CUSTOM_ID: new-body-for-insert-buffer
+     :CLASS: subsection
+     :END:
+
+ The body in the GNU Emacs 22 version is more confusing than the original.
+
+It consists of two expressions,
+
+#+begin_src elisp
+           (push-mark
+            (save-excursion
+              (insert-buffer-substring (get-buffer buffer))
+              (point)))
+
+            nil
+#+end_src
+
+except, and this is what confuses novices, very important work is done inside the =push-mark= expression.
+
+The =get-buffer= function returns a buffer with the name provided. You will note that the function is /not/ called =get-buffer-create=; it does not create a buffer if one does not already exist. The buffer returned by =get-buffer=, an existing buffer, is passed to =insert-buffer-substring=, which inserts the whole of the buffer (since you did not specify anything else).
+
+The location into which the buffer is inserted is recorded by =push-mark=. Then the function returns =nil=, the value of its last command. Put another way, the =insert-buffer= function exists only to produce a side effect, inserting another buffer, not to return any value.
+
+
+Next: [[#Second-Buffer-Related-Review][Second Buffer Related Review]], Previous: [[#insert_002dbuffer][insert-buffer]], Up: [[#More-Complex][More Complex]]
+
+* 5.3 Complete Definition of =beginning-of-buffer=
+    :PROPERTIES:
+    :CUSTOM_ID: complete-definition-of-beginning-of-buffer
+    :CLASS: section
+    :END:
+
+ The basic structure of the =beginning-of-buffer= function has already been discussed. (See [[#simplified_002dbeginning_002dof_002dbuffer][A Simplified =beginning-of-buffer= Definition]].) This section describes the complex part of the definition.
+
+As previously described, when invoked without an argument, =beginning-of-buffer= moves the cursor to the beginning of the buffer (in truth, the beginning of the accessible portion of the buffer), leaving the mark at the previous position. However, when the command is invoked with a number between one and ten, the function considers that number to be a fraction of the length of the buffer, measured in tenths, and Emacs moves the cursor that fraction of the way from the beginning of the buffer. Thus, you can either call this function with the key command M-<, which will move the cursor to the beginning of the buffer, or with a key command such as C-u 7 M-< which will move the cursor to a point 70% of the way through the buffer. If a number bigger than ten is used for the argument, it moves to the end of the buffer.
+
+The =beginning-of-buffer= function can be called with or without an argument. The use of the argument is optional.
+
+- [[#Optional-Arguments][Optional Arguments]]
+- [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]]: Example with optional argument.
+- [[#beginning_002dof_002dbuffer-complete][beginning-of-buffer complete]]
+
+
+Next: [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]], Up: [[#beginning_002dof_002dbuffer][beginning-of-buffer]]
+
+** 5.3.1 Optional Arguments
+     :PROPERTIES:
+     :CUSTOM_ID: optional-arguments
+     :CLASS: subsection
+     :END:
+
+Unless told otherwise, Lisp expects that a function with an argument in its function definition will be called with a value for that argument. If that does not happen, you get an error and a message that says ‘Wrong number of arguments'.
+
+However, optional arguments are a feature of Lisp: a particular keyword is used to tell the Lisp interpreter that an argument is optional. The keyword is =&optional=. (The ‘&' in front of ‘optional' is part of the keyword.) In a function definition, if an argument follows the keyword =&optional=, no value need be passed to that argument when the function is called.
+
+The first line of the function definition of =beginning-of-buffer= therefore looks like this:
+
+#+begin_src elisp
+         (defun beginning-of-buffer (&optional arg)
+#+end_src
+
+In outline, the whole function looks like this:
+
+#+begin_src elisp
+         (defun beginning-of-buffer (&optional arg)
+           "documentation..."
+           (interactive "P")
+           (or (is-the-argument-a-cons-cell arg)
+               (and are-both-transient-mark-mode-and-mark-active-true)
+               (push-mark))
+           (let (determine-size-and-set-it)
+           (goto-char
+             (if-there-is-an-argument
+                 figure-out-where-to-go
+               else-go-to
+               (point-min))))
+            do-nicety
+#+end_src
+
+The function is similar to the =simplified-beginning-of-buffer= function except that the =interactive= expression has ="P"= as an argument and the =goto-char= function is followed by an if-then-else expression that figures out where to put the cursor if there is an argument that is not a cons cell.
+
+(Since I do not explain a cons cell for many more chapters, please consider ignoring the function =consp=. See [[#List-Implementation][How Lists are Implemented]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Cons-Cell-Type][Cons Cell and List Types]].)
+
+The ="P"= in the =interactive= expression tells Emacs to pass a prefix argument, if there is one, to the function in raw form. A prefix argument is made by typing the <META> key followed by a number, or by typing C-u and then a number. (If you don't type a number, C-u defaults to a cons cell with a 4. A lowercase ="p"= in the =interactive= expression causes the function to convert a prefix arg to a number.)
+
+The true-or-false-test of the =if= expression looks complex, but it is not: it checks whether =arg= has a value that is not =nil= and whether it is a cons cell. (That is what =consp= does; it checks whether its argument is a cons cell.) If =arg= has a value that is not =nil= (and is not a cons cell), which will be the case if =beginning-of-buffer= is called with a numeric argument, then this true-or-false-test will return true and the then-part of the =if= expression will be evaluated. On the other hand, if =beginning-of-buffer= is not called with an argument, the value of =arg= will be =nil= and the else-part of the =if= expression will be evaluated. The else-part is simply =point-min=, and when this is the outcome, the whole =goto-char= expression is =(goto-char (point-min))=, which is how we saw the =beginning-of-buffer= function in its simplified form.
+
+
+Next: [[#beginning_002dof_002dbuffer-complete][beginning-of-buffer complete]], Previous: [[#Optional-Arguments][Optional Arguments]], Up: [[#beginning_002dof_002dbuffer][beginning-of-buffer]]
+
+** 5.3.2 =beginning-of-buffer= with an Argument
+     :PROPERTIES:
+     :CUSTOM_ID: beginning-of-buffer-with-an-argument
+     :CLASS: subsection
+     :END:
+
+When =beginning-of-buffer= is called with an argument, an expression is evaluated which calculates what value to pass to =goto-char=. This expression is rather complicated at first sight. It includes an inner =if= expression and much arithmetic. It looks like this:
+
+#+begin_src elisp
+         (if (> (buffer-size) 10000)
+             ;; Avoid overflow for large buffer sizes!
+                                   (* (prefix-numeric-value arg)
+                                      (/ size 10))
+           (/
+            (+ 10
+               (*
+                size (prefix-numeric-value arg))) 10)))
+#+end_src
+
+- [[#Disentangle-beginning_002dof_002dbuffer][Disentangle beginning-of-buffer]]
+- [[#Large-buffer-case][Large buffer case]]
+- [[#Small-buffer-case][Small buffer case]]
+
+
+Next: [[#Large-buffer-case][Large buffer case]], Up: [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]]
+
+*** Disentangle =beginning-of-buffer=
+      :PROPERTIES:
+      :CUSTOM_ID: disentangle-beginning-of-buffer
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+Like other complex-looking expressions, the conditional expression within =beginning-of-buffer= can be disentangled by looking at it as parts of a template, in this case, the template for an if-then-else expression. In skeletal form, the expression looks like this:
+
+#+begin_src elisp
+         (if (buffer-is-large
+             divide-buffer-size-by-10-and-multiply-by-arg
+           else-use-alternate-calculation
+#+end_src
+
+The true-or-false-test of this inner =if= expression checks the size of the buffer. The reason for this is that the old version 18 Emacs used numbers that are no bigger than eight million or so and in the computation that followed, the programmer feared that Emacs might try to use over-large numbers if the buffer were large. The term “overflow”, mentioned in the comment, means numbers that are over large. More recent versions of Emacs use larger numbers, but this code has not been touched, if only because people now look at buffers that are far, far larger than ever before.
+
+There are two cases: if the buffer is large and if it is not.
+
+
+Next: [[#Small-buffer-case][Small buffer case]], Previous: [[#Disentangle-beginning_002dof_002dbuffer][Disentangle beginning-of-buffer]], Up: [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]]
+
+*** What happens in a large buffer
+      :PROPERTIES:
+      :CUSTOM_ID: what-happens-in-a-large-buffer
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+In =beginning-of-buffer=, the inner =if= expression tests whether the size of the buffer is greater than 10,000 characters. To do this, it uses the =>= function and the computation of =size= that comes from the let expression.
+
+In the old days, the function =buffer-size= was used. Not only was that function called several times, it gave the size of the whole buffer, not the accessible part. The computation makes much more sense when it handles just the accessible part. (See [[#Narrowing-_0026-Widening][Narrowing and Widening]], for more information on focusing attention to an accessible part.)
+
+The line looks like this:
+
+#+begin_src elisp
+         (if (> size 10000)
+#+end_src
+
+When the buffer is large, the then-part of the =if= expression is evaluated. It reads like this (after formatting for easy reading):
+
+#+begin_src elisp
+         (*
+           (prefix-numeric-value arg)
+           (/ size 10))
+#+end_src
+
+This expression is a multiplication, with two arguments to the function =*=.
+
+The first argument is =(prefix-numeric-value arg)=. When ="P"= is used as the argument for =interactive=, the value passed to the function as its argument is passed a raw prefix argument, and not a number. (It is a number in a list.) To perform the arithmetic, a conversion is necessary, and =prefix-numeric-value= does the job.
+
+The second argument is =(/ size 10)=. This expression divides the numeric value by ten---the numeric value of the size of the accessible portion of the buffer. This produces a number that tells how many characters make up one tenth of the buffer size. (In Lisp, =/= is used for division, just as =*= is used for multiplication.)
+
+In the multiplication expression as a whole, this amount is multiplied by the value of the prefix argument---the multiplication looks like this:
+
+#+begin_src elisp
+         (* numeric-value-of-prefix-arg
+            number-of-characters-in-one-tenth-of-the-accessible-buffer)
+#+end_src
+
+If, for example, the prefix argument is ‘7', the one-tenth value will be multiplied by 7 to give a position 70% of the way through.
+
+The result of all this is that if the accessible portion of the buffer is large, the =goto-char= expression reads like this:
+
+#+begin_src elisp
+         (goto-char (* (prefix-numeric-value arg)
+                       (/ size 10)))
+#+end_src
+
+This puts the cursor where we want it.
+
+
+Previous: [[#Large-buffer-case][Large buffer case]], Up: [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]]
+
+*** What happens in a small buffer
+      :PROPERTIES:
+      :CUSTOM_ID: what-happens-in-a-small-buffer
+      :CLASS: unnumberedsubsubsec
+      :END:
+
+If the buffer contains fewer than 10,000 characters, a slightly different computation is performed. You might think this is not necessary, since the first computation could do the job. However, in a small buffer, the first method may not put the cursor on exactly the desired line; the second method does a better job.
+
+The code looks like this:
+
+#+begin_src elisp
+         (/ (+ 10 (* size (prefix-numeric-value arg))) 10))
+#+end_src
+
+This is code in which you figure out what happens by discovering how the functions are embedded in parentheses. It is easier to read if you reformat it with each expression indented more deeply than its enclosing expression:
+
+#+begin_src elisp
+           (/
+            (+ 10
+               (*
+                size
+                (prefix-numeric-value arg)))
+            10))
+#+end_src
+
+Looking at parentheses, we see that the innermost operation is =(prefix-numeric-value arg)=, which converts the raw argument to a number. In the following expression, this number is multiplied by the size of the accessible portion of the buffer:
+
+#+begin_src elisp
+         (* size (prefix-numeric-value arg))
+#+end_src
+
+This multiplication creates a number that may be larger than the size of the buffer---seven times larger if the argument is 7, for example. Ten is then added to this number and finally the large number is divided by ten to provide a value that is one character larger than the percentage position in the buffer.
+
+The number that results from all this is passed to =goto-char= and the cursor is moved to that point.
+
+
+Previous: [[#beginning_002dof_002dbuffer-opt-arg][beginning-of-buffer opt arg]], Up: [[#beginning_002dof_002dbuffer][beginning-of-buffer]]
+
+** 5.3.3 The Complete =beginning-of-buffer=
+     :PROPERTIES:
+     :CUSTOM_ID: the-complete-beginning-of-buffer
+     :CLASS: subsection
+     :END:
+
+Here is the complete text of the =beginning-of-buffer= function:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+         (defun beginning-of-buffer (&optional arg)
+           "Move point to the beginning of the buffer;
+         leave mark at previous position.
+         With \\[universal-argument] prefix,
+         do not set mark at previous position.
+         With numeric arg N,
+         put point N/10 of the way from the beginning.
+
+         If the buffer is narrowed,
+         this command uses the beginning and size
+         of the accessible part of the buffer.
+
+         Don't use this command in Lisp programs!
+         \(goto-char (point-min)) is faster
+         and avoids clobbering the mark."
+           (interactive "P")
+           (or (consp arg)
+               (and transient-mark-mode mark-active)
+               (push-mark))
+           (let ((size (- (point-max) (point-min))))
+             (goto-char (if (and arg (not (consp arg)))
+                            (+ (point-min)
+                               (if (> size 10000)
+                                   ;; Avoid overflow for large buffer sizes!
+                                   (* (prefix-numeric-value arg)
+                                      (/ size 10))
+                                 (/ (+ 10 (* size (prefix-numeric-value arg)))
+                                    10)))
+                          (point-min))))
+           (if (and arg (not (consp arg))) (forward-line 1)))
+#+end_src
+
+Except for two small points, the previous discussion shows how this function works. The first point deals with a detail in the documentation string, and the second point concerns the last line of the function.
+
+In the documentation string, there is reference to an expression:
+
+#+begin_src elisp
+         \\[universal-argument]
+#+end_src
+
+A ‘\\' is used before the first square bracket of this expression. This ‘\\' tells the Lisp interpreter to substitute whatever key is currently bound to the ‘[...]'. In the case of =universal-argument=, that is usually C-u, but it might be different. (See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Documentation-Tips][Tips for Documentation Strings]], for more information.)
+
+Finally, the last line of the =beginning-of-buffer= command says to move point to the beginning of the next line if the command is invoked with an argument:
+
+#+begin_src elisp
+         (if (and arg (not (consp arg))) (forward-line 1))
+#+end_src
+
+This puts the cursor at the beginning of the first line after the appropriate tenths position in the buffer. This is a flourish that means that the cursor is always located /at least/ the requested tenths of the way through the buffer, which is a nicety that is, perhaps, not necessary, but which, if it did not occur, would be sure to draw complaints. (The =(not (consp arg))= portion is so that if you specify the command with a C-u, but without a number, that is to say, if the raw prefix argument is simply a cons cell, the command does not put you at the beginning of the second line.)
+
+
+Next: [[#optional-Exercise][optional Exercise]], Previous: [[#beginning_002dof_002dbuffer][beginning-of-buffer]], Up: [[#More-Complex][More Complex]]
+
+* 5.4 Review
+    :PROPERTIES:
+    :CUSTOM_ID: review-2
+    :CLASS: section
+    :END:
+
+Here is a brief summary of some of the topics covered in this chapter.
+
+- =or= :: Evaluate each argument in sequence, and return the value of the first argument that is not =nil=; if none return a value that is not =nil=, return =nil=. In brief, return the first true value of the arguments; return a true value if one /or/ any of the others are true.\\
+- =and= :: Evaluate each argument in sequence, and if any are =nil=, return =nil=; if none are =nil=, return the value of the last argument. In brief, return a true value only if all the arguments are true; return a true value if one /and/ each of the others is true.\\
+- =&optional= :: A keyword used to indicate that an argument to a function definition is optional; this means that the function can be evaluated without the argument, if desired.\\
+- =prefix-numeric-value= :: Convert the raw prefix argument produced by =(interactive "P")= to a numeric value.\\
+- =forward-line= :: Move point forward to the beginning of the next line, or if the argument is greater than one, forward that many lines. If it can't move as far forward as it is supposed to, =forward-line= goes forward as far as it can and then returns a count of the number of additional lines it was supposed to move but couldn't.\\
+- =erase-buffer= :: Delete the entire contents of the current buffer.\\
+- =bufferp= :: Return =t= if its argument is a buffer; otherwise return =nil=.
+
+
+Previous: [[#Second-Buffer-Related-Review][Second Buffer Related Review]], Up: [[#More-Complex][More Complex]]
+
+* 5.5 =optional= Argument Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: optional-argument-exercise
+    :CLASS: section
+    :END:
+
+Write an interactive function with an optional argument that tests whether its argument, a number, is greater than or equal to, or else, less than the value of =fill-column=, and tells you which, in a message. However, if you do not pass an argument to the function, use 56 as a default value.
+
+
+Next: [[#car-cdr-_0026-cons][car cdr & cons]], Previous: [[#More-Complex][More Complex]], Up: [[#Top][Top]]

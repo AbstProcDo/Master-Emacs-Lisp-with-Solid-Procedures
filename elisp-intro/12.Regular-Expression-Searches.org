@@ -1,0 +1,609 @@
+#+TITLE: 12.Regular-Expression-Searches
+* 12 Regular Expression Searches
+   :PROPERTIES:
+   :CUSTOM_ID: regular-expression-searches
+   :CLASS: chapter
+   :END:
+
+ Regular expression searches are used extensively in GNU Emacs. The two functions, =forward-sentence= and =forward-paragraph=, illustrate these searches well. They use regular expressions to find where to move point. The phrase “regular expression” is often written as “regexp”.
+
+Regular expression searches are described in [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Regexp-Search][Regular Expression Search]], as well as in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]]. In writing this chapter, I am presuming that you have at least a mild acquaintance with them. The major point to remember is that regular expressions permit you to search for patterns as well as for literal strings of characters. For example, the code in =forward-sentence= searches for the pattern of possible characters that could mark the end of a sentence, and moves point to that spot.
+
+Before looking at the code for the =forward-sentence= function, it is worth considering what the pattern that marks the end of a sentence must be. The pattern is discussed in the next section; following that is a description of the regular expression search function, =re-search-forward=. The =forward-sentence= function is described in the section following. Finally, the =forward-paragraph= function is described in the last section of this chapter. =forward-paragraph= is a complex function that introduces several new features.
+
+1) [[#sentence_002dend][sentence-end]]: The regular expression for =sentence-end=.
+2) [[#re_002dsearch_002dforward][re-search-forward]]: Very similar to =search-forward=.
+3) [[#forward_002dsentence][forward-sentence]]: A straightforward example of regexp search.
+4) [[#forward_002dparagraph][forward-paragraph]]: A somewhat complex example.
+5) [[#Regexp-Review][Regexp Review]]
+6) [[#re_002dsearch-Exercises][re-search Exercises]]
+
+
+* 12.1 The Regular Expression for =sentence-end=
+    :PROPERTIES:
+    :CUSTOM_ID: the-regular-expression-for-sentence-end
+    :CLASS: section
+    :END:
+
+ The symbol =sentence-end= is bound to the pattern that marks the end of a sentence. What should this regular expression be?
+
+Clearly, a sentence may be ended by a period, a question mark, or an exclamation mark. Indeed, in English, only clauses that end with one of those three characters should be considered the end of a sentence. This means that the pattern should include the character set:
+
+#+begin_src elisp
+         [.?!]
+#+end_src
+
+However, we do not want =forward-sentence= merely to jump to a period, a question mark, or an exclamation mark, because such a character might be used in the middle of a sentence. A period, for example, is used after abbreviations. So other information is needed.
+
+According to convention, you type two spaces after every sentence, but only one space after a period, a question mark, or an exclamation mark in the body of a sentence. So a period, a question mark, or an exclamation mark followed by two spaces is a good indicator of an end of sentence. However, in a file, the two spaces may instead be a tab or the end of a line. This means that the regular expression should include these three items as alternatives.
+
+This group of alternatives will look like this:
+
+#+begin_src elisp
+         \\($\\| \\|  \\)
+                ^   ^^
+               TAB  SPC
+#+end_src
+
+Here, ‘$' indicates the end of the line, and I have pointed out where the tab and two spaces are inserted in the expression. Both are inserted by putting the actual characters into the expression.
+
+Two backslashes, ‘\\', are required before the parentheses and vertical bars: the first backslash quotes the following backslash in Emacs; and the second indicates that the following character, the parenthesis or the vertical bar, is special.
+
+Also, a sentence may be followed by one or more carriage returns, like this:
+
+#+begin_src elisp
+         [
+         ]*
+#+end_src
+
+Like tabs and spaces, a carriage return is inserted into a regular expression by inserting it literally. The asterisk indicates that the <RET> is repeated zero or more times.
+
+But a sentence end does not consist only of a period, a question mark or an exclamation mark followed by appropriate space: a closing quotation mark or a closing brace of some kind may precede the space. Indeed more than one such mark or brace may precede the space. These require a expression that looks like this:
+
+#+begin_src elisp
+         []\"')}]*
+#+end_src
+
+In this expression, the first ‘]' is the first character in the expression; the second character is ‘"', which is preceded by a ‘\' to tell Emacs the ‘"' is /not/ special. The last three characters are ‘'', ‘)', and ‘}'.
+
+All this suggests what the regular expression pattern for matching the end of a sentence should be; and, indeed, if we evaluate =sentence-end= we find that it returns the following value:
+
+#+begin_src elisp
+         sentence-end
+              ⇒ "[.?!][]\"')}]*\\($\\|     \\|  \\)[
+         ]*"
+#+end_src
+
+(Well, not in GNU Emacs 22; that is because of an effort to make the process simpler and to handle more glyphs and languages. When the value of =sentence-end= is =nil=, then use the value defined by the function =sentence-end=. (Here is a use of the difference between a value and a function in Emacs Lisp.) The function returns a value constructed from the variables =sentence-end-base=, =sentence-end-double-space=, =sentence-end-without-period=, and =sentence-end-without-space=. The critical variable is =sentence-end-base=; its global value is similar to the one described above but it also contains two additional quotation marks. These have differing degrees of curliness. The =sentence-end-without-period= variable, when true, tells Emacs that a sentence may end without a period, such as text in Thai.)
+
+
+Next: [[#forward_002dsentence][forward-sentence]], Previous: [[#sentence_002dend][sentence-end]], Up: [[#Regexp-Search][Regexp Search]]
+
+* 12.2 The =re-search-forward= Function
+    :PROPERTIES:
+    :CUSTOM_ID: the-re-search-forward-function
+    :CLASS: section
+    :END:
+
+ The =re-search-forward= function is very like the =search-forward= function. (See [[#search_002dforward][The =search-forward= Function]].)
+
+=re-search-forward= searches for a regular expression. If the search is successful, it leaves point immediately after the last character in the target. If the search is backwards, it leaves point just before the first character in the target. You may tell =re-search-forward= to return =t= for true. (Moving point is therefore a side effect.)
+
+Like =search-forward=, the =re-search-forward= function takes four arguments:
+
+1. The first argument is the regular expression that the function searches for. The regular expression will be a string between quotation marks.
+2. The optional second argument limits how far the function will search; it is a bound, which is specified as a position in the buffer.
+3. The optional third argument specifies how the function responds to failure: =nil= as the third argument causes the function to signal an error (and print a message) when the search fails; any other value causes it to return =nil= if the search fails and =t= if the search succeeds.
+4. The optional fourth argument is the repeat count. A negative repeat count causes =re-search-forward= to search backwards.
+
+The template for =re-search-forward= looks like this:
+
+#+begin_src elisp
+         (re-search-forward "regular-expression"
+                         limit-of-search
+                         what-to-do-if-search-fails
+                         repeat-count)
+#+end_src
+
+The second, third, and fourth arguments are optional. However, if you want to pass a value to either or both of the last two arguments, you must also pass a value to all the preceding arguments. Otherwise, the Lisp interpreter will mistake which argument you are passing the value to.
+
+In the =forward-sentence= function, the regular expression will be the value of the variable =sentence-end=. In simple form, that is:
+
+#+begin_src elisp
+         "[.?!][]\"')}]*\\($\\|  \\|  \\)[
+         ]*"
+#+end_src
+
+The limit of the search will be the end of the paragraph (since a sentence cannot go beyond a paragraph). If the search fails, the function will return =nil=; and the repeat count will be provided by the argument to the =forward-sentence= function.
+
+
+Next: [[#forward_002dparagraph][forward-paragraph]], Previous: [[#re_002dsearch_002dforward][re-search-forward]], Up: [[#Regexp-Search][Regexp Search]]
+
+* 12.3 =forward-sentence=
+    :PROPERTIES:
+    :CUSTOM_ID: forward-sentence
+    :CLASS: section
+    :END:
+
+ The command to move the cursor forward a sentence is a straightforward illustration of how to use regular expression searches in Emacs Lisp. Indeed, the function looks longer and more complicated than it is; this is because the function is designed to go backwards as well as forwards; and, optionally, over more than one sentence. The function is usually bound to the key command M-e.
+
+- [[#Complete-forward_002dsentence][Complete forward-sentence]]
+- [[#fwd_002dsentence-while-loops][fwd-sentence while loops]]: Two =while= loops.
+- [[#fwd_002dsentence-re_002dsearch][fwd-sentence re-search]]: A regular expression search.
+
+
+Next: [[#fwd_002dsentence-while-loops][fwd-sentence while loops]], Up: [[#forward_002dsentence][forward-sentence]]
+
+** Complete =forward-sentence= function definition
+     :PROPERTIES:
+     :CUSTOM_ID: complete-forward-sentence-function-definition
+     :CLASS: unnumberedsubsec
+     :END:
+
+Here is the code for =forward-sentence=:
+
+#+begin_src elisp
+         (defun forward-sentence (&optional arg)
+           "Move forward to next end of sentence.  With argument, repeat.
+         With negative argument, move backward repeatedly to start of sentence.
+
+         The variable `sentence-end' is a regular expression that matches ends of
+         sentences.  Also, every paragraph boundary terminates sentences as well."
+           (interactive "p")
+           (or arg (setq arg 1))
+           (let ((opoint (point))
+                 (sentence-end (sentence-end)))
+             (while (< arg 0)
+               (let ((pos (point))
+                     (par-beg (save-excursion (start-of-paragraph-text) (point))))
+                (if (and (re-search-backward sentence-end par-beg t)
+                         (or (< (match-end 0) pos)
+                             (re-search-backward sentence-end par-beg t)))
+                    (goto-char (match-end 0))
+                  (goto-char par-beg)))
+               (setq arg (1+ arg)))
+             (while (> arg 0)
+               (let ((par-end (save-excursion (end-of-paragraph-text) (point))))
+                (if (re-search-forward sentence-end par-end t)
+                    (skip-chars-backward " \t\n")
+                  (goto-char par-end)))
+               (setq arg (1- arg)))
+             (constrain-to-field nil opoint t)))
+#+end_src
+
+The function looks long at first sight and it is best to look at its skeleton first, and then its muscle. The way to see the skeleton is to look at the expressions that start in the left-most columns:
+
+#+begin_src elisp
+         (defun forward-sentence (&optional arg)
+           "documentation..."
+           (interactive "p")
+           (or arg (setq arg 1))
+           (let ((opoint (point)) (sentence-end (sentence-end)))
+             (while (< arg 0)
+               (let ((pos (point))
+                     (par-beg (save-excursion (start-of-paragraph-text) (point))))
+                rest-of-body-of-while-loop-when-going-backwards
+             (while (> arg 0)
+               (let ((par-end (save-excursion (end-of-paragraph-text) (point))))
+                rest-of-body-of-while-loop-when-going-forwards
+             handle-forms-and-equivalent
+#+end_src
+
+This looks much simpler! The function definition consists of documentation, an =interactive= expression, an =or= expression, a =let= expression, and =while= loops.
+
+Let's look at each of these parts in turn.
+
+We note that the documentation is thorough and understandable.
+
+The function has an =interactive "p"= declaration. This means that the processed prefix argument, if any, is passed to the function as its argument. (This will be a number.) If the function is not passed an argument (it is optional) then the argument =arg= will be bound to 1.
+
+When =forward-sentence= is called non-interactively without an argument, =arg= is bound to =nil=. The =or= expression handles this. What it does is either leave the value of =arg= as it is, but only if =arg= is bound to a value; or it sets the value of =arg= to 1, in the case when =arg= is bound to =nil=.
+
+Next is a =let=. That specifies the values of two local variables, =opoint= and =sentence-end=. The local value of point, from before the search, is used in the =constrain-to-field= function which handles forms and equivalents. The =sentence-end= variable is set by the =sentence-end= function.
+
+
+Next: [[#fwd_002dsentence-re_002dsearch][fwd-sentence re-search]], Previous: [[#Complete-forward_002dsentence][Complete forward-sentence]], Up: [[#forward_002dsentence][forward-sentence]]
+
+** The =while= loops
+     :PROPERTIES:
+     :CUSTOM_ID: the-while-loops
+     :CLASS: unnumberedsubsec
+     :END:
+
+Two =while= loops follow. The first =while= has a true-or-false-test that tests true if the prefix argument for =forward-sentence= is a negative number. This is for going backwards. The body of this loop is similar to the body of the second =while= clause, but it is not exactly the same. We will skip this =while= loop and concentrate on the second =while= loop.
+
+The second =while= loop is for moving point forward. Its skeleton looks like this:
+
+#+begin_src elisp
+         (while (> arg 0)            ; true-or-false-test
+           (let varlist
+             (if (true-or-false-test)
+                 then-part
+               else-part
+           (setq arg (1- arg))))     ; while loop decrementer
+#+end_src
+
+The =while= loop is of the decrementing kind. (See [[#Decrementing-Loop][A Loop with a Decrementing Counter]].) It has a true-or-false-test that tests true so long as the counter (in this case, the variable =arg=) is greater than zero; and it has a decrementer that subtracts 1 from the value of the counter every time the loop repeats.
+
+If no prefix argument is given to =forward-sentence=, which is the most common way the command is used, this =while= loop will run once, since the value of =arg= will be 1.
+
+The body of the =while= loop consists of a =let= expression, which creates and binds a local variable, and has, as its body, an =if= expression.
+
+The body of the =while= loop looks like this:
+
+#+begin_src elisp
+         (let ((par-end
+                (save-excursion (end-of-paragraph-text) (point))))
+           (if (re-search-forward sentence-end par-end t)
+               (skip-chars-backward " \t\n")
+             (goto-char par-end)))
+#+end_src
+
+The =let= expression creates and binds the local variable =par-end=. As we shall see, this local variable is designed to provide a bound or limit to the regular expression search. If the search fails to find a proper sentence ending in the paragraph, it will stop on reaching the end of the paragraph.
+
+But first, let us examine how =par-end= is bound to the value of the end of the paragraph. What happens is that the =let= sets the value of =par-end= to the value returned when the Lisp interpreter evaluates the expression
+
+#+begin_src elisp
+         (save-excursion (end-of-paragraph-text) (point))
+#+end_src
+
+In this expression, =(end-of-paragraph-text)= moves point to the end of the paragraph, =(point)= returns the value of point, and then =save-excursion= restores point to its original position. Thus, the =let= binds =par-end= to the value returned by the =save-excursion= expression, which is the position of the end of the paragraph. (The =end-of-paragraph-text= function uses =forward-paragraph=, which we will discuss shortly.)
+
+Emacs next evaluates the body of the =let=, which is an =if= expression that looks like this:
+
+#+begin_src elisp
+         (if (re-search-forward sentence-end par-end t) ; if-part
+             (skip-chars-backward " \t\n")              ; then-part
+           (goto-char par-end)))                        ; else-part
+#+end_src
+
+The =if= tests whether its first argument is true and if so, evaluates its then-part; otherwise, the Emacs Lisp interpreter evaluates the else-part. The true-or-false-test of the =if= expression is the regular expression search.
+
+It may seem odd to have what looks like the real work of the =forward-sentence= function buried here, but this is a common way this kind of operation is carried out in Lisp.
+
+
+Previous: [[#fwd_002dsentence-while-loops][fwd-sentence while loops]], Up: [[#forward_002dsentence][forward-sentence]]
+
+** The regular expression search
+     :PROPERTIES:
+     :CUSTOM_ID: the-regular-expression-search
+     :CLASS: unnumberedsubsec
+     :END:
+
+The =re-search-forward= function searches for the end of the sentence, that is, for the pattern defined by the =sentence-end= regular expression. If the pattern is found---if the end of the sentence is found---then the =re-search-forward= function does two things:
+
+1. The =re-search-forward= function carries out a side effect, which is to move point to the end of the occurrence found.
+2. The =re-search-forward= function returns a value of true. This is the value received by the =if=, and means that the search was successful.
+
+The side effect, the movement of point, is completed before the =if= function is handed the value returned by the successful conclusion of the search.
+
+When the =if= function receives the value of true from a successful call to =re-search-forward=, the =if= evaluates the then-part, which is the expression =(skip-chars-backward " \t\n")=. This expression moves backwards over any blank spaces, tabs or carriage returns until a printed character is found and then leaves point after the character. Since point has already been moved to the end of the pattern that marks the end of the sentence, this action leaves point right after the closing printed character of the sentence, which is usually a period.
+
+On the other hand, if the =re-search-forward= function fails to find a pattern marking the end of the sentence, the function returns false. The false then causes the =if= to evaluate its third argument, which is =(goto-char par-end)=: it moves point to the end of the paragraph.
+
+(And if the text is in a form or equivalent, and point may not move fully, then the =constrain-to-field= function comes into play.)
+
+Regular expression searches are exceptionally useful and the pattern illustrated by =re-search-forward=, in which the search is the test of an =if= expression, is handy. You will see or write code incorporating this pattern often.
+
+
+Next: [[#Regexp-Review][Regexp Review]], Previous: [[#forward_002dsentence][forward-sentence]], Up: [[#Regexp-Search][Regexp Search]]
+
+* 12.4 =forward-paragraph=: a Goldmine of Functions
+    :PROPERTIES:
+    :CUSTOM_ID: forward-paragraph-a-goldmine-of-functions
+    :CLASS: section
+    :END:
+
+
+
+The =forward-paragraph= function moves point forward to the end of the paragraph. It is usually bound to M-} and makes use of a number of functions that are important in themselves, including =let*=, =match-beginning=, and =looking-at=.
+
+The function definition for =forward-paragraph= is considerably longer than the function definition for =forward-sentence= because it works with a paragraph, each line of which may begin with a fill prefix.
+
+A fill prefix consists of a string of characters that are repeated at the beginning of each line. For example, in Lisp code, it is a convention to start each line of a paragraph-long comment with ‘;;; '. In Text mode, four blank spaces make up another common fill prefix, creating an indented paragraph. (See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Fill-Prefix][Fill Prefix]], for more information about fill prefixes.)
+
+The existence of a fill prefix means that in addition to being able to find the end of a paragraph whose lines begin on the left-most column, the =forward-paragraph= function must be able to find the end of a paragraph when all or many of the lines in the buffer begin with the fill prefix.
+
+Moreover, it is sometimes practical to ignore a fill prefix that exists, especially when blank lines separate paragraphs. This is an added complication.
+
+- [[#forward_002dparagraph-in-brief][forward-paragraph in brief]]: Key parts of the function definition.
+- [[#fwd_002dpara-let][fwd-para let]]: The =let*= expression.
+- [[#fwd_002dpara-while][fwd-para while]]: The forward motion =while= loop.
+
+
+Next: [[#fwd_002dpara-let][fwd-para let]], Up: [[#forward_002dparagraph][forward-paragraph]]
+
+** Shortened =forward-paragraph= function definition
+     :PROPERTIES:
+     :CUSTOM_ID: shortened-forward-paragraph-function-definition
+     :CLASS: unnumberedsubsec
+     :END:
+
+Rather than print all of the =forward-paragraph= function, we will only print parts of it. Read without preparation, the function can be daunting!
+
+In outline, the function looks like this:
+
+#+begin_src elisp
+         (defun forward-paragraph (&optional arg)
+           "documentation..."
+           (interactive "p")
+           (or arg (setq arg 1))
+           (let*
+               varlist
+             (while (and (< arg 0) (not (bobp)))     ; backward-moving-code
+               ...
+             (while (and (> arg 0) (not (eobp)))     ; forward-moving-code
+               ...
+#+end_src
+
+The first parts of the function are routine: the function's argument list consists of one optional argument. Documentation follows.
+
+The lower case ‘p' in the =interactive= declaration means that the processed prefix argument, if any, is passed to the function. This will be a number, and is the repeat count of how many paragraphs point will move. The =or= expression in the next line handles the common case when no argument is passed to the function, which occurs if the function is called from other code rather than interactively. This case was described earlier. (See [[#forward_002dsentence][The =forward-sentence= function]].) Now we reach the end of the familiar part of this function.
+
+
+Next: [[#fwd_002dpara-while][fwd-para while]], Previous: [[#forward_002dparagraph-in-brief][forward-paragraph in brief]], Up: [[#forward_002dparagraph][forward-paragraph]]
+
+** The =let*= expression
+     :PROPERTIES:
+     :CUSTOM_ID: the-let-expression
+     :CLASS: unnumberedsubsec
+     :END:
+
+The next line of the =forward-paragraph= function begins a =let*= expression. This is a different than =let=. The symbol is =let*= not =let=.
+
+The =let*= special form is like =let= except that Emacs sets each variable in sequence, one after another, and variables in the latter part of the varlist can make use of the values to which Emacs set variables in the earlier part of the varlist.
+
+([[#append-save_002dexcursion][=save-excursion= in =append-to-buffer=]].)
+
+In the =let*= expression in this function, Emacs binds a total of seven variables: =opoint=, =fill-prefix-regexp=, =parstart=, =parsep=, =sp-parstart=, =start=, and =found-start=.
+
+The variable =parsep= appears twice, first, to remove instances of ‘\^', and second, to handle fill prefixes.
+
+The variable =opoint= is just the value of =point=. As you can guess, it is used in a =constrain-to-field= expression, just as in =forward-sentence=.
+
+The variable =fill-prefix-regexp= is set to the value returned by evaluating the following list:
+
+#+begin_src elisp
+         (and fill-prefix
+              (not (equal fill-prefix ""))
+              (not paragraph-ignore-fill-prefix)
+              (regexp-quote fill-prefix))
+#+end_src
+
+This is an expression whose first element is the =and= special form.
+
+As we learned earlier (see [[#kill_002dnew-function][The =kill-new= function]]), the =and= special form evaluates each of its arguments until one of the arguments returns a value of =nil=, in which case the =and= expression returns =nil=; however, if none of the arguments returns a value of =nil=, the value resulting from evaluating the last argument is returned. (Since such a value is not =nil=, it is considered true in Lisp.) In other words, an =and= expression returns a true value only if all its arguments are true.  In this case, the variable =fill-prefix-regexp= is bound to a non-=nil= value only if the following four expressions produce a true (i.e., a non-=nil=) value when they are evaluated; otherwise, =fill-prefix-regexp= is bound to =nil=.
+
+- =fill-prefix= :: When this variable is evaluated, the value of the fill prefix, if any, is returned. If there is no fill prefix, this variable returns =nil=.\\
+- =(not (equal fill-prefix "")= :: This expression checks whether an existing fill prefix is an empty string, that is, a string with no characters in it. An empty string is not a useful fill prefix.\\
+- =(not paragraph-ignore-fill-prefix)= :: This expression returns =nil= if the variable =paragraph-ignore-fill-prefix= has been turned on by being set to a true value such as =t=.\\
+- =(regexp-quote fill-prefix)= :: This is the last argument to the =and= special form. If all the arguments to the =and= are true, the value resulting from evaluating this expression will be returned by the =and= expression and bound to the variable =fill-prefix-regexp=,
+
+The result of evaluating this =and= expression successfully is that =fill-prefix-regexp= will be bound to the value of =fill-prefix= as modified by the =regexp-quote= function. What =regexp-quote= does is read a string and return a regular expression that will exactly match the string and match nothing else. This means that =fill-prefix-regexp= will be set to a value that will exactly match the fill prefix if the fill prefix exists. Otherwise, the variable will be set to =nil=.
+
+The next two local variables in the =let*= expression are designed to remove instances of ‘\^' from =parstart= and =parsep=, the local variables which indicate the paragraph start and the paragraph separator. The next expression sets =parsep= again. That is to handle fill prefixes.
+
+This is the setting that requires the definition call =let*= rather than =let=. The true-or-false-test for the =if= depends on whether the variable =fill-prefix-regexp= evaluates to =nil= or some other value.
+
+If =fill-prefix-regexp= does not have a value, Emacs evaluates the else-part of the =if= expression and binds =parsep= to its local value. (=parsep= is a regular expression that matches what separates paragraphs.)
+
+But if =fill-prefix-regexp= does have a value, Emacs evaluates the then-part of the =if= expression and binds =parsep= to a regular expression that includes the =fill-prefix-regexp= as part of the pattern.
+
+Specifically, =parsep= is set to the original value of the paragraph separate regular expression concatenated with an alternative expression that consists of the =fill-prefix-regexp= followed by optional whitespace to the end of the line. The whitespace is defined by ="[ \t]*$"=.) The ‘\\|' defines this portion of the regexp as an alternative to =parsep=.
+
+According to a comment in the code, the next local variable, =sp-parstart=, is used for searching, and then the final two, =start= and =found-start=, are set to =nil=.
+
+Now we get into the body of the =let*=. The first part of the body of the =let*= deals with the case when the function is given a negative argument and is therefore moving backwards. We will skip this section.
+
+
+Previous: [[#fwd_002dpara-let][fwd-para let]], Up: [[#forward_002dparagraph][forward-paragraph]]
+
+** The forward motion =while= loop
+     :PROPERTIES:
+     :CUSTOM_ID: the-forward-motion-while-loop
+     :CLASS: unnumberedsubsec
+     :END:
+
+The second part of the body of the =let*= deals with forward motion. It is a =while= loop that repeats itself so long as the value of =arg= is greater than zero. In the most common use of the function, the value of the argument is 1, so the body of the =while= loop is evaluated exactly once, and the cursor moves forward one paragraph.
+
+This part handles three situations: when point is between paragraphs, when there is a fill prefix and when there is no fill prefix.
+
+The =while= loop looks like this:
+
+#+begin_src elisp
+         ;; going forwards and not at the end of the buffer
+         (while (and (> arg 0) (not (eobp)))
+
+           ;; between paragraphs
+           ;; Move forward over separator lines...
+           (while (and (not (eobp))
+                       (progn (move-to-left-margin) (not (eobp)))
+                       (looking-at parsep))
+             (forward-line 1))
+           ;;  This decrements the loop
+           (unless (eobp) (setq arg (1- arg)))
+           ;; ... and one more line.
+           (forward-line 1)
+
+           (if fill-prefix-regexp
+               ;; There is a fill prefix; it overrides parstart;
+               ;; we go forward line by line
+               (while (and (not (eobp))
+                           (progn (move-to-left-margin) (not (eobp)))
+                           (not (looking-at parsep))
+                           (looking-at fill-prefix-regexp))
+                 (forward-line 1))
+
+             ;; There is no fill prefix;
+             ;; we go forward character by character
+             (while (and (re-search-forward sp-parstart nil 1)
+                         (progn (setq start (match-beginning 0))
+                                (goto-char start)
+                                (not (eobp)))
+                         (progn (move-to-left-margin)
+                                (not (looking-at parsep)))
+                         (or (not (looking-at parstart))
+                             (and use-hard-newlines
+                                  (not (get-text-property (1- start) 'hard)))))
+               (forward-char 1))
+
+             ;; and if there is no fill prefix and if we are not at the end,
+             ;;     go to whatever was found in the regular expression search
+             ;;     for sp-parstart
+             (if (< (point) (point-max))
+                 (goto-char start))))
+#+end_src
+
+We can see that this is a decrementing counter =while= loop, using the expression =(setq arg (1- arg))= as the decrementer. That expression is not far from the =while=, but is hidden in another Lisp macro, an =unless= macro. Unless we are at the end of the buffer---that is what the =eobp= function determines; it is an abbreviation of ‘End Of Buffer P'---we decrease the value of =arg= by one.
+
+(If we are at the end of the buffer, we cannot go forward any more and the next loop of the =while= expression will test false since the test is an =and= with =(not (eobp))=. The =not= function means exactly as you expect; it is another name for =null=, a function that returns true when its argument is false.)
+
+Interestingly, the loop count is not decremented until we leave the space between paragraphs, unless we come to the end of buffer or stop seeing the local value of the paragraph separator.
+
+That second =while= also has a =(move-to-left-margin)= expression. The function is self-explanatory. It is inside a =progn= expression and not the last element of its body, so it is only invoked for its side effect, which is to move point to the left margin of the current line.
+
+The =looking-at= function is also self-explanatory; it returns true if the text after point matches the regular expression given as its argument.
+
+The rest of the body of the loop looks difficult at first, but makes sense as you come to understand it.
+
+First consider what happens if there is a fill prefix:
+
+#+begin_src elisp
+           (if fill-prefix-regexp
+               ;; There is a fill prefix; it overrides parstart;
+               ;; we go forward line by line
+               (while (and (not (eobp))
+                           (progn (move-to-left-margin) (not (eobp)))
+                           (not (looking-at parsep))
+                           (looking-at fill-prefix-regexp))
+                 (forward-line 1))
+#+end_src
+
+This expression moves point forward line by line so long as four conditions are true:
+
+1. Point is not at the end of the buffer.
+2. We can move to the left margin of the text and are not at the end of the buffer.
+3. The text following point does not separate paragraphs.
+4. The pattern following point is the fill prefix regular expression.
+
+The last condition may be puzzling, until you remember that point was moved to the beginning of the line early in the =forward-paragraph= function. This means that if the text has a fill prefix, the =looking-at= function will see it.
+
+Consider what happens when there is no fill prefix.
+
+#+begin_src elisp
+             (while (and (re-search-forward sp-parstart nil 1)
+                         (progn (setq start (match-beginning 0))
+                                (goto-char start)
+                                (not (eobp)))
+                         (progn (move-to-left-margin)
+                                (not (looking-at parsep)))
+                         (or (not (looking-at parstart))
+                             (and use-hard-newlines
+                                  (not (get-text-property (1- start) 'hard)))))
+               (forward-char 1))
+#+end_src
+
+This =while= loop has us searching forward for =sp-parstart=, which is the combination of possible whitespace with the local value of the start of a paragraph or of a paragraph separator. (The latter two are within an expression starting =\(?:= so that they are not referenced by the =match-beginning= function.)
+
+The two expressions,
+
+#+begin_src elisp
+         (setq start (match-beginning 0))
+         (goto-char start)
+#+end_src
+
+mean go to the start of the text matched by the regular expression search.
+
+The =(match-beginning 0)= expression is new. It returns a number specifying the location of the start of the text that was matched by the last search.
+
+The =match-beginning= function is used here because of a characteristic of a forward search: a successful forward search, regardless of whether it is a plain search or a regular expression search, moves point to the end of the text that is found. In this case, a successful search moves point to the end of the pattern for =sp-parstart=.
+
+However, we want to put point at the end of the current paragraph, not somewhere else. Indeed, since the search possibly includes the paragraph separator, point may end up at the beginning of the next one unless we use an expression that includes =match-beginning=.
+
+When given an argument of 0, =match-beginning= returns the position that is the start of the text matched by the most recent search. In this case, the most recent search looks for =sp-parstart=. The =(match-beginning 0)= expression returns the beginning position of that pattern, rather than the end position of that pattern.
+
+(Incidentally, when passed a positive number as an argument, the =match-beginning= function returns the location of point at that parenthesized expression in the last search unless that parenthesized expression begins with =\(?:=. I don't know why =\(?:= appears here since the argument is 0.)
+
+The last expression when there is no fill prefix is
+
+#+begin_src elisp
+         (if (< (point) (point-max))
+             (goto-char start))))
+#+end_src
+
+This says that if there is no fill prefix and if we are not at the end, point should move to the beginning of whatever was found by the regular expression search for =sp-parstart=.
+
+The full definition for the =forward-paragraph= function not only includes code for going forwards, but also code for going backwards.
+
+If you are reading this inside of GNU Emacs and you want to see the whole function, you can type C-h f (=describe-function=) and the name of the function. This gives you the function documentation and the name of the library containing the function's source. Place point over the name of the library and press the <RET> key; you will be taken directly to the source. (Be sure to install your sources! Without them, you are like a person who tries to drive a car with his eyes shut!)
+
+
+Next: [[#re_002dsearch-Exercises][re-search Exercises]], Previous: [[#forward_002dparagraph][forward-paragraph]], Up: [[#Regexp-Search][Regexp Search]]
+
+* 12.5 Review
+    :PROPERTIES:
+    :CUSTOM_ID: review-4
+    :CLASS: section
+    :END:
+
+Here is a brief summary of some recently introduced functions.
+
+- =while= :: Repeatedly evaluate the body of the expression so long as the first element of the body tests true. Then return =nil=. (The expression is evaluated only for its side effects.)
+
+  For example:
+
+  #+begin_src elisp
+                (let ((foo 2))
+                  (while (> foo 0)
+                    (insert (format "foo is %d.\n" foo))
+                    (setq foo (1- foo))))
+
+                     ⇒      foo is 2.
+                             foo is 1.
+                             nil
+  #+end_src
+
+  (The =insert= function inserts its arguments at point; the =format= function returns a string formatted from its arguments the way =message= formats its arguments; =\n= produces a new line.)\\
+
+- =re-search-forward= :: Search for a pattern, and if the pattern is found, move point to rest just after it.
+
+  Takes four arguments, like =search-forward=:
+
+  1. A regular expression that specifies the pattern to search for. (Remember to put quotation marks around this argument!)
+  2. Optionally, the limit of the search.
+  3. Optionally, what to do if the search fails, return =nil= or an error message.
+  4. Optionally, how many times to repeat the search; if negative, the search goes backwards.
+
+  \\
+
+- =let*= :: Bind some variables locally to particular values, and then evaluate the remaining arguments, returning the value of the last one. While binding the local variables, use the local values of variables bound earlier, if any.
+
+  For example:
+
+  #+begin_src elisp
+                (let* ((foo 7)
+                       (bar (* 3 foo)))
+                  (message "`bar' is %d." bar))
+                     ⇒ ‘bar’ is 21.
+  #+end_src
+
+  \\
+
+- =match-beginning= :: Return the position of the start of the text found by the last regular expression search.\\
+- =looking-at= :: Return =t= for true if the text after point matches the argument, which should be a regular expression.\\
+- =eobp= :: Return =t= for true if point is at the end of the accessible part of a buffer. The end of the accessible part is the end of the buffer if the buffer is not narrowed; it is the end of the narrowed part if the buffer is narrowed.
+
+
+Previous: [[#Regexp-Review][Regexp Review]], Up: [[#Regexp-Search][Regexp Search]]
+
+* 12.6 Exercises with =re-search-forward=
+    :PROPERTIES:
+    :CUSTOM_ID: exercises-with-re-search-forward
+    :CLASS: section
+    :END:
+
+- Write a function to search for a regular expression that matches two or more blank lines in sequence.
+- Write a function to search for duplicated words, such as “the the”. See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Regexps][Syntax of Regular Expressions]], for information on how to write a regexp (a regular expression) to match a string that is composed of two identical halves. You can devise several regexps; some are better than others. The function I use is described in an appendix, along with several regexps. See [[#the_002dthe][=the-the= Duplicated Words Function]].
+
+
+Next: [[#Words-in-a-defun][Words in a defun]], Previous: [[#Regexp-Search][Regexp Search]], Up: [[#Top][Top]]

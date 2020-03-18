@@ -1,0 +1,67 @@
+#+TITLE: Appendix-A-The-thethe-Function
+* Appendix A The =the-the= Function
+   :PROPERTIES:
+   :CUSTOM_ID: appendix-a-the-the-the-function
+   :CLASS: appendix
+   :END:
+
+ Sometimes when you you write text, you duplicate words---as with “you you” near the beginning of this sentence. I find that most frequently, I duplicate “the”; hence, I call the function for detecting duplicated words, =the-the=.
+
+As a first step, you could use the following regular expression to search for duplicates:
+
+#+begin_src elisp
+         \\(\\w+[ \t\n]+\\)\\1
+#+end_src
+
+This regexp matches one or more word-constituent characters followed by one or more spaces, tabs, or newlines. However, it does not detect duplicated words on different lines, since the ending of the first word, the end of the line, is different from the ending of the second word, a space. (For more information about regular expressions, see [[#Regexp-Search][Regular Expression Searches]], as well as [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Regexps][Syntax of Regular Expressions]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Regular-Expressions][Regular Expressions]].)
+
+You might try searching just for duplicated word-constituent characters but that does not work since the pattern detects doubles such as the two occurrences of “th” in “with the”.
+
+Another possible regexp searches for word-constituent characters followed by non-word-constituent characters, reduplicated. Here, ‘\\w+' matches one or more word-constituent characters and ‘\\W*' matches zero or more non-word-constituent characters.
+
+#+begin_src elisp
+         \\(\\(\\w+\\)\\W*\\)\\1
+#+end_src
+
+Again, not useful.
+
+Here is the pattern that I use. It is not perfect, but good enough. ‘\\b' matches the empty string, provided it is at the beginning or end of a word; ‘[\^@ \n\t]+' matches one or more occurrences of any characters that are /not/ an @-sign, space, newline, or tab.
+
+#+begin_src elisp
+         \\b\\([^@ \n\t]+\\)[ \n\t]+\\1\\b
+#+end_src
+
+One can write more complicated expressions, but I found that this expression is good enough, so I use it.
+
+Here is the =the-the= function, as I include it in my .emacs file, along with a handy global key binding:
+
+#+begin_src elisp
+         (defun the-the ()
+           "Search forward for for a duplicated word."
+           (interactive)
+           (message "Searching for for duplicated words ...")
+           (push-mark)
+           ;; This regexp is not perfect
+           ;; but is fairly good over all:
+           (if (re-search-forward
+                "\\b\\([^@ \n\t]+\\)[ \n\t]+\\1\\b" nil 'move)
+               (message "Found duplicated word.")
+             (message "End of buffer")))
+
+         ;; Bind 'the-the' to  C-c \
+         (global-set-key "\C-c\\" 'the-the)
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+Here is test text:
+
+#+begin_src elisp
+         one two two three four five
+         five six seven
+#+end_src
+
+You can substitute the other regular expressions shown above in the function definition and try each of them on this list.
+
+

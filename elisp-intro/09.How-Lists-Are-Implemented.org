@@ -1,0 +1,239 @@
+#+TITLE: 09.How-Lists-Are-Implemented
+* 9 How Lists are Implemented
+   :PROPERTIES:
+   :CUSTOM_ID: how-lists-are-implemented
+   :CLASS: chapter
+   :END:
+
+ In Lisp, atoms are recorded in a straightforward fashion; if the implementation is not straightforward in practice, it is, nonetheless, straightforward in theory. The atom ‘rose', for example, is recorded as the four contiguous letters ‘r', ‘o', ‘s', ‘e'. A list, on the other hand, is kept differently. The mechanism is equally simple, but it takes a moment to get used to the idea. A list is kept using a series of pairs of pointers. In the series, the first pointer in each pair points to an atom or to another list, and the second pointer in each pair points to the next pair, or to the symbol =nil=, which marks the end of the list.
+
+A pointer itself is quite simply the electronic address of what is pointed to. Hence, a list is kept as a series of electronic addresses.
+
+1) [[#Lists-diagrammed][Lists diagrammed]]
+2) [[#Symbols-as-Chest][Symbols as Chest]]: Exploring a powerful metaphor.
+3) [[#List-Exercise][List Exercise]]
+
+
+Next: [[#Symbols-as-Chest][Symbols as Chest]], Up: [[#List-Implementation][List Implementation]]
+
+* Lists diagrammed
+    :PROPERTIES:
+    :CUSTOM_ID: lists-diagrammed
+    :CLASS: unnumberedsec
+    :END:
+
+For example, the list =(rose violet buttercup)= has three elements, ‘rose', ‘violet', and ‘buttercup'. In the computer, the electronic address of ‘rose' is recorded in a segment of computer memory along with the address that gives the electronic address of where the atom ‘violet' is located; and that address (the one that tells where ‘violet' is located) is kept along with an address that tells where the address for the atom ‘buttercup' is located.
+
+This sounds more complicated than it is and is easier seen in a diagram:
+
+#+begin_src elisp
+             ___ ___      ___ ___      ___ ___
+            |___|___|--> |___|___|--> |___|___|--> nil
+              |            |            |
+              |            |            |
+               --> rose     --> violet   --> buttercup
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+In the diagram, each box represents a word of computer memory that holds a Lisp object, usually in the form of a memory address. The boxes, i.e., the addresses, are in pairs. Each arrow points to what the address is the address of, either an atom or another pair of addresses. The first box is the electronic address of ‘rose' and the arrow points to ‘rose'; the second box is the address of the next pair of boxes, the first part of which is the address of ‘violet' and the second part of which is the address of the next pair. The very last box points to the symbol =nil=, which marks the end of the list.
+
+When a variable is set to a list with a function such as =setq=, it stores the address of the first box in the variable. Thus, evaluation of the expression
+
+#+begin_src elisp
+         (setq bouquet '(rose violet buttercup))
+#+end_src
+
+creates a situation like this:
+
+#+begin_src elisp
+         bouquet
+              |
+              |     ___ ___      ___ ___      ___ ___
+               --> |___|___|--> |___|___|--> |___|___|--> nil
+                     |            |            |
+                     |            |            |
+                      --> rose     --> violet   --> buttercup
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+In this example, the symbol =bouquet= holds the address of the first pair of boxes.
+
+This same list can be illustrated in a different sort of box notation like this:
+
+#+begin_src elisp
+         bouquet
+          |
+          |    --------------       ---------------       ----------------
+          |   | car   | cdr  |     | car    | cdr  |     | car     | cdr  |
+           -->| rose  |   o------->| violet |   o------->| butter- |  nil |
+              |       |      |     |        |      |     | cup     |      |
+               --------------       ---------------       ----------------
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+(Symbols consist of more than pairs of addresses, but the structure of a symbol is made up of addresses. Indeed, the symbol =bouquet= consists of a group of address-boxes, one of which is the address of the printed word ‘bouquet', a second of which is the address of a function definition attached to the symbol, if any, a third of which is the address of the first pair of address-boxes for the list =(rose violet buttercup)=, and so on. Here we are showing that the symbol's third address-box points to the first pair of address-boxes for the list.)
+
+If a symbol is set to the cdr of a list, the list itself is not changed; the symbol simply has an address further down the list. (In the jargon, car and cdr are “non-destructive”.) Thus, evaluation of the following expression
+
+#+begin_src elisp
+         (setq flowers (cdr bouquet))
+#+end_src
+
+produces this:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+         bouquet        flowers
+           |              |
+           |     ___ ___  |     ___ ___      ___ ___
+            --> |   |   |  --> |   |   |    |   |   |
+                |___|___|----> |___|___|--> |___|___|--> nil
+                  |              |            |
+                  |              |            |
+                   --> rose       --> violet   --> buttercup
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+The value of =flowers= is =(violet buttercup)=, which is to say, the symbol =flowers= holds the address of the pair of address-boxes, the first of which holds the address of =violet=, and the second of which holds the address of =buttercup=.
+
+A pair of address-boxes is called a cons cell or dotted pair. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Cons-Cell-Type][Cons Cell and List Types]], and [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Dotted-Pair-Notation][Dotted Pair Notation]], for more information about cons cells and dotted pairs.
+
+The function =cons= adds a new pair of addresses to the front of a series of addresses like that shown above. For example, evaluating the expression
+
+#+begin_src elisp
+         (setq bouquet (cons 'lily bouquet))
+#+end_src
+
+produces:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+         bouquet                       flowers
+           |                             |
+           |     ___ ___        ___ ___  |     ___ ___       ___ ___
+            --> |   |   |      |   |   |  --> |   |   |     |   |   |
+                |___|___|----> |___|___|----> |___|___|---->|___|___|--> nil
+                  |              |              |             |
+                  |              |              |             |
+                   --> lily      --> rose       --> violet    --> buttercup
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+However, this does not change the value of the symbol =flowers=, as you can see by evaluating the following,
+
+#+begin_src elisp
+         (eq (cdr (cdr bouquet)) flowers)
+#+end_src
+
+which returns =t= for true.
+
+Until it is reset, =flowers= still has the value =(violet buttercup)=; that is, it has the address of the cons cell whose first address is of =violet=. Also, this does not alter any of the pre-existing cons cells; they are all still there.
+
+Thus, in Lisp, to get the cdr of a list, you just get the address of the next cons cell in the series; to get the car of a list, you get the address of the first element of the list; to =cons= a new element on a list, you add a new cons cell to the front of the list. That is all there is to it! The underlying structure of Lisp is brilliantly simple!
+
+And what does the last address in a series of cons cells refer to? It is the address of the empty list, of =nil=.
+
+In summary, when a Lisp variable is set to a value, it is provided with the address of the list to which the variable refers.
+
+
+Next: [[#List-Exercise][List Exercise]], Previous: [[#Lists-diagrammed][Lists diagrammed]], Up: [[#List-Implementation][List Implementation]]
+
+* 9.1 Symbols as a Chest of Drawers
+    :PROPERTIES:
+    :CUSTOM_ID: symbols-as-a-chest-of-drawers
+    :CLASS: section
+    :END:
+
+ In an earlier section, I suggested that you might imagine a symbol as being a chest of drawers. The function definition is put in one drawer, the value in another, and so on. What is put in the drawer holding the value can be changed without affecting the contents of the drawer holding the function definition, and vice versa.
+
+Actually, what is put in each drawer is the address of the value or function definition. It is as if you found an old chest in the attic, and in one of its drawers you found a map giving you directions to where the buried treasure lies.
+
+(In addition to its name, symbol definition, and variable value, a symbol has a drawer for a property list which can be used to record other information. Property lists are not discussed here; see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Property-Lists][Property Lists]].)
+
+Here is a fanciful representation:
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+                     Chest of Drawers            Contents of Drawers
+
+                     __   o0O0o   __
+                   /                 \
+                  ---------------------
+                 |    directions to    |            [map to]
+                 |     symbol name     |             bouquet
+                 |                     |
+                 +---------------------+
+                 |    directions to    |
+                 |  symbol definition  |             [none]
+                 |                     |
+                 +---------------------+
+                 |    directions to    |            [map to]
+                 |    variable value   |             (rose violet buttercup)
+                 |                     |
+                 +---------------------+
+                 |    directions to    |
+                 |    property list    |             [not described here]
+                 |                     |
+                 +---------------------+
+                 |/                   \|
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+
+Previous: [[#Symbols-as-Chest][Symbols as Chest]], Up: [[#List-Implementation][List Implementation]]
+
+* 9.2 Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: exercise-2
+    :CLASS: section
+    :END:
+
+Set =flowers= to =violet= and =buttercup=. Cons two more flowers on to this list and set this new list to =more-flowers=. Set the car of =flowers= to a fish. What does the =more-flowers= list now contain?
+
+
+Next: [[#Loops-_0026-Recursion][Loops & Recursion]], Previous: [[#List-Implementation][List Implementation]], Up: [[#Top][Top]]

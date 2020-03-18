@@ -1,0 +1,119 @@
+#+TITLE: 00.Preface
+* Preface
+   :PROPERTIES:
+   :CUSTOM_ID: preface
+   :CLASS: unnumbered
+   :END:
+
+Most of the GNU Emacs integrated environment is written in the programming language called Emacs Lisp. The code written in this programming language is the software---the sets of instructions---that tell the computer what to do when you give it commands. Emacs is designed so that you can write new code in Emacs Lisp and easily install it as an extension to the editor.
+
+(GNU Emacs is sometimes called an “extensible editor”, but it does much more than provide editing capabilities. It is better to refer to Emacs as an “extensible computing environment”. However, that phrase is quite a mouthful. It is easier to refer to Emacs simply as an editor. Moreover, everything you do in Emacs---find the Mayan date and phases of the moon, simplify polynomials, debug code, manage files, read letters, write books---all these activities are kinds of editing in the most general sense of the word.)
+
+1) [[#Why][Why]]: Why learn Emacs Lisp?
+2) [[#On-Reading-this-Text][On Reading this Text]]: Read, gain familiarity, pick up habits....
+3) [[#Who-You-Are][Who You Are]]: For whom this is written.
+4) [[#Lisp-History][Lisp History]]
+5) [[#Note-for-Novices][Note for Novices]]: You can read this as a novice.
+6) [[#Thank-You][Thank You]]
+
+* Why Study Emacs Lisp?
+    :PROPERTIES:
+    :CUSTOM_ID: why-study-emacs-lisp
+    :CLASS: unnumberedsec
+    :END:
+
+Although Emacs Lisp is usually thought of in association only with Emacs, it is a full computer programming language. You can use Emacs Lisp as you would any other programming language.
+
+Perhaps you want to understand programming; perhaps you want to extend Emacs; or perhaps you want to become a programmer. This introduction to Emacs Lisp is designed to get you started: to guide you in learning the fundamentals of programming, and more importantly, to show you how you can teach yourself to go further.
+
+
+* On Reading this Text
+    :PROPERTIES:
+    :CUSTOM_ID: on-reading-this-text
+    :CLASS: unnumberedsec
+    :END:
+
+All through this document, you will see little sample programs you can run inside of Emacs. If you read this document in Info inside of GNU Emacs, you can run the programs as they appear. (This is easy to do and is explained when the examples are presented.) Alternatively, you can read this introduction as a printed book while sitting beside a computer running Emacs. (This is what I like to do; I like printed books.) If you don't have a running Emacs beside you, you can still read this book, but in this case, it is best to treat it as a novel or as a travel guide to a country not yet visited: interesting, but not the same as being there.
+# 短评: 火炉旁边读书的感觉.
+Much of this introduction is dedicated to walkthroughs or guided tours of code used in GNU Emacs. These tours are designed for two purposes: first, to give you familiarity with real, working code (code you use every day); and, second, to give you familiarity with the way Emacs works. It is interesting to see how a working environment is implemented. Also, I hope that you will pick up the habit of browsing through source code. You can learn from it and mine it for ideas. Having GNU Emacs is like having a dragon's cave of treasures.
+
+In addition to learning about Emacs as an editor and Emacs Lisp as a programming language, the examples and guided tours will give you an opportunity to ~get acquainted with~ Emacs as a Lisp programming environment. GNU Emacs supports programming and provides tools that you will want to become comfortable using, such as M-. (the key which invokes the =xref-find-definitions= command). You will also learn about buffers and other objects that are part of the environment.
+Learning about these features of Emacs is like learning new routes around your home town.
+# 短评: 行文比喻.
+
+Finally, I hope to convey some of the skills for using Emacs to learn aspects of programming that you don't know. You can often use Emacs to help you understand what puzzles you or to find out how to do something new. This self-reliance is not only a pleasure, but an advantage.
+
+* For Whom This is Written
+    :PROPERTIES:
+    :CUSTOM_ID: for-whom-this-is-written
+    :CLASS: unnumberedsec
+    :END:
+
+This text is written as an elementary introduction for people who are not programmers. If you are a programmer, you may not be satisfied with this primer. The reason is that you may have become expert at reading reference manuals and be put off by the way this text is organized.
+
+An expert programmer who reviewed this text said to me:
+
+
+  /I prefer to learn from reference manuals. I “dive into” each paragraph, and “come up for air” between paragraphs./
+
+  /When I get to the end of a paragraph, I assume that subject is done, finished, that I know everything I need (with the possible exception of the case when the next paragraph starts talking about it in more detail). I expect that a well written reference manual will not have a lot of redundancy, and that it will have excellent pointers to the (one) place where the information I want is./
+
+
+This introduction is not written for this person!
+
+Firstly, I try to say everything at least three times:
+first, to introduce it;
+second, to show it in context;
+and third, to show it in a different context, or to review it.
+# 洞见: 教材应该有的样子.
+
+Secondly, I hardly ever put all the information about a subject in one place, much less in one paragraph. To my way of thinking, that imposes too heavy a burden on the reader. Instead I try to explain only what you need to know at the time. (Sometimes I include a little extra information so you won't be surprised later when the additional information is formally introduced.)
+
+When you read this text, you are not expected to learn everything the first time. Frequently, you need make only a ~nodding acquaintance~ with some of the items mentioned. My hope is that I have structured the text and given you enough hints that you will be alert to what is important, and concentrate on it.
+
+You will need to dive into some paragraphs; there is no other way to read them. But I have tried to keep down the number of such paragraphs. This book is intended as an approachable hill, rather than as a daunting mountain.
+
+This introduction to Programming in Emacs Lisp has a companion document, [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Top][The GNU Emacs Lisp Reference Manual]]. The reference manual has more detail than this introduction. In the reference manual, all the information about one topic is concentrated in one place. You should turn to it if you are like the programmer quoted above. And, of course, after you have read this Introduction, you will find the Reference Manual useful when you are writing your own programs.
+
+
+* Lisp History
+    :PROPERTIES:
+    :CUSTOM_ID: lisp-history
+    :CLASS: unnumberedsec
+    :END:
+
+ Lisp was first developed in the late 1950s at the Massachusetts Institute of Technology for research in artificial intelligence. The great power of the Lisp language makes it superior for other purposes as well, such as writing editor commands and integrated environments.
+
+GNU Emacs Lisp is largely inspired by Maclisp, which was written at MIT in the 1960s. It is somewhat inspired by Common Lisp, which became a standard in the 1980s. However, Emacs Lisp is much simpler than Common Lisp. (The standard Emacs distribution contains an optional extensions file, cl.el, that adds many Common Lisp features to Emacs Lisp.)
+
+
+* A Note for Novices
+    :PROPERTIES:
+    :CUSTOM_ID: a-note-for-novices
+    :CLASS: unnumberedsec
+    :END:
+
+If you don't know GNU Emacs, you can still read this document profitably. However, I recommend you learn Emacs, if only to learn to move around your computer screen. You can teach yourself how to use Emacs with the built-in tutorial. To use it, type C-h t. (This means you press and release the <CTRL> key and the h at the same time, and then press and release t.)
+
+Also, I often refer to one of Emacs's standard commands by listing the keys which you press to invoke the command and then giving the name of the command in parentheses, like this: M-C-\ (=indent-region=). What this means is that the =indent-region= command is customarily invoked by typing M-C-\. (You can, if you wish, change the keys that are typed to invoke the command; this is called rebinding. See [[#Keymaps][Keymaps]].) The abbreviation M-C-\ means that you type your <META> key, <CTRL> key and \ key all at the same time. (On many modern keyboards the <META> key is labeled <ALT>.) Sometimes a combination like this is called a keychord, since it is similar to the way you play a chord on a piano. If your keyboard does not have a <META> key, the <ESC> key prefix is used in place of it. In this case, M-C-\ means that you press and release your <ESC> key and then type the <CTRL> key and the \ key at the same time. But usually M-C-\ means press the <CTRL> key along with the key that is labeled <ALT> and, at the same time, press the \ key.
+
+In addition to typing a lone keychord, you can prefix what you type with C-u, which is called the universal argument. The C-u keychord passes an argument to the subsequent command. Thus, to indent a region of plain text by 6 spaces, mark the region, and then type C-u 6 M-C-\. (If you do not specify a number, Emacs either passes the number 4 to the command or otherwise runs the command differently than it would otherwise.) See [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Arguments][Numeric Arguments]].
+
+If you are reading this in Info using GNU Emacs, you can read through this whole document just by pressing the space bar, <SPC>. (To learn about Info, type C-h i and then select Info.)
+
+A note on terminology: when I use the word Lisp alone, I often am referring to the various dialects of Lisp in general, but when I speak of Emacs Lisp, I am referring to GNU Emacs Lisp in particular.
+
+
+
+* Thank You
+    :PROPERTIES:
+    :CUSTOM_ID: thank-you
+    :CLASS: unnumberedsec
+    :END:
+
+My thanks to all who helped me with this book. My especial thanks to Jim Blandy, Noah Friedman, Jim Kingdon, Roland McGrath, Frank Ritter, Randy Smith, Richard M. Stallman, and Melissa Weisshaus. My thanks also go to both Philip Johnson and David Stampe for their patient encouragement. My mistakes are my own.
+
+Robert J. Chassell
+bob@gnu.org
+
+

@@ -1,0 +1,112 @@
+#+TITLE: 10.Yanking-Text-Back
+* 10 Yanking Text Back
+   :PROPERTIES:
+   :CUSTOM_ID: yanking-text-back
+   :CLASS: chapter
+   :END:
+
+ Whenever you cut text out of a buffer with a kill command in GNU Emacs, you can bring it back with a yank command. The text that is cut out of the buffer is put in the kill ring and the yank commands insert the appropriate contents of the kill ring back into a buffer (not necessarily the original buffer).
+
+A simple C-y (=yank=) command inserts the first item from the kill ring into the current buffer. If the C-y command is followed immediately by M-y, the first element is replaced by the second element. Successive M-y commands replace the second element with the third, fourth, or fifth element, and so on. When the last element in the kill ring is reached, it is replaced by the first element and the cycle is repeated. (Thus the kill ring is called a “ring” rather than just a “list”. However, the actual data structure that holds the text is a list. See [[#Kill-Ring][Handling the Kill Ring]], for the details of how the list is handled as a ring.)
+
+1) [[#Kill-Ring-Overview][Kill Ring Overview]]
+2) [[#kill_002dring_002dyank_002dpointer][kill-ring-yank-pointer]]: The kill ring is a list.
+3) [[#yank-nthcdr-Exercises][yank nthcdr Exercises]]: The =kill-ring-yank-pointer= variable.
+
+
+
+* 10.1 Kill Ring Overview
+    :PROPERTIES:
+    :CUSTOM_ID: kill-ring-overview
+    :CLASS: section
+    :END:
+
+ The kill ring is a list of textual strings. This is what it looks like:
+
+#+begin_src elisp
+         ("some text" "a different piece of text" "yet more text")
+#+end_src
+
+If this were the contents of my kill ring and I pressed C-y, the string of characters saying ‘some text' would be inserted in this buffer where my cursor is located.
+
+The =yank= command is also used for duplicating text by copying it. The copied text is not cut from the buffer, but a copy of it is put on the kill ring and is inserted by yanking it back.
+
+Three functions are used for bringing text back from the kill ring: =yank=, which is usually bound to C-y; =yank-pop=, which is usually bound to M-y; and =rotate-yank-pointer=, which is used by the two other functions.
+
+These functions refer to the kill ring through a variable called the =kill-ring-yank-pointer=. Indeed, the insertion code for both the =yank= and =yank-pop= functions is:
+
+#+begin_src elisp
+         (insert (car kill-ring-yank-pointer))
+#+end_src
+
+(Well, no more. In GNU Emacs 22, the function has been replaced by =insert-for-yank= which calls =insert-for-yank-1= repetitively for each =yank-handler= segment. In turn, =insert-for-yank-1= strips text properties from the inserted text according to =yank-excluded-properties=. Otherwise, it is just like =insert=. We will stick with plain =insert= since it is easier to understand.)
+
+To begin to understand how =yank= and =yank-pop= work, it is first necessary to look at the =kill-ring-yank-pointer= variable.
+
+
+Next: [[#yank-nthcdr-Exercises][yank nthcdr Exercises]], Previous: [[#Kill-Ring-Overview][Kill Ring Overview]], Up: [[#Yanking][Yanking]]
+
+* 10.2 The =kill-ring-yank-pointer= Variable
+    :PROPERTIES:
+    :CUSTOM_ID: the-kill-ring-yank-pointer-variable
+    :CLASS: section
+    :END:
+
+=kill-ring-yank-pointer= is a variable, just as =kill-ring= is a variable. It points to something by being bound to the value of what it points to, like any other Lisp variable.
+
+Thus, if the value of the kill ring is:
+
+#+begin_src elisp
+         ("some text" "a different piece of text" "yet more text")
+#+end_src
+
+and the =kill-ring-yank-pointer= points to the second clause, the value of =kill-ring-yank-pointer= is:
+
+#+begin_src elisp
+         ("a different piece of text" "yet more text")
+#+end_src
+
+As explained in the previous chapter (see [[#List-Implementation][List Implementation]]), the computer does not keep two different copies of the text being pointed to by both the =kill-ring= and the =kill-ring-yank-pointer=. The words “a different piece of text” and “yet more text” are not duplicated. Instead, the two Lisp variables point to the same pieces of text. Here is a diagram:
+
+#+begin_src elisp
+         kill-ring     kill-ring-yank-pointer
+             |               |
+             |      ___ ___  |     ___ ___      ___ ___
+              ---> |   |   |  --> |   |   |    |   |   |
+                   |___|___|----> |___|___|--> |___|___|--> nil
+                     |              |            |
+                     |              |            |
+                     |              |             --> "yet more text"
+                     |              |
+                     |               --> "a different piece of text"
+                     |
+                      --> "some text"
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+#+begin_src elisp
+#+end_src
+
+Both the variable =kill-ring= and the variable =kill-ring-yank-pointer= are pointers. But the kill ring itself is usually described as if it were actually what it is composed of. The =kill-ring= is spoken of as if it were the list rather than that it points to the list. Conversely, the =kill-ring-yank-pointer= is spoken of as pointing to a list.
+
+These two ways of talking about the same thing sound confusing at first but make sense on reflection. The kill ring is generally thought of as the complete structure of data that holds the information of what has recently been cut out of the Emacs buffers. The =kill-ring-yank-pointer= on the other hand, serves to indicate---that is, to point to---that part of the kill ring of which the first element (the car) will be inserted.
+
+
+Previous: [[#kill_002dring_002dyank_002dpointer][kill-ring-yank-pointer]], Up: [[#Yanking][Yanking]]
+
+* 10.3 Exercises with =yank= and =nthcdr=
+    :PROPERTIES:
+    :CUSTOM_ID: exercises-with-yank-and-nthcdr
+    :CLASS: section
+    :END:
+
+- Using C-h v (=describe-variable=), look at the value of your kill ring. Add several items to your kill ring; look at its value again. Using M-y (=yank-pop)=, move all the way around the kill ring. How many items were in your kill ring? Find the value of =kill-ring-max=. Was your kill ring full, or could you have kept more blocks of text within it?
+- Using =nthcdr= and =car=, construct a series of expressions to return the first, second, third, and fourth elements of a list.
+
+
+Next: [[#Regexp-Search][Regexp Search]], Previous: [[#Yanking][Yanking]], Up: [[#Top][Top]]

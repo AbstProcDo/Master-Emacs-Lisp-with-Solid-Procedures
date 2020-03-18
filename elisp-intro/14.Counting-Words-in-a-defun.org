@@ -1,0 +1,938 @@
+#+TITLE: 14.Counting-Words-in-a-defun
+* 14 Counting Words in a =defun=
+   :PROPERTIES:
+   :CUSTOM_ID: counting-words-in-a-defun
+   :CLASS: chapter
+   :END:
+
+ Our next project is to count the number of words in a function definition. Clearly, this can be done using some variant of =count-words-example=. See [[#Counting-Words][Counting via Repetition and Regexps]]. If we are just going to count the words in one definition, it is easy enough to mark the definition with the C-M-h (=mark-defun=) command, and then call =count-words-example=.
+
+However, I am more ambitious: I want to count the words and symbols in every definition in the Emacs sources and then print a graph that shows how many functions there are of each length: how many contain 40 to 49 words or symbols, how many contain 50 to 59 words or symbols, and so on. I have often been curious how long a typical function is, and this will tell.
+
+1) [[#Divide-and-Conquer][Divide and Conquer]]
+2) [[#Words-and-Symbols][Words and Symbols]]: What to count?
+3) [[#Syntax][Syntax]]: What constitutes a word or symbol?
+4) [[#count_002dwords_002din_002ddefun][count-words-in-defun]]: Very like =count-words-example=.
+5) [[#Several-defuns][Several defuns]]: Counting several defuns in a file.
+6) [[#Find-a-File][Find a File]]: Do you want to look at a file?
+7) [[#lengths_002dlist_002dfile][lengths-list-file]]: A list of the lengths of many definitions.
+8) [[#Several-files][Several files]]: Counting in definitions in different files.
+9) [[#Several-files-recursively][Several files recursively]]: Recursively counting in different files.
+10) [[#Prepare-the-data][Prepare the data]]: Prepare the data for display in a graph.
+
+
+
+* Divide and Conquer
+    :PROPERTIES:
+    :CUSTOM_ID: divide-and-conquer
+    :CLASS: unnumberedsec
+    :END:
+
+Described in one phrase, the histogram project is daunting; but divided into numerous small steps, each of which we can take one at a time, the project becomes less fearsome. Let us consider what the steps must be:
+
+- First, write a function to count the words in one definition. This includes the problem of handling symbols as well as words.
+- Second, write a function to list the number of words in each function in a file. This function can use the =count-words-in-defun= function.
+- Third, write a function to list the number of words in each function in each of several files. This entails automatically finding the various files, switching to them, and counting the words in the definitions within them.
+- Fourth, write a function to convert the list of numbers that we created in step three to a form that will be suitable for printing as a graph.
+- Fifth, write a function to print the results as a graph.
+
+This is quite a project! But if we take each step slowly, it will not be difficult.
+
+
+Next: [[#Syntax][Syntax]], Previous: [[#Divide-and-Conquer][Divide and Conquer]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.1 What to Count?
+    :PROPERTIES:
+    :CUSTOM_ID: what-to-count
+    :CLASS: section
+    :END:
+
+ When we first start thinking about how to count the words in a function definition, the first question is (or ought to be) what are we going to count? When we speak of “words” with respect to a Lisp function definition, we are actually speaking, in large part, of symbols. For example, the following =multiply-by-seven= function contains the five symbols =defun=, =multiply-by-seven=, =number=, =*=, and =7=. In addition, in the documentation string, it contains the four words ‘Multiply', ‘NUMBER', ‘by', and ‘seven'. The symbol ‘number' is repeated, so the definition contains a total of ten words and symbols.
+
+#+begin_src elisp
+         (defun multiply-by-seven (number)
+           "Multiply NUMBER by seven."
+           (* 7 number))
+#+end_src
+
+However, if we mark the =multiply-by-seven= definition with C-M-h (=mark-defun=), and then call =count-words-example= on it, we will find that =count-words-example= claims the definition has eleven words, not ten! Something is wrong!
+
+The problem is twofold: =count-words-example= does not count the ‘*' as a word, and it counts the single symbol, =multiply-by-seven=, as containing three words. The hyphens are treated as if they were interword spaces rather than intraword connectors: ‘multiply-by-seven' is counted as if it were written ‘multiply by seven'.
+
+The cause of this confusion is the regular expression search within the =count-words-example= definition that moves point forward word by word. In the canonical version of =count-words-example=, the regexp is:
+
+#+begin_src elisp
+         "\\w+\\W*"
+#+end_src
+
+This regular expression is a pattern defining one or more word constituent characters possibly followed by one or more characters that are not word constituents. What is meant by “word constituent characters” brings us to the issue of syntax, which is worth a section of its own.
+
+
+Next: [[#count_002dwords_002din_002ddefun][count-words-in-defun]], Previous: [[#Words-and-Symbols][Words and Symbols]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.2 What Constitutes a Word or Symbol?
+    :PROPERTIES:
+    :CUSTOM_ID: what-constitutes-a-word-or-symbol
+    :CLASS: section
+    :END:
+
+ Emacs treats different characters as belonging to different syntax categories. For example, the regular expression, ‘\\w+', is a pattern specifying one or more /word constituent/ characters. Word constituent characters are members of one syntax category. Other syntax categories include the class of punctuation characters, such as the period and the comma, and the class of whitespace characters, such as the blank space and the tab character. (For more information, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]].)
+
+Syntax tables specify which characters belong to which categories. Usually, a hyphen is not specified as a word constituent character. Instead, it is specified as being in the class of characters that are part of symbol names but not words. This means that the =count-words-example= function treats it in the same way it treats an interword white space, which is why =count-words-example= counts ‘multiply-by-seven' as three words.
+
+There are two ways to cause Emacs to count ‘multiply-by-seven' as one symbol: modify the syntax table or modify the regular expression.
+
+We could redefine a hyphen as a word constituent character by modifying the syntax table that Emacs keeps for each mode. This action would serve our purpose, except that a hyphen is merely the most common character within symbols that is not typically a word constituent character; there are others, too.
+
+Alternatively, we can redefine the regexp used in the =count-words-example= definition so as to include symbols. This procedure has the merit of clarity, but the task is a little tricky.
+
+The first part is simple enough: the pattern must match at least one character that is a word or symbol constituent. Thus:
+
+#+begin_src elisp
+         "\\(\\w\\|\\s_\\)+"
+#+end_src
+
+The ‘\\(' is the first part of the grouping construct that includes the ‘\\w' and the ‘\\s\_' as alternatives, separated by the ‘\\|'. The ‘\\w' matches any word-constituent character and the ‘\\s\_' matches any character that is part of a symbol name but not a word-constituent character. The ‘+' following the group indicates that the word or symbol constituent characters must be matched at least once.
+
+However, the second part of the regexp is more difficult to design. What we want is to follow the first part with optionally one or more characters that are not constituents of a word or symbol. At first, I thought I could define this with the following:
+
+#+begin_src elisp
+         "\\(\\W\\|\\S_\\)*"
+#+end_src
+
+The upper case ‘W' and ‘S' match characters that are /not/ word or symbol constituents. Unfortunately, this expression matches any character that is either not a word constituent or not a symbol constituent. This matches any character!
+
+I then noticed that every word or symbol in my test region was followed by white space (blank space, tab, or newline). So I tried placing a pattern to match one or more blank spaces after the pattern for one or more word or symbol constituents. This failed, too. Words and symbols are often separated by whitespace, but in actual code parentheses may follow symbols and punctuation may follow words. So finally, I designed a pattern in which the word or symbol constituents are followed optionally by characters that are not white space and then followed optionally by white space.
+
+Here is the full regular expression:
+
+#+begin_src elisp
+         "\\(\\w\\|\\s_\\)+[^ \t\n]*[ \t\n]*"
+#+end_src
+
+
+Next: [[#Several-defuns][Several defuns]], Previous: [[#Syntax][Syntax]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.3 The =count-words-in-defun= Function
+    :PROPERTIES:
+    :CUSTOM_ID: the-count-words-in-defun-function
+    :CLASS: section
+    :END:
+
+ We have seen that there are several ways to write a =count-words-region= function. To write a =count-words-in-defun=, we need merely adapt one of these versions.
+
+The version that uses a =while= loop is easy to understand, so I am going to adapt that. Because =count-words-in-defun= will be part of a more complex program, it need not be interactive and it need not display a message but just return the count. These considerations simplify the definition a little.
+
+On the other hand, =count-words-in-defun= will be used within a buffer that contains function definitions. Consequently, it is reasonable to ask that the function determine whether it is called when point is within a function definition, and if it is, to return the count for that definition. This adds complexity to the definition, but saves us from needing to pass arguments to the function.
+
+These considerations lead us to prepare the following template:
+
+#+begin_src elisp
+         (defun count-words-in-defun ()
+           "documentation..."
+           (set up...
+              (while loop...)
+            return count)
+#+end_src
+
+As usual, our job is to fill in the slots.
+
+First, the set up.
+
+We are presuming that this function will be called within a buffer containing function definitions. Point will either be within a function definition or not. For =count-words-in-defun= to work, point must move to the beginning of the definition, a counter must start at zero, and the counting loop must stop when point reaches the end of the definition.
+
+The =beginning-of-defun= function searches backwards for an opening delimiter such as a ‘(' at the beginning of a line, and moves point to that position, or else to the limit of the search. In practice, this means that =beginning-of-defun= moves point to the beginning of an enclosing or preceding function definition, or else to the beginning of the buffer. We can use =beginning-of-defun= to place point where we wish to start.
+
+The =while= loop requires a counter to keep track of the words or symbols being counted. A =let= expression can be used to create a local variable for this purpose, and bind it to an initial value of zero.
+
+The =end-of-defun= function works like =beginning-of-defun= except that it moves point to the end of the definition. =end-of-defun= can be used as part of an expression that determines the position of the end of the definition.
+
+The set up for =count-words-in-defun= takes shape rapidly: first we move point to the beginning of the definition, then we create a local variable to hold the count, and finally, we record the position of the end of the definition so the =while= loop will know when to stop looping.
+
+The code looks like this:
+
+#+begin_src elisp
+         (beginning-of-defun)
+         (let ((count 0)
+               (end (save-excursion (end-of-defun) (point))))
+#+end_src
+
+The code is simple. The only slight complication is likely to concern =end=: it is bound to the position of the end of the definition by a =save-excursion= expression that returns the value of point after =end-of-defun= temporarily moves it to the end of the definition.
+
+The second part of the =count-words-in-defun=, after the set up, is the =while= loop.
+
+The loop must contain an expression that jumps point forward word by word and symbol by symbol, and another expression that counts the jumps. The true-or-false-test for the =while= loop should test true so long as point should jump forward, and false when point is at the end of the definition. We have already redefined the regular expression for this, so the loop is straightforward:
+
+#+begin_src elisp
+         (while (and (< (point) end)
+                     (re-search-forward
+                      "\\(\\w\\|\\s_\\)+[^ \t\n]*[ \t\n]*" end t))
+           (setq count (1+ count)))
+#+end_src
+
+The third part of the function definition returns the count of words and symbols. This part is the last expression within the body of the =let= expression, and can be, very simply, the local variable =count=, which when evaluated returns the count.
+
+Put together, the =count-words-in-defun= definition looks like this:
+
+
+
+#+begin_src elisp
+         (defun count-words-in-defun ()
+           "Return the number of words and symbols in a defun."
+           (beginning-of-defun)
+           (let ((count 0)
+                 (end (save-excursion (end-of-defun) (point))))
+             (while
+                 (and (< (point) end)
+                      (re-search-forward
+                       "\\(\\w\\|\\s_\\)+[^ \t\n]*[ \t\n]*"
+                       end t))
+               (setq count (1+ count)))
+             count))
+#+end_src
+
+How to test this? The function is not interactive, but it is easy to put a wrapper around the function to make it interactive; we can use almost the same code as for the recursive version of =count-words-example=:
+
+#+begin_src elisp
+         ;;; Interactive version.
+         (defun count-words-defun ()
+           "Number of words and symbols in a function definition."
+           (interactive)
+           (message
+            "Counting words and symbols in function definition ... ")
+           (let ((count (count-words-in-defun)))
+             (cond
+              ((zerop count)
+               (message
+                "The definition does NOT have any words or symbols."))
+              ((= 1 count)
+               (message
+                "The definition has 1 word or symbol."))
+              (t
+               (message
+                "The definition has %d words or symbols." count)))))
+#+end_src
+
+Let's re-use C-c = as a convenient keybinding:
+
+#+begin_src elisp
+         (global-set-key "\C-c=" 'count-words-defun)
+#+end_src
+
+Now we can try out =count-words-defun=: install both =count-words-in-defun= and =count-words-defun=, and set the keybinding, and then place the cursor within the following definition:
+
+#+begin_src elisp
+         (defun multiply-by-seven (number)
+           "Multiply NUMBER by seven."
+           (* 7 number))
+              ⇒ 10
+#+end_src
+
+Success! The definition has 10 words and symbols.
+
+The next problem is to count the numbers of words and symbols in several definitions within a single file.
+
+
+Next: [[#Find-a-File][Find a File]], Previous: [[#count_002dwords_002din_002ddefun][count-words-in-defun]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.4 Count Several =defuns= Within a File
+    :PROPERTIES:
+    :CUSTOM_ID: count-several-defuns-within-a-file
+    :CLASS: section
+    :END:
+
+A file such as simple.el may have a hundred or more function definitions within it. Our long term goal is to collect statistics on many files, but as a first step, our immediate goal is to collect statistics on one file.
+
+The information will be a series of numbers, each number being the length of a function definition. We can store the numbers in a list.
+
+We know that we will want to incorporate the information regarding one file with information about many other files; this means that the function for counting definition lengths within one file need only return the list of lengths. It need not and should not display any messages.
+
+The word count commands contain one expression to jump point forward word by word and another expression to count the jumps. The function to return the lengths of definitions can be designed to work the same way, with one expression to jump point forward definition by definition and another expression to construct the lengths' list.
+
+This statement of the problem makes it elementary to write the function definition. Clearly, we will start the count at the beginning of the file, so the first command will be =(goto-char (point-min))=. Next, we start the =while= loop; and the true-or-false test of the loop can be a regular expression search for the next function definition---so long as the search succeeds, point is moved forward and then the body of the loop is evaluated. The body needs an expression that constructs the lengths' list. =cons=, the list construction command, can be used to create the list. That is almost all there is to it.
+
+Here is what this fragment of code looks like:
+
+#+begin_src elisp
+         (goto-char (point-min))
+         (while (re-search-forward "^(defun" nil t)
+           (setq lengths-list
+                 (cons (count-words-in-defun) lengths-list)))
+#+end_src
+
+What we have left out is the mechanism for finding the file that contains the function definitions.
+
+In previous examples, we either used this, the Info file, or we switched back and forth to some other buffer, such as the *scratch* buffer.
+
+Finding a file is a new process that we have not yet discussed.
+
+
+Next: [[#lengths_002dlist_002dfile][lengths-list-file]], Previous: [[#Several-defuns][Several defuns]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.5 Find a File
+    :PROPERTIES:
+    :CUSTOM_ID: find-a-file
+    :CLASS: section
+    :END:
+
+ To find a file in Emacs, you use the C-x C-f (=find-file=) command. This command is almost, but not quite right for the lengths problem.
+
+Let's look at the source for =find-file=:
+
+#+begin_src elisp
+         (defun find-file (filename)
+           "Edit file FILENAME.
+         Switch to a buffer visiting file FILENAME,
+         creating one if none already exists."
+           (interactive "FFind file: ")
+           (switch-to-buffer (find-file-noselect filename)))
+#+end_src
+
+(The most recent version of the =find-file= function definition permits you to specify optional wildcards to visit multiple files; that makes the definition more complex and we will not discuss it here, since it is not relevant. You can see its source using either M-. (=xref-find-definitions=) or C-h f (=describe-function=).)
+
+The definition I am showing possesses short but complete documentation and an interactive specification that prompts you for a file name when you use the command interactively. The body of the definition contains two functions, =find-file-noselect= and =switch-to-buffer=.
+
+According to its documentation as shown by C-h f (the =describe-function= command), the =find-file-noselect= function reads the named file into a buffer and returns the buffer. (Its most recent version includes an optional wildcards argument, too, as well as another to read a file literally and another to suppress warning messages. These optional arguments are irrelevant.)
+
+However, the =find-file-noselect= function does not select the buffer in which it puts the file. Emacs does not switch its attention (or yours if you are using =find-file-noselect=) to the selected buffer. That is what =switch-to-buffer= does: it switches the buffer to which Emacs attention is directed; and it switches the buffer displayed in the window to the new buffer. We have discussed buffer switching elsewhere. (See [[#Switching-Buffers][Switching Buffers]].)
+
+In this histogram project, we do not need to display each file on the screen as the program determines the length of each definition within it. Instead of employing =switch-to-buffer=, we can work with =set-buffer=, which redirects the attention of the computer program to a different buffer but does not redisplay it on the screen. So instead of calling on =find-file= to do the job, we must write our own expression.
+
+The task is easy: use =find-file-noselect= and =set-buffer=.
+
+
+Next: [[#Several-files][Several files]], Previous: [[#Find-a-File][Find a File]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.6 =lengths-list-file= in Detail
+    :PROPERTIES:
+    :CUSTOM_ID: lengths-list-file-in-detail
+    :CLASS: section
+    :END:
+
+The core of the =lengths-list-file= function is a =while= loop containing a function to move point forward defun by defun, and a function to count the number of words and symbols in each defun. This core must be surrounded by functions that do various other tasks, including finding the file, and ensuring that point starts out at the beginning of the file. The function definition looks like this:
+
+#+begin_src elisp
+         (defun lengths-list-file (filename)
+           "Return list of definitions' lengths within FILE.
+         The returned list is a list of numbers.
+         Each number is the number of words or
+         symbols in one function definition."
+           (message "Working on `%s' ... " filename)
+           (save-excursion
+             (let ((buffer (find-file-noselect filename))
+                   (lengths-list))
+               (set-buffer buffer)
+               (setq buffer-read-only t)
+               (widen)
+               (goto-char (point-min))
+               (while (re-search-forward "^(defun" nil t)
+                 (setq lengths-list
+                       (cons (count-words-in-defun) lengths-list)))
+               (kill-buffer buffer)
+               lengths-list)))
+#+end_src
+
+The function is passed one argument, the name of the file on which it will work. It has four lines of documentation, but no interactive specification. Since people worry that a computer is broken if they don't see anything going on, the first line of the body is a message.
+
+The next line contains a =save-excursion= that returns Emacs's attention to the current buffer when the function completes. This is useful in case you embed this function in another function that presumes point is restored to the original buffer.
+
+In the varlist of the =let= expression, Emacs finds the file and binds the local variable =buffer= to the buffer containing the file. At the same time, Emacs creates =lengths-list= as a local variable.
+
+Next, Emacs switches its attention to the buffer.
+
+In the following line, Emacs makes the buffer read-only. Ideally, this line is not necessary. None of the functions for counting words and symbols in a function definition should change the buffer. Besides, the buffer is not going to be saved, even if it were changed. This line is entirely the consequence of great, perhaps excessive, caution. The reason for the caution is that this function and those it calls work on the sources for Emacs and it is inconvenient if they are inadvertently modified. It goes without saying that I did not realize a need for this line until an experiment went awry and started to modify my Emacs source files ...
+
+Next comes a call to widen the buffer if it is narrowed. This function is usually not needed---Emacs creates a fresh buffer if none already exists; but if a buffer visiting the file already exists Emacs returns that one. In this case, the buffer may be narrowed and must be widened. If we wanted to be fully user-friendly, we would arrange to save the restriction and the location of point, but we won't.
+
+The =(goto-char (point-min))= expression moves point to the beginning of the buffer.
+
+Then comes a =while= loop in which the work of the function is carried out. In the loop, Emacs determines the length of each definition and constructs a lengths' list containing the information.
+
+Emacs kills the buffer after working through it. This is to save space inside of Emacs. My version of GNU Emacs 19 contained over 300 source files of interest; GNU Emacs 22 contains over a thousand source files. Another function will apply =lengths-list-file= to each of the files.
+
+Finally, the last expression within the =let= expression is the =lengths-list= variable; its value is returned as the value of the whole function.
+
+You can try this function by installing it in the usual fashion. Then place your cursor after the following expression and type C-x C-e (=eval-last-sexp=).
+
+#+begin_src elisp
+         (lengths-list-file
+          "/usr/local/share/emacs/22.1/lisp/emacs-lisp/debug.el")
+#+end_src
+
+You may need to change the pathname of the file; the one here is for GNU Emacs version 22.1. To change the expression, copy it to the *scratch* buffer and edit it.
+
+Also, to see the full length of the list, rather than a truncated version, you may have to evaluate the following:
+
+#+begin_src elisp
+         (custom-set-variables '(eval-expression-print-length nil))
+#+end_src
+
+(See [[#defcustom][Specifying Variables using =defcustom=]]. Then evaluate the =lengths-list-file= expression.)
+
+The lengths' list for debug.el takes less than a second to produce and looks like this in GNU Emacs 22:
+
+#+begin_src elisp
+         (83 113 105 144 289 22 30 97 48 89 25 52 52 88 28 29 77 49 43 290 232 587)
+#+end_src
+
+(Using my old machine, the version 19 lengths' list for debug.el took seven seconds to produce and looked like this:
+
+#+begin_src elisp
+         (75 41 80 62 20 45 44 68 45 12 34 235)
+#+end_src
+
+The newer version of debug.el contains more defuns than the earlier one; and my new machine is much faster than the old one.)
+
+Note that the length of the last definition in the file is first in the list.
+
+
+Next: [[#Several-files-recursively][Several files recursively]], Previous: [[#lengths_002dlist_002dfile][lengths-list-file]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.7 Count Words in =defuns= in Different Files
+    :PROPERTIES:
+    :CUSTOM_ID: count-words-in-defuns-in-different-files
+    :CLASS: section
+    :END:
+
+In the previous section, we created a function that returns a list of the lengths of each definition in a file. Now, we want to define a function to return a master list of the lengths of the definitions in a list of files.
+
+Working on each of a list of files is a repetitious act, so we can use either a =while= loop or recursion.
+
+- [[#lengths_002dlist_002dmany_002dfiles][lengths-list-many-files]]: Return a list of the lengths of defuns.
+- [[#append][append]]: Attach one list to another.
+
+
+Next: [[#append][append]], Up: [[#Several-files][Several files]]
+
+** Determine the lengths of =defuns=
+     :PROPERTIES:
+     :CUSTOM_ID: determine-the-lengths-of-defuns
+     :CLASS: unnumberedsubsec
+     :END:
+
+The design using a =while= loop is routine. The argument passed to the function is a list of files. As we saw earlier (see [[#Loop-Example][Loop Example]]), you can write a =while= loop so that the body of the loop is evaluated if such a list contains elements, but to exit the loop if the list is empty. For this design to work, the body of the loop must contain an expression that shortens the list each time the body is evaluated, so that eventually the list is empty. The usual technique is to set the value of the list to the value of the cdr of the list each time the body is evaluated.
+
+The template looks like this:
+
+#+begin_src elisp
+         (while test-whether-list-is-empty
+           body...
+           set-list-to-cdr-of-list)
+#+end_src
+
+Also, we remember that a =while= loop returns =nil= (the result of evaluating the true-or-false-test), not the result of any evaluation within its body. (The evaluations within the body of the loop are done for their side effects.) However, the expression that sets the lengths' list is part of the body---and that is the value that we want returned by the function as a whole. To do this, we enclose the =while= loop within a =let= expression, and arrange that the last element of the =let= expression contains the value of the lengths' list. (See [[#Incrementing-Example][Loop Example with an Incrementing Counter]].)
+
+These considerations lead us directly to the function itself:
+
+#+begin_src elisp
+         ;;; Use while loop.
+         (defun lengths-list-many-files (list-of-files)
+           "Return list of lengths of defuns in LIST-OF-FILES."
+           (let (lengths-list)
+
+         ;;; true-or-false-test
+             (while list-of-files
+               (setq lengths-list
+                     (append
+                      lengths-list
+
+         ;;; Generate a lengths' list.
+                      (lengths-list-file
+                       (expand-file-name (car list-of-files)))))
+
+         ;;; Make files' list shorter.
+               (setq list-of-files (cdr list-of-files)))
+
+         ;;; Return final value of lengths' list.
+             lengths-list))
+#+end_src
+
+=expand-file-name= is a built-in function that converts a file name to the absolute, long, path name form. The function employs the name of the directory in which the function is called.
+
+Thus, if =expand-file-name= is called on =debug.el= when Emacs is visiting the /usr/local/share/emacs/22.1.1/lisp/emacs-lisp/ directory,
+
+#+begin_src elisp
+         debug.el
+#+end_src
+
+becomes
+
+#+begin_src elisp
+         /usr/local/share/emacs/22.1.1/lisp/emacs-lisp/debug.el
+#+end_src
+
+The only other new element of this function definition is the as yet unstudied function =append=, which merits a short section for itself.
+
+
+Previous: [[#lengths_002dlist_002dmany_002dfiles][lengths-list-many-files]], Up: [[#Several-files][Several files]]
+
+** 14.7.1 The =append= Function
+     :PROPERTIES:
+     :CUSTOM_ID: the-append-function
+     :CLASS: subsection
+     :END:
+
+The =append= function attaches one list to another. Thus,
+
+#+begin_src elisp
+         (append '(1 2 3 4) '(5 6 7 8))
+#+end_src
+
+produces the list
+
+#+begin_src elisp
+         (1 2 3 4 5 6 7 8)
+#+end_src
+
+This is exactly how we want to attach two lengths' lists produced by =lengths-list-file= to each other. The results contrast with =cons=,
+
+#+begin_src elisp
+         (cons '(1 2 3 4) '(5 6 7 8))
+#+end_src
+
+which constructs a new list in which the first argument to =cons= becomes the first element of the new list:
+
+#+begin_src elisp
+         ((1 2 3 4) 5 6 7 8)
+#+end_src
+
+
+Next: [[#Prepare-the-data][Prepare the data]], Previous: [[#Several-files][Several files]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.8 Recursively Count Words in Different Files
+    :PROPERTIES:
+    :CUSTOM_ID: recursively-count-words-in-different-files
+    :CLASS: section
+    :END:
+
+Besides a =while= loop, you can work on each of a list of files with recursion. A recursive version of =lengths-list-many-files= is short and simple.
+
+The recursive function has the usual parts: the do-again-test, the next-step-expression, and the recursive call. The do-again-test determines whether the function should call itself again, which it will do if the =list-of-files= contains any remaining elements; the next-step-expression resets the =list-of-files= to the cdr of itself, so eventually the list will be empty; and the recursive call calls itself on the shorter list. The complete function is shorter than this description!
+
+#+begin_src elisp
+         (defun recursive-lengths-list-many-files (list-of-files)
+           "Return list of lengths of each defun in LIST-OF-FILES."
+           (if list-of-files                     ; do-again-test
+               (append
+                (lengths-list-file
+                 (expand-file-name (car list-of-files)))
+                (recursive-lengths-list-many-files
+                 (cdr list-of-files)))))
+#+end_src
+
+In a sentence, the function returns the lengths' list for the first of the =list-of-files= appended to the result of calling itself on the rest of the =list-of-files=.
+
+Here is a test of =recursive-lengths-list-many-files=, along with the results of running =lengths-list-file= on each of the files individually.
+
+Install =recursive-lengths-list-many-files= and =lengths-list-file=, if necessary, and then evaluate the following expressions. You may need to change the files' pathnames; those here work when this Info file and the Emacs sources are located in their customary places. To change the expressions, copy them to the *scratch* buffer, edit them, and then evaluate them.
+
+The results are shown after the ‘⇒'. (These results are for files from Emacs version 22.1.1; files from other versions of Emacs may produce different results.)
+
+#+begin_src elisp
+         (cd "/usr/local/share/emacs/22.1.1/")
+
+         (lengths-list-file "./lisp/macros.el")
+              ⇒ (283 263 480 90)
+
+         (lengths-list-file "./lisp/mail/mailalias.el")
+              ⇒ (38 32 29 95 178 180 321 218 324)
+
+         (lengths-list-file "./lisp/makesum.el")
+              ⇒ (85 181)
+
+           (recursive-lengths-list-many-files
+            '("./lisp/macros.el"
+              "./lisp/mail/mailalias.el"
+              "./lisp/makesum.el"))
+                ⇒ (283 263 480 90 38 32 29 95 178 180 321 218 324 85 181)
+#+end_src
+
+The =recursive-lengths-list-many-files= function produces the output we want.
+
+The next step is to prepare the data in the list for display in a graph.
+
+
+Previous: [[#Several-files-recursively][Several files recursively]], Up: [[#Words-in-a-defun][Words in a defun]]
+
+* 14.9 Prepare the Data for Display in a Graph
+    :PROPERTIES:
+    :CUSTOM_ID: prepare-the-data-for-display-in-a-graph
+    :CLASS: section
+    :END:
+
+The =recursive-lengths-list-many-files= function returns a list of numbers. Each number records the length of a function definition. What we need to do now is transform this data into a list of numbers suitable for generating a graph. The new list will tell how many functions definitions contain less than 10 words and symbols, how many contain between 10 and 19 words and symbols, how many contain between 20 and 29 words and symbols, and so on.
+
+In brief, we need to go through the lengths' list produced by the =recursive-lengths-list-many-files= function and count the number of defuns within each range of lengths, and produce a list of those numbers.
+
+- [[#Data-for-Display-in-Detail][Data for Display in Detail]]
+- [[#Sorting][Sorting]]: Sorting lists.
+- [[#Files-List][Files List]]: Making a list of files.
+- [[#Counting-function-definitions][Counting function definitions]]
+
+
+Next: [[#Sorting][Sorting]], Up: [[#Prepare-the-data][Prepare the data]]
+
+** The Data for Display in Detail
+     :PROPERTIES:
+     :CUSTOM_ID: the-data-for-display-in-detail
+     :CLASS: unnumberedsubsec
+     :END:
+
+Based on what we have done before, we can readily foresee that it should not be too hard to write a function that cdrs down the lengths' list, looks at each element, determines which length range it is in, and increments a counter for that range.
+
+However, before beginning to write such a function, we should consider the advantages of sorting the lengths' list first, so the numbers are ordered from smallest to largest. First, sorting will make it easier to count the numbers in each range, since two adjacent numbers will either be in the same length range or in adjacent ranges. Second, by inspecting a sorted list, we can discover the highest and lowest number, and thereby determine the largest and smallest length range that we will need.
+
+
+Next: [[#Files-List][Files List]], Previous: [[#Data-for-Display-in-Detail][Data for Display in Detail]], Up: [[#Prepare-the-data][Prepare the data]]
+
+** 14.9.1 Sorting Lists
+     :PROPERTIES:
+     :CUSTOM_ID: sorting-lists
+     :CLASS: subsection
+     :END:
+
+ Emacs contains a function to sort lists, called (as you might guess) =sort=. The =sort= function takes two arguments, the list to be sorted, and a predicate that determines whether the first of two list elements is less than the second.
+
+As we saw earlier (see [[#Wrong-Type-of-Argument][Using the Wrong Type Object as an Argument]]), a predicate is a function that determines whether some property is true or false. The =sort= function will reorder a list according to whatever property the predicate uses; this means that =sort= can be used to sort non-numeric lists by non-numeric criteria---it can, for example, alphabetize a list.
+
+The =<= function is used when sorting a numeric list. For example,
+
+#+begin_src elisp
+         (sort '(4 8 21 17 33 7 21 7) '<)
+#+end_src
+
+produces this:
+
+#+begin_src elisp
+         (4 7 7 8 17 21 21 33)
+#+end_src
+
+(Note that in this example, both the arguments are quoted so that the symbols are not evaluated before being passed to =sort= as arguments.)
+
+Sorting the list returned by the =recursive-lengths-list-many-files= function is straightforward; it uses the =<= function:
+
+#+begin_src elisp
+         (sort
+          (recursive-lengths-list-many-files
+           '("./lisp/macros.el"
+             "./lisp/mailalias.el"
+             "./lisp/makesum.el"))
+          '<)
+#+end_src
+
+which produces:
+
+#+begin_src elisp
+         (29 32 38 85 90 95 178 180 181 218 263 283 321 324 480)
+#+end_src
+
+(Note that in this example, the first argument to =sort= is not quoted, since the expression must be evaluated so as to produce the list that is passed to =sort=.)
+
+
+Next: [[#Counting-function-definitions][Counting function definitions]], Previous: [[#Sorting][Sorting]], Up: [[#Prepare-the-data][Prepare the data]]
+
+** 14.9.2 Making a List of Files
+     :PROPERTIES:
+     :CUSTOM_ID: making-a-list-of-files
+     :CLASS: subsection
+     :END:
+
+The =recursive-lengths-list-many-files= function requires a list of files as its argument. For our test examples, we constructed such a list by hand; but the Emacs Lisp source directory is too large for us to do for that. Instead, we will write a function to do the job for us. In this function, we will use both a =while= loop and a recursive call.
+
+We did not have to write a function like this for older versions of GNU Emacs, since they placed all the ‘.el' files in one directory. Instead, we were able to use the =directory-files= function, which lists the names of files that match a specified pattern within a single directory.
+
+However, recent versions of Emacs place Emacs Lisp files in sub-directories of the top level lisp directory. This re-arrangement eases navigation. For example, all the mail related files are in a lisp sub-directory called mail. But at the same time, this arrangement forces us to create a file listing function that descends into the sub-directories.
+
+We can create this function, called =files-in-below-directory=, using familiar functions such as =car=, =nthcdr=, and =substring= in conjunction with an existing function called =directory-files-and-attributes=. This latter function not only lists all the filenames in a directory, including the names of sub-directories, but also their attributes.
+
+To restate our goal: to create a function that will enable us to feed filenames to =recursive-lengths-list-many-files= as a list that looks like this (but with more elements):
+
+#+begin_src elisp
+         ("./lisp/macros.el"
+          "./lisp/mail/rmail.el"
+          "./lisp/makesum.el")
+#+end_src
+
+The =directory-files-and-attributes= function returns a list of lists. Each of the lists within the main list consists of 13 elements. The first element is a string that contains the name of the file---which, in GNU/Linux, may be a directory file, that is to say, a file with the special attributes of a directory. The second element of the list is =t= for a directory, a string for symbolic link (the string is the name linked to), or =nil=.
+
+For example, the first ‘.el' file in the lisp/ directory is abbrev.el. Its name is /usr/local/share/emacs/22.1.1/lisp/abbrev.el and it is not a directory or a symbolic link.
+
+This is how =directory-files-and-attributes= lists that file and its attributes:
+
+#+begin_src elisp
+         ("abbrev.el"
+         nil
+         1
+         1000
+         100
+         (20615 27034 579989 697000)
+         (17905 55681 0 0)
+         (20615 26327 734791 805000)
+         13188
+         "-rw-r--r--"
+         t
+         2971624
+         773)
+#+end_src
+
+On the other hand, mail/ is a directory within the lisp/ directory. The beginning of its listing looks like this:
+
+#+begin_src elisp
+         ("mail"
+         t
+         ...
+         )
+#+end_src
+
+(To learn about the different attributes, look at the documentation of =file-attributes=. Bear in mind that the =file-attributes= function does not list the filename, so its first element is =directory-files-and-attributes='s second element.)
+
+We will want our new function, =files-in-below-directory=, to list the ‘.el' files in the directory it is told to check, and in any directories below that directory.
+
+This gives us a hint on how to construct =files-in-below-directory=: within a directory, the function should add ‘.el' filenames to a list; and if, within a directory, the function comes upon a sub-directory, it should go into that sub-directory and repeat its actions.
+
+However, we should note that every directory contains a name that refers to itself, called . (“dot”), and a name that refers to its parent directory, called .. (“dot dot”). (In /, the root directory, .. refers to itself, since / has no parent.) Clearly, we do not want our =files-in-below-directory= function to enter those directories, since they always lead us, directly or indirectly, to the current directory.
+
+Consequently, our =files-in-below-directory= function must do several tasks:
+
+- Check to see whether it is looking at a filename that ends in ‘.el'; and if so, add its name to a list.
+- Check to see whether it is looking at a filename that is the name of a directory; and if so,
+
+  - Check to see whether it is looking at . or ..; and if so skip it.
+  - Or else, go into that directory and repeat the process.
+
+Let's write a function definition to do these tasks. We will use a =while= loop to move from one filename to another within a directory, checking what needs to be done; and we will use a recursive call to repeat the actions on each sub-directory. The recursive pattern is Accumulate (see [[#Accumulate][Accumulate]]), using =append= as the combiner.
+
+Here is the function:
+
+#+begin_src elisp
+         (defun files-in-below-directory (directory)
+           "List the .el files in DIRECTORY and in its sub-directories."
+           ;; Although the function will be used non-interactively,
+           ;; it will be easier to test if we make it interactive.
+           ;; The directory will have a name such as
+           ;;  "/usr/local/share/emacs/22.1.1/lisp/"
+           (interactive "DDirectory name: ")
+           (let (el-files-list
+                 (current-directory-list
+                  (directory-files-and-attributes directory t)))
+             ;; while we are in the current directory
+             (while current-directory-list
+               (cond
+                ;; check to see whether filename ends in '.el'
+                ;; and if so, add its name to a list.
+                ((equal ".el" (substring (car (car current-directory-list)) -3))
+                 (setq el-files-list
+                       (cons (car (car current-directory-list)) el-files-list)))
+                ;; check whether filename is that of a directory
+                ((eq t (car (cdr (car current-directory-list))))
+                 ;; decide whether to skip or recurse
+                 (if
+                     (equal "."
+                            (substring (car (car current-directory-list)) -1))
+                     ;; then do nothing since filename is that of
+                     ;;   current directory or parent, "." or ".."
+                     ()
+                   ;; else descend into the directory and repeat the process
+                   (setq el-files-list
+                         (append
+                          (files-in-below-directory
+                           (car (car current-directory-list)))
+                          el-files-list)))))
+               ;; move to the next filename in the list; this also
+               ;; shortens the list so the while loop eventually comes to an end
+               (setq current-directory-list (cdr current-directory-list)))
+             ;; return the filenames
+             el-files-list))
+#+end_src
+
+The =files-in-below-directory= =directory-files= function takes one argument, the name of a directory.
+
+Thus, on my system,
+
+#+begin_src elisp
+         (length
+          (files-in-below-directory "/usr/local/share/emacs/22.1.1/lisp/"))
+#+end_src
+
+tells me that in and below my Lisp sources directory are 1031 ‘.el' files.
+
+=files-in-below-directory= returns a list in reverse alphabetical order. An expression to sort the list in alphabetical order looks like this:
+
+#+begin_src elisp
+         (sort
+          (files-in-below-directory "/usr/local/share/emacs/22.1.1/lisp/")
+          'string-lessp)
+#+end_src
+
+
+Previous: [[#Files-List][Files List]], Up: [[#Prepare-the-data][Prepare the data]]
+
+** 14.9.3 Counting function definitions
+     :PROPERTIES:
+     :CUSTOM_ID: counting-function-definitions
+     :CLASS: subsection
+     :END:
+
+Our immediate goal is to generate a list that tells us how many function definitions contain fewer than 10 words and symbols, how many contain between 10 and 19 words and symbols, how many contain between 20 and 29 words and symbols, and so on.
+
+With a sorted list of numbers, this is easy: count how many elements of the list are smaller than 10, then, after moving past the numbers just counted, count how many are smaller than 20, then, after moving past the numbers just counted, count how many are smaller than 30, and so on. Each of the numbers, 10, 20, 30, 40, and the like, is one larger than the top of that range. We can call the list of such numbers the =top-of-ranges= list.
+
+If we wished, we could generate this list automatically, but it is simpler to write a list manually. Here it is:
+
+#+begin_src elisp
+         (defvar top-of-ranges
+          '(10  20  30  40  50
+            60  70  80  90 100
+           110 120 130 140 150
+           160 170 180 190 200
+           210 220 230 240 250
+           260 270 280 290 300)
+          "List specifying ranges for `defuns-per-range'.")
+#+end_src
+
+To change the ranges, we edit this list.
+
+Next, we need to write the function that creates the list of the number of definitions within each range. Clearly, this function must take the =sorted-lengths= and the =top-of-ranges= lists as arguments.
+
+The =defuns-per-range= function must do two things again and again: it must count the number of definitions within a range specified by the current top-of-range value; and it must shift to the next higher value in the =top-of-ranges= list after counting the number of definitions in the current range. Since each of these actions is repetitive, we can use =while= loops for the job. One loop counts the number of definitions in the range defined by the current top-of-range value, and the other loop selects each of the top-of-range values in turn.
+
+Several entries of the =sorted-lengths= list are counted for each range; this means that the loop for the =sorted-lengths= list will be inside the loop for the =top-of-ranges= list, like a small gear inside a big gear.
+
+The inner loop counts the number of definitions within the range. It is a simple counting loop of the type we have seen before. (See [[#Incrementing-Loop][A loop with an incrementing counter]].) The true-or-false test of the loop tests whether the value from the =sorted-lengths= list is smaller than the current value of the top of the range. If it is, the function increments the counter and tests the next value from the =sorted-lengths= list.
+
+The inner loop looks like this:
+
+#+begin_src elisp
+         (while length-element-smaller-than-top-of-range
+           (setq number-within-range (1+ number-within-range))
+           (setq sorted-lengths (cdr sorted-lengths)))
+#+end_src
+
+The outer loop must start with the lowest value of the =top-of-ranges= list, and then be set to each of the succeeding higher values in turn. This can be done with a loop like this:
+
+#+begin_src elisp
+         (while top-of-ranges
+           body-of-loop...
+           (setq top-of-ranges (cdr top-of-ranges)))
+#+end_src
+
+Put together, the two loops look like this:
+
+#+begin_src elisp
+         (while top-of-ranges
+
+           ;; Count the number of elements within the current range.
+           (while length-element-smaller-than-top-of-range
+             (setq number-within-range (1+ number-within-range))
+             (setq sorted-lengths (cdr sorted-lengths)))
+
+           ;; Move to next range.
+           (setq top-of-ranges (cdr top-of-ranges)))
+#+end_src
+
+In addition, in each circuit of the outer loop, Emacs should record the number of definitions within that range (the value of =number-within-range=) in a list. We can use =cons= for this purpose. (See [[#cons][=cons=]].)
+
+The =cons= function works fine, except that the list it constructs will contain the number of definitions for the highest range at its beginning and the number of definitions for the lowest range at its end. This is because =cons= attaches new elements of the list to the beginning of the list, and since the two loops are working their way through the lengths' list from the lower end first, the =defuns-per-range-list= will end up largest number first. But we will want to print our graph with smallest values first and the larger later. The solution is to reverse the order of the =defuns-per-range-list=. We can do this using the =nreverse= function, which reverses the order of a list.  For example,
+
+#+begin_src elisp
+         (nreverse '(1 2 3 4))
+#+end_src
+
+produces:
+
+#+begin_src elisp
+         (4 3 2 1)
+#+end_src
+
+Note that the =nreverse= function is destructive---that is, it changes the list to which it is applied; this contrasts with the =car= and =cdr= functions, which are non-destructive. In this case, we do not want the original =defuns-per-range-list=, so it does not matter that it is destroyed. (The =reverse= function provides a reversed copy of a list, leaving the original list as is.)  Put all together, the =defuns-per-range= looks like this:
+
+#+begin_src elisp
+         (defun defuns-per-range (sorted-lengths top-of-ranges)
+           "SORTED-LENGTHS defuns in each TOP-OF-RANGES range."
+           (let ((top-of-range (car top-of-ranges))
+                 (number-within-range 0)
+                 defuns-per-range-list)
+
+             ;; Outer loop.
+             (while top-of-ranges
+
+               ;; Inner loop.
+               (while (and
+                       ;; Need number for numeric test.
+                       (car sorted-lengths)
+                       (< (car sorted-lengths) top-of-range))
+
+                 ;; Count number of definitions within current range.
+                 (setq number-within-range (1+ number-within-range))
+                 (setq sorted-lengths (cdr sorted-lengths)))
+
+               ;; Exit inner loop but remain within outer loop.
+
+               (setq defuns-per-range-list
+                     (cons number-within-range defuns-per-range-list))
+               (setq number-within-range 0)      ; Reset count to zero.
+
+               ;; Move to next range.
+               (setq top-of-ranges (cdr top-of-ranges))
+               ;; Specify next top of range value.
+               (setq top-of-range (car top-of-ranges)))
+
+             ;; Exit outer loop and count the number of defuns larger than
+             ;;   the largest top-of-range value.
+             (setq defuns-per-range-list
+                   (cons
+                    (length sorted-lengths)
+                    defuns-per-range-list))
+
+             ;; Return a list of the number of definitions within each range,
+             ;;   smallest to largest.
+             (nreverse defuns-per-range-list)))
+#+end_src
+
+The function is straightforward except for one subtle feature. The true-or-false test of the inner loop looks like this:
+
+#+begin_src elisp
+         (and (car sorted-lengths)
+              (< (car sorted-lengths) top-of-range))
+#+end_src
+
+instead of like this:
+
+#+begin_src elisp
+         (< (car sorted-lengths) top-of-range)
+#+end_src
+
+The purpose of the test is to determine whether the first item in the =sorted-lengths= list is less than the value of the top of the range.
+
+The simple version of the test works fine unless the =sorted-lengths= list has a =nil= value. In that case, the =(car sorted-lengths)= expression function returns =nil=. The =<= function cannot compare a number to =nil=, which is an empty list, so Emacs signals an error and stops the function from attempting to continue to execute.
+
+The =sorted-lengths= list always becomes =nil= when the counter reaches the end of the list. This means that any attempt to use the =defuns-per-range= function with the simple version of the test will fail.
+
+We solve the problem by using the =(car sorted-lengths)= expression in conjunction with the =and= expression. The =(car sorted-lengths)= expression returns a non-=nil= value so long as the list has at least one number within it, but returns =nil= if the list is empty. The =and= expression first evaluates the =(car sorted-lengths)= expression, and if it is =nil=, returns false /without/ evaluating the =<= expression. But if the =(car sorted-lengths)= expression returns a non-=nil= value, the =and= expression evaluates the =<= expression, and returns that value as the value of the =and= expression.
+
+This way, we avoid an error.
+
+Here is a short test of the =defuns-per-range= function. First, evaluate the expression that binds (a shortened) =top-of-ranges= list to the list of values, then evaluate the expression for binding the =sorted-lengths= list, and then evaluate the =defuns-per-range= function.
+
+#+begin_src elisp
+         ;; (Shorter list than we will use later.)
+         (setq top-of-ranges
+          '(110 120 130 140 150
+            160 170 180 190 200))
+
+         (setq sorted-lengths
+               '(85 86 110 116 122 129 154 176 179 200 265 300 300))
+
+         (defuns-per-range sorted-lengths top-of-ranges)
+#+end_src
+
+The list returned looks like this:
+
+#+begin_src elisp
+         (2 2 2 0 0 1 0 2 0 0 4)
+#+end_src
+
+Indeed, there are two elements of the =sorted-lengths= list smaller than 110, two elements between 110 and 119, two elements between 120 and 129, and so on. There are four elements with a value of 200 or larger.
+
+
+Next: [[#Emacs-Initialization][Emacs Initialization]], Previous: [[#Words-in-a-defun][Words in a defun]], Up: [[#Top][Top]]

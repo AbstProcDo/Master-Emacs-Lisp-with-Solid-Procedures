@@ -1,0 +1,47 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /home/gaowei/Documents/OrgMode/ORG/Manuals/elisp-intro/02.Practicing-Evaluating.org
+
+
+* 2.4 Buffer Size and the Location of Point
+    :PROPERTIES:
+    :CUSTOM_ID: buffer-size-and-the-location-of-point
+    :CLASS: section
+    :ARCHIVE_TIME: 2020-03-18 Wed 15:44
+    :ARCHIVE_FILE: ~/Documents/OrgMode/ORG/Manuals/elisp-intro/02.Practicing-Evaluating.org
+    :ARCHIVE_CATEGORY: 02.Practicing-Evaluating
+    :END:
+
+ Finally, let's look at several rather simple functions, =buffer-size=, =point=, =point-min=, and =point-max=. These give information about the size of a buffer and the location of point within it.
+
+The function =buffer-size= tells you the size of the current buffer; that is, the function returns a count of the number of characters in the buffer.
+
+#+begin_src elisp
+(buffer-size)
+#+end_src
+
+#+RESULTS:
+: 16156
+
+You can evaluate this in the usual way, by positioning the cursor after the expression and typing C-x C-e.
+
+In Emacs, the current position of the cursor is called point. The expression =(point)= returns a number that tells you where the cursor is located as a count of the number of characters from the beginning of the buffer up to point.
+
+You can see the character count for point in this buffer by evaluating the following expression in the usual way:
+
+#+begin_src elisp
+         (point)
+#+end_src
+
+As I write this, the value of point is 65724. The =point= function is frequently used in some of the examples later in this book.
+
+The value of point depends, of course, on its location within the buffer. If you evaluate point in this spot, the number will be larger:
+
+#+begin_src elisp
+         (point)
+#+end_src
+
+For me, the value of point in this location is 66043, which means that there are 319 characters (including spaces) between the two expressions. (Doubtless, you will see different numbers, since I will have edited this since I first evaluated point.)
+
+The function =point-min= is somewhat similar to =point=, but it returns the value of the minimum permissible value of point in the current buffer. This is the number 1 unless narrowing is in effect. (Narrowing is a mechanism whereby you can restrict yourself, or a program, to operations on just a part of a buffer. See [[#Narrowing-_0026-Widening][Narrowing and Widening]].) Likewise, the function =point-max= returns the value of the maximum permissible value of point in the current buffer.

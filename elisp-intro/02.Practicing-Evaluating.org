@@ -1,0 +1,209 @@
+#+TITLE: 02.Practicing-Evaluating
+* 2 Practicing Evaluation
+   :PROPERTIES:
+   :CUSTOM_ID: practicing-evaluation
+   :CLASS: chapter
+   :END:
+
+ Before learning how to write a function definition in Emacs Lisp, it is useful to spend a little time evaluating various expressions that have already been written. These expressions will be lists with the functions as their first (and often only) element. Since some of the functions associated with buffers are both simple and interesting, we will start with those. In this section, we will evaluate a few of these. In another section, we will study the code of several other buffer-related functions, to see how they were written.
+
+1) [[#How-to-Evaluate][How to Evaluate]]: Typing editing commands or C-x C-e causes evaluation.
+2) [[#Buffer-Names][Buffer Names]]: Buffers and files are different.
+3) [[#Getting-Buffers][Getting Buffers]]: Getting a buffer itself, not merely its name.
+4) [[#Switching-Buffers][Switching Buffers]]: How to change to another buffer.
+5) [[#Buffer-Size-_0026-Locations][Buffer Size & Locations]]: Where point is located and the size of the buffer.
+6) [[#Evaluation-Exercise][Evaluation Exercise]]
+
+* How to Evaluate
+    :PROPERTIES:
+    :CUSTOM_ID: how-to-evaluate
+    :CLASS: unnumberedsec
+    :END:
+
+/Whenever you give an editing command/ to Emacs Lisp, such as the command to move the cursor or to scroll the screen, /you are evaluating an expression,/ the first element of which is a function. /This is how Emacs works./
+
+When you type keys, you cause the Lisp interpreter to evaluate an expression and that is how you get your results. Even typing plain text involves evaluating an Emacs Lisp function, in this case, one that uses =self-insert-command=, which simply inserts the character you typed. The functions you evaluate by typing keystrokes are called interactive functions, or commands; how you make a function interactive will be illustrated in the chapter on how to write function definitions. See [[#Interactive][Making a Function Interactive]].
+
+In addition to typing keyboard commands, we have seen a second way to evaluate an expression: by positioning the cursor after a list and typing C-x C-e. This is what we will do in the rest of this section. There are other ways to evaluate an expression as well; these will be described as we come to them.
+
+Besides being used for practicing evaluation, the functions shown in the next few sections are important in their own right. A study of these functions makes clear the distinction between buffers and files, how to switch to a buffer, and how to determine a location within it.
+
+
+
+* 2.1 Buffer Names
+    :PROPERTIES:
+    :CUSTOM_ID: buffer-names
+    :CLASS: section
+    :END:
+
+ The two functions, =buffer-name= and =buffer-file-name=, show the difference between a file and a buffer. When you evaluate the following expression, =(buffer-name)=, the name of the buffer appears in the echo area. When you evaluate =(buffer-file-name)=, the name of the file to which the buffer refers appears in the echo area. Usually, the name returned by =(buffer-name)= is the same as the name of the file to which it refers, and the name returned by =(buffer-file-name)= is the full path-name of the file.
+
+A file and a buffer are two different entities. A file is information recorded permanently in the computer (unless you delete it). A buffer, on the other hand, is information inside of Emacs that will vanish at the end of the editing session (or when you kill the buffer). Usually, a buffer contains information that you have copied from a file; we say the buffer is visiting that file. This copy is what you work on and modify. Changes to the buffer do not change the file, until you save the buffer. When you save the buffer, the buffer is copied to the file and is thus saved permanently.
+
+If you are reading this in Info inside of GNU Emacs, you can evaluate each of the following expressions by positioning the cursor after it and typing C-x C-e.
+
+#+begin_src elisp
+(buffer-name)
+#+end_src
+
+#+RESULTS:
+: 02.Practicing-Evaluating.org
+
+#+begin_src emacs-lisp :tangle yes
+(buffer-file-name)
+#+end_src
+
+#+RESULTS:
+: /home/gaowei/Documents/OrgMode/ORG/Manuals/elisp-intro/02.Practicing-Evaluating.org
+
+When I do this in Info, the value returned by evaluating =(buffer-name)= is "*info*", and the value returned by evaluating =(buffer-file-name)= is nil.
+
+On the other hand, while I am writing this document, the value returned by evaluating =(buffer-name)= is "introduction.texinfo", and the value returned by evaluating =(buffer-file-name)= is "/gnu/work/intro/introduction.texinfo".
+
+The former is the name of the buffer and the latter is the name of the file. In Info, the buffer name is "*info*". Info does not point to any file, so the result of evaluating =(buffer-file-name)= is nil. The symbol =nil= is from the Latin word for “nothing”; in this case, it means that the buffer is not associated with any file. (In Lisp, =nil= is also used to mean “false” and is a synonym for the empty list, =()=.)
+
+When I am writing, the name of my buffer is "introduction.texinfo". The name of the file to which it points is "/gnu/work/intro/introduction.texinfo".
+
+(In the expressions, the parentheses tell the Lisp interpreter to treat =buffer-name= and =buffer-file-name= as functions; without the parentheses, the interpreter would attempt to evaluate the symbols as variables. See [[#Variables][Variables]].)
+
+In spite of the distinction between files and buffers, you will often find that people refer to a file when they mean a buffer and vice versa. Indeed, most people say, “I am editing a file,” rather than saying, “I am editing a buffer which I will soon save to a file.” It is almost always clear from context what people mean. When dealing with computer programs, however, it is important to keep the distinction in mind, since the computer is not as smart as a person.
+
+The word “buffer”, by the way, comes from the meaning of the word as a cushion that deadens the force of a collision. In early computers, a buffer cushioned the interaction between files and the computer's central processing unit. The drums or tapes that held a file and the central processing unit were pieces of equipment that were very different from each other, working at their own speeds, in spurts. The buffer made it possible for them to work together effectively. Eventually, the buffer grew from being an intermediary, a temporary holding place, to being the place where work is done. This transformation is rather like that of a small seaport that grew into a great city: once it was merely the place where cargo was warehoused temporarily before being loaded onto ships; then it became a business and cultural center in its own right.
+
+Not all buffers are associated with files. For example, a *scratch* buffer does not visit any file. Similarly, a *Help* buffer is not associated with any file.
+
+In the old days, when you lacked a ~/.emacs file and started an Emacs session by typing the command =emacs= alone, without naming any files, Emacs started with the *scratch* buffer visible. Nowadays, you will see a splash screen. You can follow one of the commands suggested on the splash screen, visit a file, or press q to quit the splash screen and reach the *scratch* buffer.
+
+If you switch to the *scratch* buffer, type =(buffer-name)=, position the cursor after it, and then type C-x C-e to evaluate the expression. The name ="*scratch*"= will be returned and will appear in the echo area. ="*scratch*"= is the name of the buffer. When you type =(buffer-file-name)= in the *scratch* buffer and evaluate that, =nil= will appear in the echo area, just as it does when you evaluate =(buffer-file-name)= in Info.
+
+Incidentally, if you are in the *scratch* buffer and want the value returned by an expression to appear in the *scratch* buffer itself rather than in the echo area, type C-u C-x C-e instead of C-x C-e. This causes the value returned to appear after the expression. The buffer will look like this:
+
+#+begin_src elisp
+         (buffer-name)"*scratch*"
+#+end_src
+
+You cannot do this in Info since Info is read-only and it will not allow you to change the contents of the buffer. But you can do this in any buffer you can edit; and when you write code or documentation (such as this book), this feature is very useful.
+
+
+
+* 2.2 Getting Buffers
+    :PROPERTIES:
+    :CUSTOM_ID: getting-buffers
+    :CLASS: section
+    :END:
+
+ The =buffer-name= function returns the /name/ of the buffer; to get the buffer /itself/, a different function is needed: the =current-buffer= function. If you use this function in code, what you get is the buffer itself.
+
+A name and the object or entity to which the name refers are different from each other. You are not your name. You are a person to whom others refer by name. If you ask to speak to George and someone hands you a card with the letters ‘G', ‘e', ‘o', ‘r', ‘g', and ‘e' written on it, you might be amused, but you would not be satisfied. You do not want to speak to the name, but to the person to whom the name refers. A buffer is similar: the name of the scratch buffer is *scratch*, but the name is not the buffer. To get a buffer itself, you need to use a function such as =current-buffer=.
+
+However, there is a slight complication: if you evaluate =current-buffer= in an expression on its own, as we will do here, what you see is a printed representation of the name of the buffer without the contents of the buffer. Emacs works this way for two reasons: the buffer may be thousands of lines long---too long to be conveniently displayed; and, another buffer may have the same contents but a different name, and it is important to distinguish between them.
+
+Here is an expression containing the function:
+
+#+begin_src elisp
+         (current-buffer)
+#+end_src
+
+If you evaluate this expression in Info in Emacs in the usual way, #<buffer *info*> will appear in the echo area. The special format indicates that the buffer itself is being returned, rather than just its name.
+
+Incidentally, while you can type a number or symbol into a program, you cannot do that with the printed representation of a buffer: the only way to get a buffer itself is with a function such as =current-buffer=.
+
+A related function is =other-buffer=. This returns the most recently selected buffer other than the one you are in currently, not a printed representation of its name. If you have recently switched back and forth from the *scratch* buffer, =other-buffer= will return that buffer.
+
+You can see this by evaluating the expression:
+
+#+begin_src elisp
+(other-buffer)
+#+end_src
+
+#+RESULTS:
+: #<buffer 01.List-Processing.org>
+# 得到: other-buffer返回的是recently buffer.
+
+You should see #<buffer *scratch*> appear in the echo area, or the name of whatever other buffer you switched back from most recently[[#fn-6][^{6}]].
+
+* 2.3 Switching Buffers
+    :PROPERTIES:
+    :CUSTOM_ID: switching-buffers
+    :CLASS: section
+    :END:
+
+ The =other-buffer= function actually provides a buffer when it is used as an argument to a function that requires one. We can see this by using =other-buffer= and =switch-to-buffer= to switch to a different buffer.
+
+But first, a brief introduction to the =switch-to-buffer= function. When you switched back and forth from Info to the *scratch* buffer to evaluate =(buffer-name)=, you most likely typed C-x b and then typed *scratch*[[#fn-7][^{7}]] when prompted in the minibuffer for the name of the buffer to which you wanted to switch. The keystrokes, C-x b, cause the Lisp interpreter to evaluate the interactive function =switch-to-buffer=. As we said before, this is how Emacs works: different keystrokes call or run different functions. For example, C-f calls =forward-char=, M-e calls =forward-sentence=, and so on.
+
+By writing =switch-to-buffer= in an expression, and giving it a buffer to switch to, we can switch buffers just the way C-x b does:
+
+#+begin_src elisp
+(switch-to-buffer (other-buffer))
+#+end_src
+
+#+RESULTS:
+: #<buffer 01.List-Processing.org>
+
+The symbol =switch-to-buffer= is the first element of the list, so the Lisp interpreter will treat it as a function and carry out the instructions that are attached to it. But before doing that, the interpreter will note that =other-buffer= is inside parentheses and work on that symbol first. =other-buffer= is the first (and in this case, the only) element of this list, so the Lisp interpreter calls or runs the function. It returns another buffer.
+
+In the programming examples in later sections of this document, you will see the function =set-buffer= more often than =switch-to-buffer=. This is because of a difference between computer programs and humans: humans have eyes and expect to see the buffer on which they are working on their computer terminals. This is so obvious, it almost goes without saying. However, programs do not have eyes. When a computer program works on a buffer, that buffer does not need to be visible on the screen.
+
+=switch-to-buffer= is designed for humans and does two different things: it switches the buffer to which Emacs's attention is directed; and it switches the buffer displayed in the window to the new buffer. =set-buffer=, on the other hand, does only one thing: it switches the attention of the computer program to a different buffer. The buffer on the screen remains unchanged (of course, normally nothing happens there until the command finishes running).
+
+Also, we have just introduced another jargon term, the word call. When you evaluate a list in which the first symbol is a function, you are calling that function. The use of the term comes from the notion of the function as an entity that can do something for you if you call it---just as a plumber is an entity who can fix a leak if you call him or her.
+
+
+
+* 2.4 Buffer Size and the Location of Point
+    :PROPERTIES:
+    :CUSTOM_ID: buffer-size-and-the-location-of-point
+    :CLASS: section
+    :END:
+
+ Finally, let's look at several rather simple functions, =buffer-size=, =point=, =point-min=, and =point-max=. These give information about the size of a buffer and the location of point within it.
+
+The function =buffer-size= tells you the size of the current buffer; that is, the function returns a count of the number of characters in the buffer.
+
+#+begin_src elisp
+(buffer-size)
+#+end_src
+
+#+RESULTS:
+: 16156
+
+You can evaluate this in the usual way, by positioning the cursor after the expression and typing C-x C-e.
+
+In Emacs, the current position of the cursor is called point. The expression =(point)= returns a number that tells you where the cursor is located as a count of the number of characters from the beginning of the buffer up to point.
+
+You can see the character count for point in this buffer by evaluating the following expression in the usual way:
+
+#+begin_src elisp
+(point)
+#+end_src
+
+#+RESULTS:
+: 14857
+
+As I write this, the value of point is 65724. The =point= function is frequently used in some of the examples later in this book.
+
+The value of point depends, of course, on its location within the buffer. If you evaluate point in this spot, the number will be larger:
+
+#+begin_src elisp
+(point)
+#+end_src
+
+#+RESULTS:
+: 15183
+
+For me, the value of point in this location is 66043, which means that there are 319 characters (including spaces) between the two expressions. (Doubtless, you will see different numbers, since I will have edited this since I first evaluated point.)
+
+The function =point-min= is somewhat similar to =point=, but it returns the value of the minimum permissible value of point in the current buffer. This is the number 1 unless narrowing is in effect. (Narrowing is a mechanism whereby you can restrict yourself, or a program, to operations on just a part of a buffer. See [[#Narrowing-_0026-Widening][Narrowing and Widening]].) Likewise, the function =point-max= returns the value of the maximum permissible value of point in the current buffer.
+
+
+
+* 2.5 Exercise
+    :PROPERTIES:
+    :CUSTOM_ID: exercise
+    :CLASS: section
+    :END:
+
+Find a file with which you are working and move towards its middle. Find its buffer name, file name, length, and your position in the file.
+* 总结
+通过buffer介绍交互性.

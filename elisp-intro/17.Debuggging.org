@@ -1,0 +1,335 @@
+#+TITLE: 17.Debuggging
+* 17 Debugging
+   :PROPERTIES:
+   :CUSTOM_ID: debugging
+   :CLASS: chapter
+   :END:
+
+ GNU Emacs has two debuggers, =debug= and =edebug=. The first is built into the internals of Emacs and is always with you; the second requires that you instrument a function before you can use it.
+
+Both debuggers are described extensively in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Debugging][Debugging Lisp Programs]]. In this chapter, I will walk through a short example of each.
+
+1. [[#debug][debug]]: How to use the built-in debugger.
+2. [[#debug_002don_002dentry][debug-on-entry]]: Start debugging when you call a function.
+3. [[#debug_002don_002dquit][debug-on-quit]]: Start debugging when you quit with C-g.
+4. [[#edebug][edebug]]: How to use Edebug, a source level debugger.
+5. [[#Debugging-Exercises][Debugging Exercises]]
+
+
+
+* 17.1 =debug=
+    :PROPERTIES:
+    :CUSTOM_ID: debug
+    :CLASS: section
+    :END:
+
+ Suppose you have written a function definition that is intended to return the sum of the numbers 1 through a given number. (This is the =triangle= function discussed earlier. See [[#Decrementing-Example][Example with Decrementing Counter]], for a discussion.)
+
+However, your function definition has a bug. You have mistyped ‘1=' for ‘1-'. Here is the broken definition:
+
+
+
+#+begin_src elisp
+         (defun triangle-bugged (number)
+           "Return sum of numbers 1 through NUMBER inclusive."
+           (let ((total 0))
+             (while (> number 0)
+               (setq total (+ total number))
+               (setq number (1= number)))      ; Error here.
+             total))
+#+end_src
+
+If you are reading this in Info, you can evaluate this definition in the normal fashion. You will see =triangle-bugged= appear in the echo area.
+
+Now evaluate the =triangle-bugged= function with an argument of 4:
+
+#+begin_src elisp
+         (triangle-bugged 4)
+#+end_src
+
+In a recent GNU Emacs, you will create and enter a *Backtrace* buffer that says:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error: (void-function 1=)
+           (1= number)
+           (setq number (1= number))
+           (while (> number 0) (setq total (+ total number))
+                 (setq number (1= number)))
+           (let ((total 0)) (while (> number 0) (setq total ...)
+             (setq number ...)) total)
+           triangle-bugged(4)
+           eval((triangle-bugged 4) nil)
+           eval-expression((triangle-bugged 4) nil nil 127)
+           funcall-interactively(eval-expression (triangle-bugged 4) nil nil 127)
+           call-interactively(eval-expression nil nil)
+           command-execute(eval-expression)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+(I have reformatted this example slightly; the debugger does not fold long lines. As usual, you can quit the debugger by typing q in the *Backtrace* buffer.)
+
+In practice, for a bug as simple as this, the Lisp error line will tell you what you need to know to correct the definition. The function =1== is void.
+
+However, suppose you are not quite certain what is going on? You can read the complete backtrace.
+
+In this case, you need to run a recent GNU Emacs, which automatically starts the debugger that puts you in the *Backtrace* buffer; or else, you need to start the debugger manually as described below.
+
+Read the *Backtrace* buffer from the bottom up; it tells you what Emacs did that led to the error. Emacs made an interactive call to C-x C-e (=eval-last-sexp=), which led to the evaluation of the =triangle-bugged= expression. Each line above tells you what the Lisp interpreter evaluated next.
+
+The third line from the top of the buffer is
+
+#+begin_src elisp
+         (setq number (1= number))
+#+end_src
+
+Emacs tried to evaluate this expression; in order to do so, it tried to evaluate the inner expression shown on the second line from the top:
+
+#+begin_src elisp
+         (1= number)
+#+end_src
+
+This is where the error occurred; as the top line says:
+
+#+begin_src elisp
+         Debugger entered--Lisp error: (void-function 1=)
+#+end_src
+
+You can correct the mistake, re-evaluate the function definition, and then run your test again.
+
+
+Next: [[#debug_002don_002dquit][debug-on-quit]], Previous: [[#debug][debug]], Up: [[#Debugging][Debugging]]
+
+* 17.2 =debug-on-entry=
+    :PROPERTIES:
+    :CUSTOM_ID: debug-on-entry
+    :CLASS: section
+    :END:
+
+ A recent GNU Emacs starts the debugger automatically when your function has an error.
+
+Incidentally, you can start the debugger manually for all versions of Emacs; the advantage is that the debugger runs even if you do not have a bug in your code. Sometimes your code will be free of bugs!
+
+You can enter the debugger when you call the function by calling =debug-on-entry=.
+
+Type:
+
+#+begin_src elisp
+         M-x debug-on-entry <RET> triangle-bugged <RET>
+#+end_src
+
+Now, evaluate the following:
+
+#+begin_src elisp
+         (triangle-bugged 5)
+#+end_src
+
+All versions of Emacs will create a *Backtrace* buffer and tell you that it is beginning to evaluate the =triangle-bugged= function:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--entering a function:
+         * triangle-bugged(5)
+           eval((triangle-bugged 5) nil)
+           eval-expression((triangle-bugged 5) nil nil 127)
+           funcall-interactively(eval-expression (triangle-bugged 5) nil nil 127)
+           call-interactively(eval-expression nil nil)
+           command-execute(eval-expression)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+In the *Backtrace* buffer, type d. Emacs will evaluate the first expression in =triangle-bugged=; the buffer will look like this:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--beginning evaluation of function call form:
+         * (let ((total 0)) (while (> number 0) (setq total ...)
+                 (setq number ...)) total)
+         * triangle-bugged(5)
+           eval((triangle-bugged 5))
+           eval((triangle-bugged 5) nil)
+           eval-expression((triangle-bugged 5) nil nil 127)
+           funcall-interactively(eval-expression (triangle-bugged 5) nil nil 127)
+           call-interactively(eval-expression nil nil)
+           command-execute(eval-expression)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+Now, type d again, eight times, slowly. Each time you type d, Emacs will evaluate another expression in the function definition.
+
+Eventually, the buffer will look like this:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--beginning evaluation of function call form:
+         * (setq number (1= number))
+         * (while (> number 0) (setq total (+ total number))
+                 (setq number (1= number)))
+         * (let ((total 0)) (while (> number 0) (setq total ...)
+                 (setq number ...)) total)
+         * triangle-bugged(5)
+           eval((triangle-bugged 5) nil)
+           eval-expression((triangle-bugged 5) nil nil 127)
+           funcall-interactively(eval-expression (triangle-bugged 5) nil nil 127)
+           call-interactively(eval-expression nil nil)
+           command-execute(eval-expression)
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+Finally, after you type d two more times, Emacs will reach the error, and the top two lines of the *Backtrace* buffer will look like this:
+
+#+begin_src elisp
+         ---------- Buffer: *Backtrace* ----------
+         Debugger entered--Lisp error: (void-function 1=)
+         * (1= number)
+         ...
+         ---------- Buffer: *Backtrace* ----------
+#+end_src
+
+By typing d, you were able to step through the function.
+
+You can quit a *Backtrace* buffer by typing q in it; this quits the trace, but does not cancel =debug-on-entry=.
+
+To cancel the effect of =debug-on-entry=, call =cancel-debug-on-entry= and the name of the function, like this:
+
+#+begin_src elisp
+         M-x cancel-debug-on-entry <RET> triangle-bugged <RET>
+#+end_src
+
+(If you are reading this in Info, cancel =debug-on-entry= now.)
+
+
+Next: [[#edebug][edebug]], Previous: [[#debug_002don_002dentry][debug-on-entry]], Up: [[#Debugging][Debugging]]
+
+* 17.3 =debug-on-quit= and =(debug)=
+    :PROPERTIES:
+    :CUSTOM_ID: debug-on-quit-and-debug
+    :CLASS: section
+    :END:
+
+In addition to setting =debug-on-error= or calling =debug-on-entry=, there are two other ways to start =debug=.
+
+You can start =debug= whenever you type C-g (=keyboard-quit=) by setting the variable =debug-on-quit= to =t=. This is useful for debugging infinite loops.
+
+Or, you can insert a line that says =(debug)= into your code where you want the debugger to start, like this:
+
+#+begin_src elisp
+         (defun triangle-bugged (number)
+           "Return sum of numbers 1 through NUMBER inclusive."
+           (let ((total 0))
+             (while (> number 0)
+               (setq total (+ total number))
+               (debug)                         ; Start debugger.
+               (setq number (1= number)))      ; Error here.
+             total))
+#+end_src
+
+The =debug= function is described in detail in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Debugger][The Lisp Debugger]].
+
+
+Next: [[#Debugging-Exercises][Debugging Exercises]], Previous: [[#debug_002don_002dquit][debug-on-quit]], Up: [[#Debugging][Debugging]]
+
+* 17.4 The =edebug= Source Level Debugger
+    :PROPERTIES:
+    :CUSTOM_ID: the-edebug-source-level-debugger
+    :CLASS: section
+    :END:
+
+ Edebug is a source level debugger. Edebug normally displays the source of the code you are debugging, with an arrow at the left that shows which line you are currently executing.
+
+You can walk through the execution of a function, line by line, or run quickly until reaching a breakpoint where execution stops.
+
+Edebug is described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Edebug][Edebug]].
+
+Here is a bugged function definition for =triangle-recursively=. See [[#Recursive-triangle-function][Recursion in place of a counter]], for a review of it.
+
+#+begin_src elisp
+         (defun triangle-recursively-bugged (number)
+           "Return sum of numbers 1 through NUMBER inclusive.
+         Uses recursion."
+           (if (= number 1)
+               1
+             (+ number
+                (triangle-recursively-bugged
+                 (1= number)))))               ; Error here.
+#+end_src
+
+Normally, you would install this definition by positioning your cursor after the function's closing parenthesis and typing C-x C-e (=eval-last-sexp=) or else by positioning your cursor within the definition and typing C-M-x (=eval-defun=). (By default, the =eval-defun= command works only in Emacs Lisp mode or in Lisp Interaction mode.)
+
+However, to prepare this function definition for Edebug, you must first instrument the code using a different command. You can do this by positioning your cursor within or just after the definition and typing
+
+#+begin_src elisp
+         M-x edebug-defun <RET>
+#+end_src
+
+This will cause Emacs to load Edebug automatically if it is not already loaded, and properly instrument the function.
+
+After instrumenting the function, place your cursor after the following expression and type C-x C-e (=eval-last-sexp=):
+
+#+begin_src elisp
+         (triangle-recursively-bugged 3)
+#+end_src
+
+You will be jumped back to the source for =triangle-recursively-bugged= and the cursor positioned at the beginning of the =if= line of the function. Also, you will see an arrowhead at the left hand side of that line. The arrowhead marks the line where the function is executing. (In the following examples, we show the arrowhead with ‘=>'; in a windowing system, you may see the arrowhead as a solid triangle in the window fringe.)
+
+#+begin_src elisp
+         =>-!-(if (= number 1)
+#+end_src
+
+In the example, the location of point is displayed as ‘-!-' (in a printed book, it is displayed with a five pointed star).
+
+If you now press <SPC>, point will move to the next expression to be executed; the line will look like this:
+
+#+begin_src elisp
+         =>(if -!-(= number 1)
+#+end_src
+
+As you continue to press <SPC>, point will move from expression to expression. At the same time, whenever an expression returns a value, that value will be displayed in the echo area. For example, after you move point past =number=, you will see the following:
+
+#+begin_src elisp
+         Result: 3 (#o3, #x3, ?\C-c)
+#+end_src
+
+This means the value of =number= is 3, which is octal three, hexadecimal three, and ascii Control-C (the third letter of the alphabet, in case you need to know this information).
+
+You can continue moving through the code until you reach the line with the error. Before evaluation, that line looks like this:
+
+#+begin_src elisp
+         =>        -!-(1= number)))))               ; Error here.
+#+end_src
+
+When you press <SPC> once again, you will produce an error message that says:
+
+#+begin_src elisp
+         Symbol's function definition is void: 1=
+#+end_src
+
+This is the bug.
+
+Press q to quit Edebug.
+
+To remove instrumentation from a function definition, simply re-evaluate it with a command that does not instrument it. For example, you could place your cursor after the definition's closing parenthesis and type C-x C-e.
+
+Edebug does a great deal more than walk with you through a function. You can set it so it races through on its own, stopping only at an error or at specified stopping points; you can cause it to display the changing values of various expressions; you can find out how many times a function is called, and more.
+
+Edebug is described in [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Edebug][Edebug]].
+
+
+Previous: [[#edebug][edebug]], Up: [[#Debugging][Debugging]]
+
+* 17.5 Debugging Exercises
+    :PROPERTIES:
+    :CUSTOM_ID: debugging-exercises
+    :CLASS: section
+    :END:
+
+- Install the =count-words-example= function and then cause it to enter the built-in debugger when you call it. Run the command on a region containing two words. You will need to press d a remarkable number of times. On your system, is a hook called after the command finishes? (For information on hooks, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Command-Overview][Command Loop Overview]].)
+- Copy =count-words-example= into the *scratch* buffer, instrument the function for Edebug, and walk through its execution. The function does not need to have a bug, although you can introduce one if you wish. If the function lacks a bug, the walk-through completes without problems.
+- While running Edebug, type ? to see a list of all the Edebug commands. (The =global-edebug-prefix= is usually C-x X, i.e., <CTRL>-x followed by an upper case X; use this prefix for commands made outside of the Edebug debugging buffer.)
+- In the Edebug debugging buffer, use the p (=edebug-bounce-point=) command to see where in the region the =count-words-example= is working.
+- Move point to some spot further down the function and then type the h (=edebug-goto-here=) command to jump to that location.
+- Use the t (=edebug-trace-mode=) command to cause Edebug to walk through the function on its own; use an upper case T for =edebug-Trace-fast-mode=.
+- Set a breakpoint, then run Edebug in Trace mode until it reaches the stopping point.
+
+
+Next: [[#the_002dthe][the-the]], Previous: [[#Debugging][Debugging]], Up: [[#Top][Top]]

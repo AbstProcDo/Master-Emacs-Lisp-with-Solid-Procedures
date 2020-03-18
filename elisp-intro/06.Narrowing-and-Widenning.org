@@ -1,0 +1,140 @@
+#+TITLE: 06.Narrowing-and-Widenning
+* 6 Narrowing and Widening
+   :PROPERTIES:
+   :CUSTOM_ID: narrowing-and-widening
+   :CLASS: chapter
+   :END:
+
+ Narrowing is a feature of Emacs that makes it possible for you to focus on a specific part of a buffer, and work without accidentally changing other parts. Narrowing is normally disabled since it can confuse novices.
+
+1) [[#Narrowing-advantages][Narrowing advantages]]: The advantages of narrowing
+2) [[#save_002drestriction][save-restriction]]: The =save-restriction= special form.
+3) [[#what_002dline][what-line]]: The number of the line that point is on.
+4) [[#narrow-Exercise][narrow Exercise]]
+
+
+
+* The Advantages of Narrowing
+    :PROPERTIES:
+    :CUSTOM_ID: the-advantages-of-narrowing
+    :CLASS: unnumberedsec
+    :END:
+
+With narrowing, the rest of a buffer is made invisible, as if it weren't there. This is an advantage if, for example, you want to replace a word in one part of a buffer but not in another: you narrow to the part you want and the replacement is carried out only in that section, not in the rest of the buffer. Searches will only work within a narrowed region, not outside of one, so if you are fixing a part of a document, you can keep yourself from accidentally finding parts you do not need to fix by narrowing just to the region you want. (The key binding for =narrow-to-region= is C-x n n.)
+
+However, narrowing does make the rest of the buffer invisible, which can scare people who inadvertently invoke narrowing and think they have deleted a part of their file. Moreover, the =undo= command (which is usually bound to C-x u) does not turn off narrowing (nor should it), so people can become quite desperate if they do not know that they can return the rest of a buffer to visibility with the =widen= command. (The key binding for =widen= is C-x n w.)
+
+Narrowing is just as useful to the Lisp interpreter as to a human. Often, an Emacs Lisp function is designed to work on just part of a buffer; or conversely, an Emacs Lisp function needs to work on all of a buffer that has been narrowed. The =what-line= function, for example, removes the narrowing from a buffer, if it has any narrowing and when it has finished its job, restores the narrowing to what it was. On the other hand, the =count-lines= function uses narrowing to restrict itself to just that portion of the buffer in which it is interested and then restores the previous situation.
+
+
+Next: [[#what_002dline][what-line]], Previous: [[#Narrowing-advantages][Narrowing advantages]], Up: [[#Narrowing-_0026-Widening][Narrowing & Widening]]
+
+* 6.1 The =save-restriction= Special Form
+    :PROPERTIES:
+    :CUSTOM_ID: the-save-restriction-special-form
+    :CLASS: section
+    :END:
+
+ In Emacs Lisp, you can use the =save-restriction= special form to keep track of whatever narrowing is in effect, if any. When the Lisp interpreter meets with =save-restriction=, it executes the code in the body of the =save-restriction= expression, and then undoes any changes to narrowing that the code caused. If, for example, the buffer is narrowed and the code that follows =save-restriction= gets rid of the narrowing, =save-restriction= returns the buffer to its narrowed region afterwards. In the =what-line= command, any narrowing the buffer may have is undone by the =widen= command that immediately follows the =save-restriction= command. Any original narrowing is restored just before the completion of the function.
+
+The template for a =save-restriction= expression is simple:
+
+#+begin_src elisp
+         (save-restriction
+           body... )
+#+end_src
+
+The body of the =save-restriction= is one or more expressions that will be evaluated in sequence by the Lisp interpreter.
+
+Finally, a point to note: when you use both =save-excursion= and =save-restriction=, one right after the other, you should use =save-excursion= outermost. If you write them in reverse order, you may fail to record narrowing in the buffer to which Emacs switches after calling =save-excursion=. Thus, when written together, =save-excursion= and =save-restriction= should be written like this:
+
+#+begin_src elisp
+         (save-excursion
+           (save-restriction
+             body...))
+#+end_src
+
+In other circumstances, when not written together, the =save-excursion= and =save-restriction= special forms must be written in the order appropriate to the function.
+
+For example,
+
+#+begin_src elisp
+           (save-restriction
+             (widen)
+             (save-excursion
+             body...))
+#+end_src
+
+
+Next: [[#narrow-Exercise][narrow Exercise]], Previous: [[#save_002drestriction][save-restriction]], Up: [[#Narrowing-_0026-Widening][Narrowing & Widening]]
+
+* 6.2 =what-line=
+    :PROPERTIES:
+    :CUSTOM_ID: what-line
+    :CLASS: section
+    :END:
+
+ The =what-line= command tells you the number of the line in which the cursor is located. The function illustrates the use of the =save-restriction= and =save-excursion= commands. Here is the original text of the function:
+
+#+begin_src elisp
+         (defun what-line ()
+           "Print the current line number (in the buffer) of point."
+           (interactive)
+           (save-restriction
+             (widen)
+             (save-excursion
+               (beginning-of-line)
+               (message "Line %d"
+                        (1+ (count-lines 1 (point)))))))
+#+end_src
+
+(In recent versions of GNU Emacs, the =what-line= function has been expanded to tell you your line number in a narrowed buffer as well as your line number in a widened buffer. The recent version is more complex than the version shown here. If you feel adventurous, you might want to look at it after figuring out how this version works. You will probably need to use C-h f (=describe-function=). The newer version uses a conditional to determine whether the buffer has been narrowed.
+
+(Also, it uses =line-number-at-pos=, which among other simple expressions, such as =(goto-char (point-min))=, moves point to the beginning of the current line with =(forward-line 0)= rather than =beginning-of-line=.)
+
+The =what-line= function as shown here has a documentation line and is interactive, as you would expect. The next two lines use the functions =save-restriction= and =widen=.
+
+The =save-restriction= special form notes whatever narrowing is in effect, if any, in the current buffer and restores that narrowing after the code in the body of the =save-restriction= has been evaluated.
+
+The =save-restriction= special form is followed by =widen=. This function undoes any narrowing the current buffer may have had when =what-line= was called. (The narrowing that was there is the narrowing that =save-restriction= remembers.) This widening makes it possible for the line counting commands to count from the beginning of the buffer. Otherwise, they would have been limited to counting within the accessible region. Any original narrowing is restored just before the completion of the function by the =save-restriction= special form.
+
+The call to =widen= is followed by =save-excursion=, which saves the location of the cursor (i.e., of point), and restores it after the code in the body of the =save-excursion= uses the =beginning-of-line= function to move point.
+
+(Note that the =(widen)= expression comes between the =save-restriction= and =save-excursion= special forms. When you write the two =save- ...= expressions in sequence, write =save-excursion= outermost.)
+
+The last two lines of the =what-line= function are functions to count the number of lines in the buffer and then print the number in the echo area.
+
+#+begin_src elisp
+         (message "Line %d"
+                  (1+ (count-lines 1 (point)))))))
+#+end_src
+
+The =message= function prints a one-line message at the bottom of the Emacs screen. The first argument is inside of quotation marks and is printed as a string of characters. However, it may contain a ‘%d' expression to print a following argument. ‘%d' prints the argument as a decimal, so the message will say something such as ‘Line 243'.
+
+The number that is printed in place of the ‘%d' is computed by the last line of the function:
+
+#+begin_src elisp
+         (1+ (count-lines 1 (point)))
+#+end_src
+
+What this does is count the lines from the first position of the buffer, indicated by the =1=, up to =(point)=, and then add one to that number. (The =1+= function adds one to its argument.) We add one to it because line 2 has only one line before it, and =count-lines= counts only the lines /before/ the current line.
+
+After =count-lines= has done its job, and the message has been printed in the echo area, the =save-excursion= restores point to its original position; and =save-restriction= restores the original narrowing, if any.
+
+
+Previous: [[#what_002dline][what-line]], Up: [[#Narrowing-_0026-Widening][Narrowing & Widening]]
+
+* 6.3 Exercise with Narrowing
+    :PROPERTIES:
+    :CUSTOM_ID: exercise-with-narrowing
+    :CLASS: section
+    :END:
+
+Write a function that will display the first 60 characters of the current buffer, even if you have narrowed the buffer to its latter half so that the first line is inaccessible. Restore point, mark, and narrowing. For this exercise, you need to use a whole potpourri of functions, including =save-restriction=, =widen=, =goto-char=, =point-min=, =message=, and =buffer-substring=.
+
+(=buffer-substring= is a previously unmentioned function you will have to investigate yourself; or perhaps you will have to use =buffer-substring-no-properties= or =filter-buffer-substring= ..., yet other functions. Text properties are a feature otherwise not discussed here. See [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Text-Properties][Text Properties]].)
+
+Additionally, do you really need =goto-char= or =point-min=? Or can you write the function without them?
+
+
+Next: [[#Cutting-_0026-Storing-Text][Cutting & Storing Text]], Previous: [[#Narrowing-_0026-Widening][Narrowing & Widening]], Up: [[#Top][Top]]

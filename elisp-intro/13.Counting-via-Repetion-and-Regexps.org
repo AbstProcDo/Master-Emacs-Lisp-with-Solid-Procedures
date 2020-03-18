@@ -1,0 +1,480 @@
+#+TITLE: 13.Counting-via-Repetion-and-Regexps
+* 13 Counting via Repetition and Regexps
+   :PROPERTIES:
+   :CUSTOM_ID: counting-via-repetition-and-regexps
+   :CLASS: chapter
+   :END:
+
+ Repetition and regular expression searches are powerful tools that you often use when you write code in Emacs Lisp. This chapter illustrates the use of regular expression searches through the construction of word count commands using =while= loops and recursion.
+
+- [[#Why-Count-Words][Why Count Words]]
+- [[#count_002dwords_002dexample][count-words-example]]: Use a regexp, but find a problem.
+- [[#recursive_002dcount_002dwords][recursive-count-words]]: Start with case of no words in region.
+- [[#Counting-Exercise][Counting Exercise]]
+
+
+
+* Counting words
+    :PROPERTIES:
+    :CUSTOM_ID: counting-words
+    :CLASS: unnumberedsec
+    :END:
+
+The standard Emacs distribution contains functions for counting the number of lines and words within a region.
+
+Certain types of writing ask you to count words. Thus, if you write an essay, you may be limited to 800 words; if you write a novel, you may discipline yourself to write 1000 words a day. It seems odd, but for a long time, Emacs lacked a word count command. Perhaps people used Emacs mostly for code or types of documentation that did not require word counts; or perhaps they restricted themselves to the operating system word count command, =wc=. Alternatively, people may have followed the publishers' convention and computed a word count by dividing the number of characters in a document by five.
+
+There are many ways to implement a command to count words. Here are some examples, which you may wish to compare with the standard Emacs command, =count-words-region=.
+
+
+Next: [[#recursive_002dcount_002dwords][recursive-count-words]], Previous: [[#Why-Count-Words][Why Count Words]], Up: [[#Counting-Words][Counting Words]]
+
+* 13.1 The =count-words-example= Function
+    :PROPERTIES:
+    :CUSTOM_ID: the-count-words-example-function
+    :CLASS: section
+    :END:
+
+ A word count command could count words in a line, paragraph, region, or buffer. What should the command cover? You could design the command to count the number of words in a complete buffer. However, the Emacs tradition encourages flexibility---you may want to count words in just a section, rather than all of a buffer. So it makes more sense to design the command to count the number of words in a region. Once you have a command to count words in a region, you can, if you wish, count words in a whole buffer by marking it with C-x h (=mark-whole-buffer=).
+
+Clearly, counting words is a repetitive act: starting from the beginning of the region, you count the first word, then the second word, then the third word, and so on, until you reach the end of the region. This means that word counting is ideally suited to recursion or to a =while= loop.
+
+- [[#Design-count_002dwords_002dexample][Design count-words-example]]: The definition using a =while= loop.
+- [[#Whitespace-Bug][Whitespace Bug]]: The Whitespace Bug in =count-words-example=.
+
+
+Next: [[#Whitespace-Bug][Whitespace Bug]], Up: [[#count_002dwords_002dexample][count-words-example]]
+
+** Designing =count-words-example=
+     :PROPERTIES:
+     :CUSTOM_ID: designing-count-words-example
+     :CLASS: unnumberedsubsec
+     :END:
+
+First, we will implement the word count command with a =while= loop, then with recursion. The command will, of course, be interactive.
+
+The template for an interactive function definition is, as always:
+
+#+begin_src elisp
+         (defun name-of-function (argument-list)
+           "documentation..."
+           (interactive-expression...)
+           body...)
+#+end_src
+
+What we need to do is fill in the slots.
+
+The name of the function should be self-explanatory and similar to the existing =count-lines-region= name. This makes the name easier to remember. =count-words-region= is the obvious choice. Since that name is now used for the standard Emacs command to count words, we will name our implementation =count-words-example=.
+
+The function counts words within a region. This means that the argument list must contain symbols that are bound to the two positions, the beginning and end of the region. These two positions can be called ‘beginning' and ‘end' respectively. The first line of the documentation should be a single sentence, since that is all that is printed as documentation by a command such as =apropos=. The interactive expression will be of the form ‘(interactive "r")', since that will cause Emacs to pass the beginning and end of the region to the function's argument list. All this is routine.
+
+The body of the function needs to be written to do three tasks: first, to set up conditions under which the =while= loop can count words, second, to run the =while= loop, and third, to send a message to the user.
+
+When a user calls =count-words-example=, point may be at the beginning or the end of the region. However, the counting process must start at the beginning of the region. This means we will want to put point there if it is not already there. Executing =(goto-char beginning)= ensures this. Of course, we will want to return point to its expected position when the function finishes its work. For this reason, the body must be enclosed in a =save-excursion= expression.
+
+The central part of the body of the function consists of a =while= loop in which one expression jumps point forward word by word, and another expression counts those jumps. The true-or-false-test of the =while= loop should test true so long as point should jump forward, and false when point is at the end of the region.
+
+We could use =(forward-word 1)= as the expression for moving point forward word by word, but it is easier to see what Emacs identifies as a “word” if we use a regular expression search.
+
+A regular expression search that finds the pattern for which it is searching leaves point after the last character matched. This means that a succession of successful word searches will move point forward word by word.
+
+As a practical matter, we want the regular expression search to jump over whitespace and punctuation between words as well as over the words themselves. A regexp that refuses to jump over interword whitespace would never jump more than one word! This means that the regexp should include the whitespace and punctuation that follows a word, if any, as well as the word itself. (A word may end a buffer and not have any following whitespace or punctuation, so that part of the regexp must be optional.)
+
+Thus, what we want for the regexp is a pattern defining one or more word constituent characters followed, optionally, by one or more characters that are not word constituents. The regular expression for this is:
+
+#+begin_src elisp
+         \w+\W*
+#+end_src
+
+The buffer's syntax table determines which characters are and are not word constituents. For more information about syntax, see [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Syntax-Tables][Syntax Tables]].
+
+The search expression looks like this:
+
+#+begin_src elisp
+         (re-search-forward "\\w+\\W*")
+#+end_src
+
+(Note that paired backslashes precede the ‘w' and ‘W'. A single backslash has special meaning to the Emacs Lisp interpreter. It indicates that the following character is interpreted differently than usual. For example, the two characters, ‘\n', stand for ‘newline', rather than for a backslash followed by ‘n'. Two backslashes in a row stand for an ordinary, unspecial backslash, so Emacs Lisp interpreter ends of seeing a single backslash followed by a letter. So it discovers the letter is special.)
+
+We need a counter to count how many words there are; this variable must first be set to 0 and then incremented each time Emacs goes around the =while= loop. The incrementing expression is simply:
+
+#+begin_src elisp
+         (setq count (1+ count))
+#+end_src
+
+Finally, we want to tell the user how many words there are in the region. The =message= function is intended for presenting this kind of information to the user. The message has to be phrased so that it reads properly regardless of how many words there are in the region: we don't want to say that “there are 1 words in the region”. The conflict between singular and plural is ungrammatical. We can solve this problem by using a conditional expression that evaluates different messages depending on the number of words in the region. There are three possibilities: no words in the region, one word in the region, and more than one word. This means that the =cond= special form is appropriate.
+
+All this leads to the following function definition:
+
+#+begin_src elisp
+         ;;; First version; has bugs!
+         (defun count-words-example (beginning end)
+           "Print number of words in the region.
+         Words are defined as at least one word-constituent
+         character followed by at least one character that
+         is not a word-constituent.  The buffer's syntax
+         table determines which characters these are."
+           (interactive "r")
+           (message "Counting words in region ... ")
+
+         ;;; 1. Set up appropriate conditions.
+           (save-excursion
+             (goto-char beginning)
+             (let ((count 0))
+
+         ;;; 2. Run the while loop.
+               (while (< (point) end)
+                 (re-search-forward "\\w+\\W*")
+                 (setq count (1+ count)))
+
+         ;;; 3. Send a message to the user.
+               (cond ((zerop count)
+                      (message
+                       "The region does NOT have any words."))
+                     ((= 1 count)
+                      (message
+                       "The region has 1 word."))
+                     (t
+                      (message
+                       "The region has %d words." count))))))
+#+end_src
+
+As written, the function works, but not in all circumstances.
+
+
+Previous: [[#Design-count_002dwords_002dexample][Design count-words-example]], Up: [[#count_002dwords_002dexample][count-words-example]]
+
+** 13.1.1 The Whitespace Bug in =count-words-example=
+     :PROPERTIES:
+     :CUSTOM_ID: the-whitespace-bug-in-count-words-example
+     :CLASS: subsection
+     :END:
+
+The =count-words-example= command described in the preceding section has two bugs, or rather, one bug with two manifestations. First, if you mark a region containing only whitespace in the middle of some text, the =count-words-example= command tells you that the region contains one word! Second, if you mark a region containing only whitespace at the end of the buffer or the accessible portion of a narrowed buffer, the command displays an error message that looks like this:
+
+#+begin_src elisp
+         Search failed: "\\w+\\W*"
+#+end_src
+
+If you are reading this in Info in GNU Emacs, you can test for these bugs yourself.
+
+First, evaluate the function in the usual manner to install it.
+
+If you wish, you can also install this keybinding by evaluating it:
+
+#+begin_src elisp
+         (global-set-key "\C-c=" 'count-words-example)
+#+end_src
+
+To conduct the first test, set mark and point to the beginning and end of the following line and then type C-c = (or M-x count-words-example if you have not bound C-c =):
+
+#+begin_src elisp
+             one   two  three
+#+end_src
+
+Emacs will tell you, correctly, that the region has three words.
+
+Repeat the test, but place mark at the beginning of the line and place point just /before/ the word ‘one'. Again type the command C-c = (or M-x count-words-example). Emacs should tell you that the region has no words, since it is composed only of the whitespace at the beginning of the line. But instead Emacs tells you that the region has one word!
+
+For the third test, copy the sample line to the end of the *scratch* buffer and then type several spaces at the end of the line. Place mark right after the word ‘three' and point at the end of line. (The end of the line will be the end of the buffer.) Type C-c = (or M-x count-words-example) as you did before. Again, Emacs should tell you that the region has no words, since it is composed only of the whitespace at the end of the line. Instead, Emacs displays an error message saying ‘Search failed'.
+
+The two bugs stem from the same problem.
+
+Consider the first manifestation of the bug, in which the command tells you that the whitespace at the beginning of the line contains one word. What happens is this: The =M-x count-words-example= command moves point to the beginning of the region. The =while= tests whether the value of point is smaller than the value of =end=, which it is. Consequently, the regular expression search looks for and finds the first word. It leaves point after the word. =count= is set to one. The =while= loop repeats; but this time the value of point is larger than the value of =end=, the loop is exited; and the function displays a message saying the number of words in the region is one. In brief, the regular expression search looks for and finds the word even though it is outside the marked region.
+
+In the second manifestation of the bug, the region is whitespace at the end of the buffer. Emacs says ‘Search failed'. What happens is that the true-or-false-test in the =while= loop tests true, so the search expression is executed. But since there are no more words in the buffer, the search fails.
+
+In both manifestations of the bug, the search extends or attempts to extend outside of the region.
+
+The solution is to limit the search to the region---this is a fairly simple action, but as you may have come to expect, it is not quite as simple as you might think.
+
+As we have seen, the =re-search-forward= function takes a search pattern as its first argument. But in addition to this first, mandatory argument, it accepts three optional arguments. The optional second argument bounds the search. The optional third argument, if =t=, causes the function to return =nil= rather than signal an error if the search fails. The optional fourth argument is a repeat count. (In Emacs, you can see a function's documentation by typing C-h f, the name of the function, and then <RET>.)
+
+In the =count-words-example= definition, the value of the end of the region is held by the variable =end= which is passed as an argument to the function. Thus, we can add =end= as an argument to the regular expression search expression:
+
+#+begin_src elisp
+         (re-search-forward "\\w+\\W*" end)
+#+end_src
+
+However, if you make only this change to the =count-words-example= definition and then test the new version of the definition on a stretch of whitespace, you will receive an error message saying ‘Search failed'.
+
+What happens is this: the search is limited to the region, and fails as you expect because there are no word-constituent characters in the region. Since it fails, we receive an error message. But we do not want to receive an error message in this case; we want to receive the message “The region does NOT have any words.”
+
+The solution to this problem is to provide =re-search-forward= with a third argument of =t=, which causes the function to return =nil= rather than signal an error if the search fails.
+
+However, if you make this change and try it, you will see the message “Counting words in region ... ” and ... you will keep on seeing that message ..., until you type C-g (=keyboard-quit=).
+
+Here is what happens: the search is limited to the region, as before, and it fails because there are no word-constituent characters in the region, as expected. Consequently, the =re-search-forward= expression returns =nil=. It does nothing else. In particular, it does not move point, which it does as a side effect if it finds the search target. After the =re-search-forward= expression returns =nil=, the next expression in the =while= loop is evaluated. This expression increments the count. Then the loop repeats. The true-or-false-test tests true because the value of point is still less than the value of end, since the =re-search-forward= expression did not move point. ... and the cycle repeats ...
+
+The =count-words-example= definition requires yet another modification, to cause the true-or-false-test of the =while= loop to test false if the search fails. Put another way, there are two conditions that must be satisfied in the true-or-false-test before the word count variable is incremented: point must still be within the region and the search expression must have found a word to count.
+
+Since both the first condition and the second condition must be true together, the two expressions, the region test and the search expression, can be joined with an =and= special form and embedded in the =while= loop as the true-or-false-test, like this:
+
+#+begin_src elisp
+         (and (< (point) end) (re-search-forward "\\w+\\W*" end t))
+#+end_src
+
+The =re-search-forward= expression returns =t= if the search succeeds and as a side effect moves point. Consequently, as words are found, point is moved through the region. When the search expression fails to find another word, or when point reaches the end of the region, the true-or-false-test tests false, the =while= loop exits, and the =count-words-example= function displays one or other of its messages.
+
+After incorporating these final changes, the =count-words-example= works without bugs (or at least, without bugs that I have found!). Here is what it looks like:
+
+#+begin_src elisp
+         ;;; Final version: while
+         (defun count-words-example (beginning end)
+           "Print number of words in the region."
+           (interactive "r")
+           (message "Counting words in region ... ")
+
+         ;;; 1. Set up appropriate conditions.
+           (save-excursion
+             (let ((count 0))
+               (goto-char beginning)
+
+         ;;; 2. Run the while loop.
+               (while (and (< (point) end)
+                           (re-search-forward "\\w+\\W*" end t))
+                 (setq count (1+ count)))
+
+         ;;; 3. Send a message to the user.
+               (cond ((zerop count)
+                      (message
+                       "The region does NOT have any words."))
+                     ((= 1 count)
+                      (message
+                       "The region has 1 word."))
+                     (t
+                      (message
+                       "The region has %d words." count))))))
+#+end_src
+
+
+Next: [[#Counting-Exercise][Counting Exercise]], Previous: [[#count_002dwords_002dexample][count-words-example]], Up: [[#Counting-Words][Counting Words]]
+
+* 13.2 Count Words Recursively
+    :PROPERTIES:
+    :CUSTOM_ID: count-words-recursively
+    :CLASS: section
+    :END:
+
+ You can write the function for counting words recursively as well as with a =while= loop. Let's see how this is done.
+
+First, we need to recognize that the =count-words-example= function has three jobs: it sets up the appropriate conditions for counting to occur; it counts the words in the region; and it sends a message to the user telling how many words there are.
+
+If we write a single recursive function to do everything, we will receive a message for every recursive call. If the region contains 13 words, we will receive thirteen messages, one right after the other. We don't want this! Instead, we must write two functions to do the job, one of which (the recursive function) will be used inside of the other. One function will set up the conditions and display the message; the other will return the word count.
+
+Let us start with the function that causes the message to be displayed. We can continue to call this =count-words-example=.
+
+This is the function that the user will call. It will be interactive. Indeed, it will be similar to our previous versions of this function, except that it will call =recursive-count-words= to determine how many words are in the region.
+
+We can readily construct a template for this function, based on our previous versions:
+
+#+begin_src elisp
+         ;; Recursive version; uses regular expression search
+         (defun count-words-example (beginning end)
+           "documentation..."
+           (interactive-expression...)
+
+         ;;; 1. Set up appropriate conditions.
+           (explanatory message)
+           (set-up functions...
+
+         ;;; 2. Count the words.
+             recursive call
+
+         ;;; 3. Send a message to the user.
+             message providing word count))
+#+end_src
+
+The definition looks straightforward, except that somehow the count returned by the recursive call must be passed to the message displaying the word count. A little thought suggests that this can be done by making use of a =let= expression: we can bind a variable in the varlist of a =let= expression to the number of words in the region, as returned by the recursive call; and then the =cond= expression, using binding, can display the value to the user.
+
+Often, one thinks of the binding within a =let= expression as somehow secondary to the primary work of a function. But in this case, what you might consider the primary job of the function, counting words, is done within the =let= expression.
+
+Using =let=, the function definition looks like this:
+
+#+begin_src elisp
+         (defun count-words-example (beginning end)
+           "Print number of words in the region."
+           (interactive "r")
+
+         ;;; 1. Set up appropriate conditions.
+           (message "Counting words in region ... ")
+           (save-excursion
+             (goto-char beginning)
+
+         ;;; 2. Count the words.
+             (let ((count (recursive-count-words end)))
+
+         ;;; 3. Send a message to the user.
+               (cond ((zerop count)
+                      (message
+                       "The region does NOT have any words."))
+                     ((= 1 count)
+                      (message
+                       "The region has 1 word."))
+                     (t
+                      (message
+                       "The region has %d words." count))))))
+#+end_src
+
+Next, we need to write the recursive counting function.
+
+A recursive function has at least three parts: the do-again-test, the next-step-expression, and the recursive call.
+
+The do-again-test determines whether the function will or will not be called again. Since we are counting words in a region and can use a function that moves point forward for every word, the do-again-test can check whether point is still within the region. The do-again-test should find the value of point and determine whether point is before, at, or after the value of the end of the region. We can use the =point= function to locate point. Clearly, we must pass the value of the end of the region to the recursive counting function as an argument.
+
+In addition, the do-again-test should also test whether the search finds a word. If it does not, the function should not call itself again.
+
+The next-step-expression changes a value so that when the recursive function is supposed to stop calling itself, it stops. More precisely, the next-step-expression changes a value so that at the right time, the do-again-test stops the recursive function from calling itself again. In this case, the next-step-expression can be the expression that moves point forward, word by word.
+
+The third part of a recursive function is the recursive call.
+
+Somewhere, we also need a part that does the work of the function, a part that does the counting. A vital part!
+
+But already, we have an outline of the recursive counting function:
+
+#+begin_src elisp
+         (defun recursive-count-words (region-end)
+           "documentation..."
+            do-again-test
+            next-step-expression
+            recursive call)
+#+end_src
+
+Now we need to fill in the slots. Let's start with the simplest cases first: if point is at or beyond the end of the region, there cannot be any words in the region, so the function should return zero. Likewise, if the search fails, there are no words to count, so the function should return zero.
+
+On the other hand, if point is within the region and the search succeeds, the function should call itself again.
+
+Thus, the do-again-test should look like this:
+
+#+begin_src elisp
+         (and (< (point) region-end)
+              (re-search-forward "\\w+\\W*" region-end t))
+#+end_src
+
+Note that the search expression is part of the do-again-test---the function returns =t= if its search succeeds and =nil= if it fails. (See [[#Whitespace-Bug][The Whitespace Bug in =count-words-example=]], for an explanation of how =re-search-forward= works.)
+
+The do-again-test is the true-or-false test of an =if= clause. Clearly, if the do-again-test succeeds, the then-part of the =if= clause should call the function again; but if it fails, the else-part should return zero since either point is outside the region or the search failed because there were no words to find.
+
+But before considering the recursive call, we need to consider the next-step-expression. What is it? Interestingly, it is the search part of the do-again-test.
+
+In addition to returning =t= or =nil= for the do-again-test, =re-search-forward= moves point forward as a side effect of a successful search. This is the action that changes the value of point so that the recursive function stops calling itself when point completes its movement through the region. Consequently, the =re-search-forward= expression is the next-step-expression.
+
+In outline, then, the body of the =recursive-count-words= function looks like this:
+
+#+begin_src elisp
+         (if do-again-test-and-next-step-combined
+             ;; then
+             recursive-call-returning-count
+           ;; else
+           return-zero)
+#+end_src
+
+How to incorporate the mechanism that counts?
+
+If you are not used to writing recursive functions, a question like this can be troublesome. But it can and should be approached systematically.
+
+We know that the counting mechanism should be associated in some way with the recursive call. Indeed, since the next-step-expression moves point forward by one word, and since a recursive call is made for each word, the counting mechanism must be an expression that adds one to the value returned by a call to =recursive-count-words=.
+
+Consider several cases:
+
+- If there are two words in the region, the function should return a value resulting from adding one to the value returned when it counts the first word, plus the number returned when it counts the remaining words in the region, which in this case is one.
+- If there is one word in the region, the function should return a value resulting from adding one to the value returned when it counts that word, plus the number returned when it counts the remaining words in the region, which in this case is zero.
+- If there are no words in the region, the function should return zero.
+
+From the sketch we can see that the else-part of the =if= returns zero for the case of no words. This means that the then-part of the =if= must return a value resulting from adding one to the value returned from a count of the remaining words.
+
+The expression will look like this, where =1+= is a function that adds one to its argument.
+
+#+begin_src elisp
+         (1+ (recursive-count-words region-end))
+#+end_src
+
+The whole =recursive-count-words= function will then look like this:
+
+#+begin_src elisp
+         (defun recursive-count-words (region-end)
+           "documentation..."
+
+         ;;; 1. do-again-test
+           (if (and (< (point) region-end)
+                    (re-search-forward "\\w+\\W*" region-end t))
+
+         ;;; 2. then-part: the recursive call
+               (1+ (recursive-count-words region-end))
+
+         ;;; 3. else-part
+             0))
+#+end_src
+
+Let's examine how this works:
+
+If there are no words in the region, the else part of the =if= expression is evaluated and consequently the function returns zero.
+
+If there is one word in the region, the value of point is less than the value of =region-end= and the search succeeds. In this case, the true-or-false-test of the =if= expression tests true, and the then-part of the =if= expression is evaluated. The counting expression is evaluated. This expression returns a value (which will be the value returned by the whole function) that is the sum of one added to the value returned by a recursive call.
+
+Meanwhile, the next-step-expression has caused point to jump over the first (and in this case only) word in the region. This means that when =(recursive-count-words region-end)= is evaluated a second time, as a result of the recursive call, the value of point will be equal to or greater than the value of region end. So this time, =recursive-count-words= will return zero. The zero will be added to one, and the original evaluation of =recursive-count-words= will return one plus zero, which is one, which is the correct amount.
+
+Clearly, if there are two words in the region, the first call to =recursive-count-words= returns one added to the value returned by calling =recursive-count-words= on a region containing the remaining word---that is, it adds one to one, producing two, which is the correct amount.
+
+Similarly, if there are three words in the region, the first call to =recursive-count-words= returns one added to the value returned by calling =recursive-count-words= on a region containing the remaining two words---and so on and so on.
+
+With full documentation the two functions look like this:
+
+The recursive function:
+
+
+
+#+begin_src elisp
+         (defun recursive-count-words (region-end)
+           "Number of words between point and REGION-END."
+
+         ;;; 1. do-again-test
+           (if (and (< (point) region-end)
+                    (re-search-forward "\\w+\\W*" region-end t))
+
+         ;;; 2. then-part: the recursive call
+               (1+ (recursive-count-words region-end))
+
+         ;;; 3. else-part
+             0))
+#+end_src
+
+The wrapper:
+
+#+begin_src elisp
+         ;;; Recursive version
+         (defun count-words-example (beginning end)
+           "Print number of words in the region.
+
+         Words are defined as at least one word-constituent
+         character followed by at least one character that is
+         not a word-constituent.  The buffer's syntax table
+         determines which characters these are."
+           (interactive "r")
+           (message "Counting words in region ... ")
+           (save-excursion
+             (goto-char beginning)
+             (let ((count (recursive-count-words end)))
+               (cond ((zerop count)
+                      (message
+                       "The region does NOT have any words."))
+                     ((= 1 count)
+                      (message "The region has 1 word."))
+                     (t
+                      (message
+                       "The region has %d words." count))))))
+#+end_src
+
+
+Previous: [[#recursive_002dcount_002dwords][recursive-count-words]], Up: [[#Counting-Words][Counting Words]]
+
+* 13.3 Exercise: Counting Punctuation
+    :PROPERTIES:
+    :CUSTOM_ID: exercise-counting-punctuation
+    :CLASS: section
+    :END:
+
+Using a =while= loop, write a function to count the number of punctuation marks in a region---period, comma, semicolon, colon, exclamation mark, and question mark. Do the same using recursion.
+
+
+Next: [[#Readying-a-Graph][Readying a Graph]], Previous: [[#Counting-Words][Counting Words]], Up: [[#Top][Top]]
