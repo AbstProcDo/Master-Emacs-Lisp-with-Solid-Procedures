@@ -4,9 +4,6 @@
    :CUSTOM_ID: list-processing
    :CLASS: chapter
    :END:
-   :LOGBOOK:
-   CLOCK: [2020-03-18 Wed 15:29]--[2020-03-18 Wed 15:38] =>  0:09
-   :END:
 
 ~To the untutored eye, Lisp is a strange programming language~. In Lisp code there are parentheses everywhere. Some people even claim that the name stands for “Lots of Isolated Silly Parentheses”. But the claim is unwarranted. Lisp stands for LISt Processing, and the programming language handles /lists/ (and lists of lists) by putting them between parentheses. The parentheses mark the boundaries of the list. Sometimes a list is preceded by an apostrophe ‘'', called a single-quote in Lisp.[fn:1]Lists are the basis of Lisp.
 
@@ -861,5 +858,3 @@ A few simple exercises:
 ** Footnotes
 
 [fn:1] A single-quote is an abbreviation for the special form quote; you need not think about special forms now. See Complications.
-* 总结
-没有什么内容.
