@@ -1,33 +1,28 @@
 #+TITLE: Preface
-* 画龙点睛
-原文为：“武帝（梁武帝）崇饰佛寺，多命僧繇画之……
-金陵（今南京）安乐寺四白龙不点眼睛，每云：‘点睛即飞去。
-’人以为荒诞，因请点之。
-雷电破壁，腾云上天。
-
 * 铁指寸进, 零秒精通: Emacs-Lisp
 
-从"如何严肃阅读一本书"中引申过来, 八股文的结构, 解释下"铁指寸进".
 "铁指"乃是硬功夫, 真功夫, 绝非"花拳绣腿".
-"寸进"是看得见摸得着, 可测量可预期的, 即时反馈回来的实打实进益, 一寸一寸, 力无虚发, 恒久之功坚实有力, 耐心信心随之与日俱增.
-而所谓"零秒精通", 即唤醒你潜意识与本能中对一项技能的兴趣与直觉. 有了良好的直觉, 则才思泉涌, 乐此不疲, 攻城略地, 兴味盎然, 是谓"零秒"也.
-# 短评: 此处原本想说＂夺财霸女＂, 则更有力道, 注意不要用些无关痛痒的词汇, 比如"攻城拔寨", "攻城略地", 只是凑些字数; 写出真实的东西, 比如打完篮球后, 跑完步后, 顿觉"浑身轻松", 这是真实的描述. 直觉呢?　激发之后就是一种灵感与方案信手拈来, 有感觉有洞见, 此处还是要好好打磨打磨, 体会体会.
+"寸进"指看得见摸得着, 可测量可预期的, 可即时反馈的实打实进益, 一寸一寸, 力无虚发, 恒久之功坚实有力, 耐心信心随之与日俱增.
+所谓"零秒精通", 即唤醒潜意识与本能中对一项技能的兴趣与直觉. 有了良好的直觉, 则才思泉涌, 乐此不疲, 攻城略地, 兴味盎然, 是谓"零秒"也.
 
-其中涉及到大量的 Elisp 代码, 简单张贴出来, 则整个章节索然寡味, 而蜻蜓点水的拆解, 又隔靴搔痒, 意犹未尽.
+项目 [[https://github.com/AbstProcDo/Master-Emacs-From-Scrach-with-Solid-Procedures][步步为营, 零秒精通 Emacs]] 进展到  [[https://emacs-china.org/t/05-org-as/12092][05.Org as 地表最强的管理与助手工具]] 之时, Org-Capture-Template 其中涉及到较多的 elisp 代码, 简单张贴出来, 则整个章节索然寡味, 而蜻蜓点水的拆解, 又隔靴搔痒, 意犹未尽.
 
-而 Elisp 之简单, 与 Emacs 容易, 实如出一撤,
-正如"步步为营, 零秒精通 Emacs"在破题处所言, "Emacs的简单, 一言以蔽之, 只是一个Meta键而已." 于是, 我们从Meta键出发, 出门右转是"Emacs-Manuals", 出门左转则是"Elisp Manual".
-# 短评: 为什么左转是 Elisp, 因为单词中有个 L.
+其实Elisp 之简单, 与 Emacs 容易, 实如出一撤,
+正如项目"步步为营, 零秒精通 Emacs"在破题处所言,
+"Emacs的简单, 一言以蔽之, 只是一个Meta键而已."
+于是, 我们从Meta键出发, 出门右转是"Emacs-Manuals", 出门左转则是"Elisp Manuals".
 
-Emacs 相较于其他的编辑器, 学起来是如此得简单, 其核心就只是绑定 Meta 键到 Function 上. 在此之后, 只需 M(Meta)-x(execute) 便能海阔天空调用命令做任何事情.
 
-行到此处, "零秒精通 Emacs"项目, 大步一跃而过, 轻描淡写一句:
+Emacs 相较于其他的编辑器, 学起来所以如此得简单, 其核心就在于绑定 Meta 键到 Function 上. 从此之后, 只需按键 M(Meta)-x(execute) 便能海阔天空调用命令做任何事情.
+
+行到此处, "零秒精通 Emacs" 项目, 大步一跃而过, 轻描淡写一句:
 
 #+BEGIN_QUOTE
 至此, Emacs从战略层面上的所有事情便结束了, 剩下的事情仅仅是战术层面上的高效问题与缝缝补补的实现.
 #+END_QUOTE
 
 本项目接续"往左拐"的路径, 开启探秘 Emacs-Lisp 之旅, 献上一桌思维与思想上的饕餮盛宴.
+
 * 1.Elisp 之缘起
 
 我们不钩沉罗列历史细节, 而转身从最根本处, 从思想上溯源, 探究 Elisp 因何而起, 由何而生.
@@ -35,9 +30,9 @@ Emacs 相较于其他的编辑器, 学起来是如此得简单, 其核心就只�
 首先分析两种模式: 一是"动态"的 IDE-Shell模式, 二是"静态的" Plain-Text 文本模式.
 
 ** 1.1 "动态"的 IDE-Shell 模式
-# 问题？当前对 IDE 的具体概念并不是特别深入的掌握. 在 environment 下的
-定义一个函数之后可以马上投入应用.
-从 Python 的 IDE-Shell 中, 可以直接调用语言内置的 libraries 武器库, 比如获取当前的时间.
+
+在 Python 的 IDE-Shell 中, 可以直接调用语言内置的 libraries 武器库,
+比如获取当前的时间.
 
 #+BEGIN_EXAMPLE
 >>> import time
@@ -45,7 +40,8 @@ Emacs 相较于其他的编辑器, 学起来是如此得简单, 其核心就只�
  'Tue Mar 31 09:05:19 2020'
 #+END_EXAMPLE
 
-此处是 plain-text 无法比拟的. 但当你打开一个 "procedures.py" 文件, 然后输入以上 functions 命令, 他们却只静静地躺在那里, 什么都不会发生.
+而在文本文件却做不到这一点. 比如当新建 "procedures.py" 文件, 然后输入以上 functions 命令,
+他们只是静静地躺在那里, 什么都不会发生.
 
 #+name: procedures.py
 #+BEGIN_SRC python
@@ -56,7 +52,7 @@ time.ctime()
 pow(11, 2)
 #+END_SRC
 
-盯着 =pow(11, 2)= 到海枯石烂, 也不会等到结果. 而我们在 IDE 模式下却能够直接使用 builtin-routines 并且立刻获得运行结果.
+即便盯着 =pow(11, 2)= 到海枯石烂, 也不会等到结果. 而我们在 IDE 模式下却能够直接使用 builtin-routines 并且立刻获得运行结果.
 #+name: procedures.py
 #+BEGIN_EXAMPLE
 >>> pow(11, 2, 7)
@@ -68,7 +64,7 @@ pow(11, 2)
 ** 1.2 "静态"的 Plain-Text 模式
 那么 plain-text 竟如此不堪, 一无是处吗?
 
-我们继续"获取当前时间"的例子, 
+我们继续"current-date"的例子,
 
 =time.ctime= 打印出来当前的时间, 但显示的时间格式非卿所钟爱的顺序, 于是自定义更改:
 
@@ -93,19 +89,20 @@ pow(11, 2)
 
 如上所示, 在 IDE-Shell中, 调用 =current_time= 能够即可返回当前的时间.
 
-到此, 主要工作已完成,  =current_time= 是个有用的 function. 我要将其留存备用.
+到此, 主要工作已完成,  =current_time= 是个有用的 function. 将其留存备用.
 
-回到 IDE-Shell中, 当试图保存Shell中的内容之时, 遭遇到问题是显而易见的.
+回到 IDE-Shell中, 当试图保存Shell中的内容之时, 立刻遭遇到棘手的问题.
 #+name: image-1.1
 [[file:./images/save-current-time.png]]
 
-IDE-Shell显示出来的内容, 不能直接保存, 所有的内容都是暂时的. 若要永久性存储 =current-time= 函数, 则必须将其写入文件, 以 plain-text 的形式.
+IDE-Shell里的内容, 不能直接保存, 他们都是暂时的. 若要永久性存储 `current-time` 函数,　则必须将其写入文件.
+
 #+name: image-1.2
 [[file:./images/procedures-current-time.png]]
 
 如图 image-1.2所示, =current-time= 保存到了文件 procedures.py 中, 可以在当前或者日后被其他程序调用.
 
-但是, 遇到的问题也是一目了然. 当在 =plain-text= 的 procedures.py 中, 调用 =current_time= 之时, 无法即可得到结果. 在可以永久存储数据的文本文件中, 无法直接运行函数.
+但是, 此刻的问题也是一目了然. 当在 =plain-text= 的 procedures.py 中, 调用 =current_time= 之时, 无法即可得到结果. 不能直接运行函数.
 
 ** 1.3 两难的困境
 考虑下面的应用场景, 在 procedures.py 文件中, 给 =current_time= 函数备注时间戳.
@@ -118,7 +115,7 @@ def current_time(): # 2020-04-01 Wednesday
     return datetime.now().strftime("%Y-%m-%d %A")
 #+end_src
 
-备注的时间戳"# 2020-04-01 Wednesday"乃我所钟爱的格式, 也是 =current-time= 函数返回的格式. 不幸的是, 这段备注却是我一个字母一个字母, 一个数字一个数字地敲进去的. 我劳神费力写出来的函数, 此时只是"静物摆设", 派不上用场. 在 plain-text 模式下, 不能直接运行 =current_time= 提供给我当前的时间.
+备注的时间戳"# 2020-04-01 Wednesday"乃我所钟爱的格式, 也是 =current-time= 函数返回的格式. 不幸的是, 这段备注却是我一个字母一个字母, 一个数字一个数字地敲进去的. 我劳神费力写出来的函数, 此时只是"静物摆设", 与我无助. 在 plain-text 模式下, 不能直接运行 =current_time= 以提供当前的时间.
 
 迂回的解决方案, 复制代码到 IDE-Shell 中运行, 再把结果拿来当备注.
 [[file:./images/save-current-time.png]]
@@ -127,30 +124,30 @@ def current_time(): # 2020-04-01 Wednesday
 + IDE-Shell 交互模式下, 一切都是"活"的, "动态的", 直接调用和运行 python 内置的 libraries, 也可以运行自定义的函数, 即时获得运行结果, 但是内容都是临时性的, 没法储存.
 + Plain-Text 文本编辑模式下, 一切都是"死"的, "静态的", 数据长期储存, 但是没法运行任何函以在第一时间获取运算结果.
 
-真是令人伤心的两难处境, 尤其是在 Plain-Text 文本编辑模式下, 绕费心机写出来函数, 直挺挺的躺在 procedures.py 文件中, 对我的任何编辑工作都袖手旁观.
+真是令人伤心的两难处境, 尤其是在 Plain-Text 文本编辑模式下, 绕费心机写出来函数, 直挺挺的躺在 procedures.py 文件中, 对我的辛苦劳累, 熟视无睹.
 
-我希望"躺尸"的 =current_date= 有生命注入, 能够"活"过来. 我定义它出来, 创造它出来; 在我需要的时刻, 我希望它作为"及时雨"前来帮忙, 而不需一个字母一个字母, 一个数字一个数字的输入时间戳.
+我希望"躺尸"的 =current_date= 有生命注入, 能够"活"过来. 因为我定义它出来, 创造它出来; 就是要在需要的时刻, 它作为"及时雨"前来帮忙, 而不需一个字母一个字母, 一个数字一个数字的输入时间戳.
 
-那么解决方案是什么呢? 
+那么解决方案是什么呢?
 
 ** 1.4 合体为一
 
-IDE-Shell 与 plain-text 各有优劣, 而且恰好优劣互补. 取长补短, 解决当前困境的思路很简单, 自然而然地会想到将二者合并, 整合到一处.
+IDE-Shell 与 plain-text 各有优劣, 恰好也优劣互补. 取长补短, 问题的解决, 顺理成章地会想到将二者合并, 整合到一处.
 也就是将上文的"迂回的解决方案": 复制代码到 IDE-Shell 中运行, 再把结果黏贴回 文本编辑的的两个步骤, 合并为一个步骤.
 
-这个想法之自然而然, 
-正如当"贝吉塔"与"孙悟空"联手不敌的时候, 下意识的想法便是二人合体组成更强的力量单元"贝吉特". 
+这个想法之自然而然,
+正如当"贝吉塔"与"孙悟空"联手不敌的时候, 下意识的想法便是二人合体组成更强的力量单元"贝吉特".
 #+ATTR_HTML: :width 300px
 [[file:./images/龙珠:孙贝合体-黑.jpg]]
 
 思路简单, 实现却难. 难在哪儿呢?
-合体需要沟通仪式比如"舞蹈", 需要媒介比如"波塔拉耳环". IDE-Shell 与 Plain-Text 合二为一, 则需要发明新的沟通语言, Emacs-Lisp 应运而生.
+漫画中合体尚且需要沟通仪式比如"舞蹈", 需要媒介比如"波塔拉耳环". 而IDE-Shell 与 Plain-Text 合二为一, 则需要发明新的沟通语言, 于是　Emacs-Lisp 语言应运而生.
 #+ATTR_HTML: :width 300px
 [[file:./images/龙珠-贝吉特.jpeg]]
 
-当"长夜漫漫, 无心睡眠"之际, 我们 emacs-user, 不妨神游回那个风云际会的年代, 静静地体验和享受那一美妙时刻. 当时人遭遇 IDE 与 plain-text 的问题而欣然妥协之际, RMS 童心大发, 合二者为一, 写出 Emacs-Lisp 作为解决方案. 到此, 我们也任"思绪"信马由缰, 应用"盗梦空间"的技术, 肆意尝试从"零"搭建起 Emacs-Lisp 的大厦.
+当"长夜漫漫, 无心睡眠"之际, 我们 emacs-user, 不妨神游回那个风云际会的年代, 静静地体验和享受此美妙时刻. 当时人遭遇 IDE 与 plain-text 的两难而欣然妥协之际, RMS 童心大发, 合二者为一, 写出 Emacs-Lisp 作为解决方案. 到此, 我们也任"思绪"信马由缰, 应用"盗梦空间"的技术, 肆意尝试从"零"搭建起 Emacs-Lisp 的大厦.
 
-复盘思想迸发的那电光火石一瞬间, 乃是极大的思维享受.
+复盘一个思想初始迸发的那电光火石一瞬间, 乃是极大的思维享受.
 在当时没有语言能够实现这一创举, 于现在也没有第二种语言能够模仿此创举.
 
 ** 1.5 "复活" Procedures
@@ -166,35 +163,35 @@ Emacs中新建文件 "procedures.el", 探索有了"生命"的 Plain-Text 的行�
 #+name: image-1.5.1
 [[file:./images/arithmatic-oprations-cases.png]]
 
-如图 1.5.1 所示, Elisp 能够在文本文件中运行程序, 即可计算 =(sqrt 11)= 并返回结果到 echo-area 中. 所需的操作也便捷, 只需 Ctrl-e 光标移动到行尾, 然后调用 C-x C-e (eval-last-sexp), 马上看到结果.
+如图 1.5.1 所示, Elisp 神奇的在文本文件中运行程序, 即刻计算 =(sqrt 11)= 并返回结果到 echo-area 中. 操作也便捷, 只需光标移动到行尾, 然后调用 C-x C-e (eval-last-sexp), 马上看到结果.
 
-为更沉浸式体验这奇迹的一刻, 我们回到对照的 Python 文件 "procedure.py".
+接下来, 我们更进一步更沉浸式体验这奇迹的一刻, 我们回到对照的 Python 文件 "procedure.py".
 #+ATTR_HTML: :width 500px
 #+name: image-1.5.2
 [[file:./images/elisp之始-sqrt-in-py-1.5.2.png]]
 
-我们没有任何途径, 在 python 文本文件*内部*运行一个程序, 这种"静态"与"动态"之间的壁垒真如"生死之界", 近在咫尺却压抑而无可逾越; 如在二维世界中的"蚂蚁", 永无可能伸手去摘取三维世界中苹果树上的果子.
+由图可见, 我们没有任何途径, 能在 python 文本文件*内部*运行一个程序, 这种"静态"与"动态"之间的壁垒真如"生死之界", 近在咫尺却压抑而无可逾越; 如在二维世界中的"蚂蚁", 永无可能伸手去摘取三维世界中苹果树上的果子.
 
 目光投向 IDE-Shell:
 #+ATTR_HTML: :width 500px
 #+name: image-1.5.3
 [[file:./images/elisp之始-sqrt-in-py-1.5.3.png.png]]
 
-如图 image-1.5.3 IDE-Shell 提供了一个丰富的 Python-Environment, 此处所有的程序都是"活"的, 可以运行, 能够即可返回结果, 但是不能保存.
+如图 image-1.5.3 IDE-Shell 提供了一个丰富的 Python-Environment, 此处所有的程序都是"活"的, 可以运行, 得到结果, 但是不能保存.
 
-可是啊生命， 
+可是啊生命，
 你如此短暂；
 绚烂，如昙花一现。
-当我关闭终端； 
+当我关闭终端；
 你即刻转身，消逝如烟，
 只如从没来过，
 却又何必说，休要挂念。
 
 IDE-Shell 中的内容, 似镜花水月, 不复挽留. 只有文本文档长长久久.
 
-接下来, 我们再反复体验下 Elisp 促使文本文件由"静态"转"动态", 促使 IDE-Shell由"昙花一现"转"朝朝暮暮"的高潮时刻, 赞叹其曼妙之身姿, 欣赏其倾城之容颜.
+接下来, 我们再反复体验下 elisp 促使文本文件由"静态"转"动态", 促使 IDE-Shell由"昙花一现"转"朝朝暮暮"的高潮时刻, 赞叹其曼妙之身姿, 欣赏其倾城之容颜.
 # 对微妙的技术时刻有生理反应.
-再次回到 =current-date= 的案例, 写入 Elisp 文件 procedures.el.
+回到 =current-date= 的案例, 写入 Elisp 文件 procedures.el.
 #+begin_src emacs-lisp :tangle yes
 (format-time-string "%Y-%m-%d %A" (current-time))
 
@@ -204,11 +201,11 @@ IDE-Shell 中的内容, 似镜花水月, 不复挽留. 只有文本文档长长�
 (current-date)
 #+end_src
 
-在第一行行位, 按键 C-x C-e 就立刻以我所钟爱的格式显示当前的日期. 下面两行的代码抽象出以上的行为并命名为 =current-date=, 在函数末尾的括号后, 按键 C-x C-e, 然后在调用的函数后面 C-x C-e, 则期待的结果, 瞬间出现.
+在第一行行位, 按键 C-x C-e 就立刻以恰当的格式显示当前的日期. 下面两行的代码抽象出以上的行为并命名为 =current-date=, 在函数末尾的括号后, 按键 C-x C-e, 然后在调用的函数后面 C-x C-e, 则期待的结果, 瞬间出现.
 
 于是"生死之界"而打破, 二维伸手如三维之境!
 
-(哈利路亚, (小小声....
+(哈利路亚, (小声....
 
 #+BEGIN_QUOTE
 耶稣高声喊道∶“拉撒路 Lazarus，出来吧 Come out。”  ;;(come-out 'Lazarus) 死人果然出来了，手脚上都裹着布，脸上还包着一块布。
@@ -218,12 +215,11 @@ IDE-Shell 中的内容, 似镜花水月, 不复挽留. 只有文本文档长长�
 [[file:images/12_Jesus_Lazarus_1024_JPEG.jpg]] [[file:images/13_Jesus_Lazarus_1024_JPEG.jpg]]
 
 
-
-神迹的时刻, 在编程中就能亲历. 而复活的"拉撒路", 我们人类, 或真是上帝这位程序员运行的一段Procedure: =(come-out 'Lazarus)= .
+神迹的时刻, 在编程中就能亲历. 而复活的"拉撒路", 我们人类, 或真是上帝这位程序员运行的一段　Procedure 如 =(come-out 'Lazarus)= .
 
 ** 1.6 走向"波澜壮阔"的生命
 
-前面的五节内容, Elisp 作为解决方案, 实现 IDE-Shell 与输入文本之间无缝结合. 
+前面的五节内容, Elisp 作为解决方案, 实现 IDE-Shell 与输入文本之间无缝结合.
 Elisp 引擎复活了 Procedures , 从而能够在编辑的过程中, 与当前的文本内部直接运行程序.
 
 下面来看这样一个问题, 在1.5节中, 我们定义了 =current-date= 函数, 在 "procedures.el" 文本中运行, 并得到合适的格式的当前时间.  如果我在另外一个Emacs-Lisp文件中, 也想调用 =current-date= 函数, 该怎么办呢? 难道需要复制过去, 然后重复一遍上述 C-x C-e 的调用步骤吗?
@@ -272,188 +268,3 @@ M-x 调用 eval-buffer 就能运行全部的代码.
 
 打赏金额的10%将转捐给社区.
 
-
-* 2.Elisp 之眼: Interactive
-* 3.物种的奇迹: Editing Types
-"龙"是新的物种.
-Elisp 的 Editing types 乃是其最美妙的部分. 雷电破壁, 乘云入天后, 需要处理的最具乐趣的工具.
-
-* 4.穹顶之下: Environment
-探讨如何以Elisp作为完全的思维工具, 思考助手. 不仅打开电脑, 生活在 Emacs-Environment 之中, 关闭电脑之后, 我们的一举一动, 一颦一笑, 亦同样在虚拟的 Virtual-Emacs-Environment 之下.
-作为完全的思考模式.
-
-从人也是程序的思路开始讲起.
-
-从这里秀一下, 我的英语. 
-
-* 思路整理
-如在大海中翱翔, 整个宇宙便是我的世界, 我的环境.
-基本的原则是"我"还愿意读第二遍.
-解释下, 假期之中, 看了许多电影.
-
-穹顶之下的虚拟与现实
-举例 Desire 这个单词.  Desire
-
-# todo, 附录加上对时间格式的总结.
-
-这回的书籍, 要按期发布.
-
-必须做到每个问题都落到实处.
-
-* 打赏
-打赏金额从500起来, 
-* 素材
-孙悟空与贝吉塔的合体.
-呼保义
-风起于青萍之末．
-* Emacs的历史
-整件事可能大概是这样的：
-    RMS 写了第一版的 Emacs。
-    RMS 打算用 C 重写 Emacs，但是发现已经有人这么做了，这就是高司令的 GosMacs（然而这时的高司令都准备弃坑了，把代码卖给了一家公司）。
-    友人给了 RMS 查看 GosMacs 代码的权限。代码估计也不完全是高司令一个人写的，因为他有号召社区帮他一起改进。
-    RMS 大概觉得可以在高司令的基础上继续开发，但是拿到代码发现 lisp 解释器不行，就写了一个替换掉。
-    RMS 接着又移除了其它涉及版权的代码。
-    至此 GNU Emacs 应该是符合 RMS 的 ‘free software’ 的定义。
-* 6 件你应该用 Emacs 做的事
-  :PROPERTIES:
-  :CUSTOM_ID: 件你应该用-emacs-做的事
-  :END:
-# 拍案: 回到其最源头和起点处，这是我写 Emacs-Lisp 教程的最起点处。
-下面六件事情你可能都没有意识到可以在Emacs下完成。此外还有我们的新备忘单拿去，充分利用 Emacs 的功能吧。
-Here are six things you may not have realized you could do with Emacs. Then, get our new cheat sheet to get the most out of Emacs.
-# 终于找到这篇文章了。
-
-
-想象一下使用Python的IDLE界面来编辑文本。你可以将文件加载到内存中，编辑它们，并保存更改。但是你执行的每个操作都由Python函数定义。例如，调用 =upper()= 来让一个单词全部大写，调用 =open= 打开文件，等等。文本文档中的所有内容都是 Python 对象，可以进行相应的操作。从用户的角度来看，这与其他文本编辑器的体验一致。对于Python开发人员来说，这是一个丰富的Python环境，只需在配置文件中添加几个自定义函数就可以对其进行更改和开发。
-IDLE is Python's Integrated Development and Learning Environment.
-
-这就是 [[https://www.gnu.org/software/emacs/][Emacs]] 对 1958 年的编程语言 [[https://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]] 所做的事情。在 Emacs 中，运行应用程序的 Lisp 引擎与输入文本之间无缝结合。对 Emacs 来说，一切都是 Lisp 数据，因此一切都可以通过编程进行分析和操作。
-
-这造就了一个强大的用户界面（UI）。但是，如果你是 Emacs 的普通用户，你可能对它的能力知之甚少。下面是你可能没有意识到 Emacs 可以做的六件事。
-# 洞见, 当下有了一点思路如何写Emacs-Lisp的起手式了.
-Imagine using Python's IDLE interface to edit text. You would be able to load files into memory, edit them, and save changes. But every action you perform would be defined by a Python function. Making a word all capitals, for instance, calls upper(), opening a file calls open, and so on. Everything in your text document is a Python object and can be manipulated accordingly. From the user's perspective, it's the same experience as any text editor. For a Python developer, it's a rich Python environment that can be changed and developed with just a few custom functions in a config file.
-
-This is what Emacs does for the 1958 programming language Lisp. In Emacs, there's no separation between the Lisp engine running the application and the arbitrary text you type into it. To Emacs, everything is Lisp data, so everything can be analyzed and manipulated programmatically.
-# 这点可以加入到我的教程中．
-That makes for a powerful user interface (UI).
-But if you're a casual Emacs user, you may only be scratching the surface of what it can do for you. Here are six things you may not have realized you could do with Emacs.
-# 短评, 现在当我再次阅读的时候， 感觉也没什么。
-
-** 使用 Tramp 模式进行云端编辑 Use Tramp mode for cloud editing
-    :PROPERTIES:
-    :CUSTOM_ID: 使用-tramp-模式进行云端编辑
-    :END:
-
-Emacs早在网络流行化之前就实现了透明的网络编辑能力了，而且时至今日，它仍然提供了最流畅的远程编辑体验。Emacs 中的 [[https://www.gnu.org/software/tramp/][Tramp 模式]]（以前称为 RPC 模式）代表着 "透明的远程（文件）访问，多协议Transparent Remote (file) Access，Multiple Protocol"，这准确说明了它提供的功能：通过最流行的网络协议轻松访问你希望编辑的远程文件。目前最流行、最安全的能用于远程编辑的协议是 [[https://www.openssh.com/OpenSSH]]，因此Tramp使用它作为默认的协议。
-
-在 Emacs 22.1 或更高版本中已经包含了 Tramp，因此要使用 Tramp，只需使用 Tramp 语法打开一个文件。在 Emacs 的 "File" 菜单中，选择 "Open File"。当在 Emacs 窗口底部的小缓冲区中出现提示时，使用以下语法输入文件名：
-
-#+BEGIN_EXAMPLE
-    /ssh:user@example.com:/path/to/file
-#+END_EXAMPLE
-
-如果需要交互式登录，Tramp 会提示你输入密码。但是，Tramp 直接使用 OpenSSH，所以为了避免交互提示，你可以将主机名、用户名和 SSH 密钥路径添加到你的 =~/.ssh/config= 文件。与 Git 一样，Emacs 首先使用你的 SSH 配置，只有在出现错误时才会停下来询问更多信息。
-
-Tramp 非常适合编辑并没有放在你的计算机上的文件，它的用户体验与编辑本地文件没有明显的区别。下次，当你 SSH 到服务器启动 Vim 或 Emacs 会话时，请尝试使用 Tramp。
-
-** 日历
-    :PROPERTIES:
-    :CUSTOM_ID: 日历
-    :END:
-
-如果你喜欢文本多过图形界面，那么你一定会很高兴地知道，可以使用 Emacs 以纯文本的方式安排你的日程（或生活），而且你依然可以在移动设备上使用开源的 [[https://orgmode.org/][Org 模式]]查看器来获得华丽的通知。
-
-这个过程需要一些配置，以创建一个方便的方式来与移动设备同步你的日程（我使用 Git，但你可以调用蓝牙、KDE Connect、Nextcloud，或其他文件同步工具），此外你必须在移动设备上安装一个 Org 模式查看器（如 [[https://f-droid.org/en/packages/com.orgzly/][Orgzly]]）以及 Git 客户程序。但是，一旦你搭建好了这些基础，该流程就会与你常用的（或正在完善的，如果你是新用户）Emacs 工作流完美地集成在一起。你可以在 Emacs 中方便地查阅日程、更新日程，并专注于任务上。议程上的变化将会反映在移动设备上，因此即使在 Emacs 不可用的时候，你也可以保持井然有序。
-
-
-
-感兴趣了？阅读我的关于[[https://linux.cn/article-11320-1.html][使用 Org mode 和 Git 进行日程安排]]的逐步指南。
-
-** 访问终端
-    :PROPERTIES:
-    :CUSTOM_ID: 访问终端
-    :END:
-
-有[[https://linux.cn/article-11814-1.html][许多终端模拟器]]可用。尽管 Emacs 中的 Elisp 终端仿真器不是最强大的通用仿真器，但是它有两个显著的优点：
-
-1. *打开在 Emacs 缓冲区之中*：我使用 Emacs 的 Elisp shell，因为它在 Emacs 窗口中打开很方便，我经常全屏运行该窗口。这是一个小而重要的优势，只需要输入 =Ctrl+x+o=（或用 Emacs 符号来表示就是 =C-x o=）就能使用终端了，而且它还有一个特别好的地方在于当运行漫长的作业时能够一瞥它的状态报告。
-2. *在没有系统剪贴板的情况下复制和粘贴特别方便*：无论是因为懒惰不愿将手从键盘移动到鼠标，还是因为在远程控制台运行 Emacs 而无法使用鼠标，在 Emacs 中运行终端有时意味着可以从 Emacs 缓冲区中很快地传输数据到 Bash。
-
-要尝试 Emacs 终端，输入 =Alt+x=（用 Emacs 符号表示就是 =M-x=），然后输入 =shell=，然后按回车。
-
-** 使用 Racket 模式
-    :PROPERTIES:
-    :CUSTOM_ID: 使用-racket-模式
-    :END:
-
-[[http://racket-lang.org/][Racket]] 是一种激动人心的新兴 Lisp 方言，拥有动态编程环境、GUI 工具包和充满激情的社区。学习 Racket 的默认编辑器是 DrRacket，它的顶部是定义面板，底部是交互面板。使用该设置，用户可以编写影响 Racket 运行时环境的定义。就像旧的 [[https://en.wikipedia.org/wiki/Logo_(programming_language)#Turtle_and_graphics][Logo Turtle]] 程序，但是有一个终端而不是仅仅一个海龟。
-
-#+CAPTION: Racket-mode
-
-
-/由 PLT 提供的 LGPL 示例代码/
-
-基于 Lisp 的 Emacs 为资深 Racket 编程人员提供了一个很好的集成开发环境（IDE）。它尚未附带 [[https://www.racket-mode.com/][Racket 模式]]，但你可以使用 Emacs 包安装程序安装 Racket 模式和辅助扩展。要安装它，按下 =Alt+X=（用 Emacs 符号表示就是 =M-x=），键入 =package-install=，然后按回车。接着输入要安装的包 =racet-mode=，按回车。
-
-使用 =M-x racket-mode= 进入 Racket 模式。如果你是 Racket 新手，而对 Lisp 或 Emacs 比较熟悉，可以从这份优秀的[[https://docs.racket-lang.org/quick/index.html][图解 Racket]] 入手。
-
-** 脚本
-   :PROPERTIES:
-   :CUSTOM_ID: 脚本
-   :END:
-
-你可能知道，Bash 脚本在自动化和增强 Linux 或 Unix 体验方面很流行。你可能听说过 Python 在这方面也做得很好。但是你知道 Lisp 脚本可以用同样的方式运行吗？有时人们会对 Lisp 到底有多有用感到困惑，因为许多人是通过 Emacs 来了解 Lisp 的，因此有一种潜在的印象，即在 21 世纪运行 Lisp 的惟一方法是在 Emacs 中运行。幸运的是，事实并非如此，Emacs 是一个很好的 IDE，它支持将 Lisp 脚本作为一般的系统可执行文件来运行。
-
-除了 Elisp 之外，还有两种流行的现代 Lisp 可以很容易地用来作为独立脚本运行。
-
-1. *Racket*：你可以通过在系统上运行 Racket 来提供运行 Racket 脚本所需的运行时支持，或者你可以使用 =raco exe= 产生一个可执行文件。=raco exe= 命令将代码和运行时支持文件一起打包，以创建可执行文件。然后，=raco distribution= 命令将可执行文件打包成可以在其他机器上工作的发行版。Emacs 有许多 Racket 工具，因此在 Emacs 中创建 Racket 文件既简单又有效。
-2. *GNU Guile*：[[https://www.gnu.org/software/guile/][GNU Guile]]（GNU 通用智能语言扩展GNU Ubiquitous Intelligent Language for Extensions 的缩写）是 [[https://en.wikipedia.org/wiki/Scheme_(programming_language)][Scheme]] 编程语言的一个实现，它可以用于为桌面、互联网、终端等创建应用程序和游戏。Emacs 中的 Scheme 扩展众多，使用任何一个扩展来编写 Scheme 都很容易。例如，这里有一个用 Guile 编写的 "Hello world" 脚本：
-
-#+BEGIN_EXAMPLE
-    #!/usr/bin/guile -s
-    !#
-
-    (display "hello world")
-         (newline)
-#+END_EXAMPLE
-
-用 =guile= 编译并允许它：
-
-#+BEGIN_EXAMPLE
-    $ guile ./hello.scheme
-    ;;; compiling /home/seth/./hello.scheme
-    ;;; compiled [...]/hello.scheme.go
-    hello world
-    $ guile ./hello.scheme
-    hello world
-#+END_EXAMPLE
-
-*** 无需 Emacs 允许 Elisp
-    :PROPERTIES:
-    :CUSTOM_ID: 无需-emacs-允许-elisp
-    :END:
-
-Emacs 可以作为 Elisp 的运行环境，但是你无需按照传统印象中的必须打开 Emacs 来运行 Elisp。=--script= 选项可以让你使用 Emacs 作为引擎来执行 Elisp 脚本，而无需运行 Emacs 图形界面（甚至也无需使用终端）。下面这个例子中，=-Q= 选项让 Emacs 忽略 =.emacs= 文件，从而避免由于执行 Elisp 脚本时产生延迟（若你的脚本依赖于 Emacs 配置中的内容，那么请忽略该选项）。
-
-#+BEGIN_EXAMPLE
-    emacs -Q --script ~/path/to/script.el
-#+END_EXAMPLE
-
-*** 下载 Emacs 备忘录
-    :PROPERTIES:
-    :CUSTOM_ID: 下载-emacs-备忘录
-    :END:
-
-Emacs 许多重要功能都不是只能通过 Emacs 来实现的；Org 模式是 Emacs 扩展也是一种格式标准，流行的 Lisp 方言大多不依赖于具体的应用，我们甚至可以在没有可见或可交互式 Emacs 实例的情况下编写和运行 Elisp。然后若你对为什么模糊代码和数据之间的界限能够引发创新和效率感到好奇的话，那么 Emacs 是一个很棒的工具。
-
-幸运的是，现在是 21 世纪，Emacs 有了带有传统菜单的图形界面以及大量的文档，因此学习曲线不再像以前那样。然而，要最大化 Emacs 对你的好处，你需要学习它的快捷键。由于 Emacs 支持的每个任务都是一个 Elisp 函数，Emacs 中的任何功能都可以对应一个快捷键，因此要描述所有这些快捷键是不可能完成的任务。你只要学习使用频率 10 倍于不常用功能的那些快捷键即可。
-
-我们汇聚了最常用的 Emacs 快捷键成为一份 Emacs 备忘录以便你查询。将它挂在屏幕附近或办公室墙上，把它作为鼠标垫也行。让它触手可及经常翻阅一下。每次翻两下可以让你获得十倍的学习效率。而且一旦开始编写自己的函数，你一定不会后悔获取了这个免费的备忘录副本的！
-
-
---------------
-
-
-#+BEGIN_SRC bash
-find . -mtime -5 | while read line; do cp "$line" "/home/gaowei/Public/02.Master-Emacs-Lisp-with-Solid-Procedures/images/"; done 
-#+END_SRC
