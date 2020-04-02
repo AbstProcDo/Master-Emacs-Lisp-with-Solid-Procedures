@@ -26,7 +26,6 @@ Although Emacs Lisp is usually thought of in association only with Emacs, it is 
 
 Perhaps you want to understand programming; perhaps you want to extend Emacs; or perhaps you want to become a programmer. This introduction to Emacs Lisp is designed to get you started: to guide you in learning the fundamentals of programming, and more importantly, to show you how you can teach yourself to go further.
 
-
 * On Reading this Text
     :PROPERTIES:
     :CUSTOM_ID: on-reading-this-text
@@ -75,7 +74,6 @@ You will need to dive into some paragraphs; there is no other way to read them. 
 
 This introduction to Programming in Emacs Lisp has a companion document, [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Top][The GNU Emacs Lisp Reference Manual]]. The reference manual has more detail than this introduction. In the reference manual, all the information about one topic is concentrated in one place. You should turn to it if you are like the programmer quoted above. And, of course, after you have read this Introduction, you will find the Reference Manual useful when you are writing your own programs.
 
-
 * Lisp History
     :PROPERTIES:
     :CUSTOM_ID: lisp-history
@@ -85,7 +83,6 @@ This introduction to Programming in Emacs Lisp has a companion document, [[https
  Lisp was first developed in the late 1950s at the Massachusetts Institute of Technology for research in artificial intelligence. The great power of the Lisp language makes it superior for other purposes as well, such as writing editor commands and integrated environments.
 
 GNU Emacs Lisp is largely inspired by Maclisp, which was written at MIT in the 1960s. It is somewhat inspired by Common Lisp, which became a standard in the 1980s. However, Emacs Lisp is much simpler than Common Lisp. (The standard Emacs distribution contains an optional extensions file, cl.el, that adds many Common Lisp features to Emacs Lisp.)
-
 
 * A Note for Novices
     :PROPERTIES:
@@ -102,7 +99,6 @@ In addition to typing a lone keychord, you can prefix what you type with C-u, wh
 If you are reading this in Info using GNU Emacs, you can read through this whole document just by pressing the space bar, <SPC>. (To learn about Info, type C-h i and then select Info.)
 
 A note on terminology: when I use the word Lisp alone, I often am referring to the various dialects of Lisp in general, but when I speak of Emacs Lisp, I am referring to GNU Emacs Lisp in particular.
-
 
 
 * Thank You
