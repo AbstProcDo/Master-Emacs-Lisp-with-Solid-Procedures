@@ -1,8 +1,18 @@
-#+TITLE: Preface
-* 铁指寸进, 零秒精通: Emacs-Lisp
+#+TITLE: 铁指寸进，零秒精通 Emacs-Lisp
+* 目录
+- [[#前言][前言]]
+- [[file:01.Elisp之缘起.org][01. Elisp 之缘起]]
 
-"铁指"乃是硬功夫, 真功夫, 绝非"花拳绣腿".
-"寸进"指看得见摸得着, 可测量可预期的, 可即时反馈的实打实进益, 一寸一寸, 力无虚发, 恒久之功坚实有力, 耐心信心随之与日俱增.
+* 前言
+'铁指寸进' 语自经典武侠片 <鹰抓铁布衫> 的致胜功夫 '铁指寸劲', 这部电影是小时候看过的第一部真招实打的港片武侠. 当时好生过瘾, 心潮之澎湃, 如今想起来依然"蛋疼", 电影是在大反派的凄厉惨叫声中结束的, 他的两只睾丸从胯下被 '铁指寸劲' 捏碎.
+[[file:../images/鹰抓铁布衫.jpeg]]
+
+[[https://movie.douban.com/subject/1456879/][豆瓣:鹰抓铁布衫]]
+(至今看来, 仍然毫不逊色于其后的武侠片)
+大概几年前, 我才知道原来小时候从电影中的修炼的利害功夫是 '铁指寸劲' 而非 '铁指寸进', 得知真相, 颇为失望, 窃以为动词的 '进' 略胜于 名词的 '劲'.
+本项目借用 '铁指寸进' 突出 实打实的 进.
+"铁指" 乃是硬功夫, 真功夫, 绝非 "花拳绣腿".
+"寸进" 指看得见摸得着, 可测量可预期的, 可即时反馈的实打实进益, 一寸一寸, 力无虚发, 恒久之功坚实有力, 耐心信心随之与日俱增.
 所谓"零秒精通", 即唤醒潜意识与本能中对一项技能的兴趣与直觉. 有了良好的直觉, 则才思泉涌, 乐此不疲, 攻城略地, 兴味盎然, 是谓"零秒"也.
 
 项目 [[https://github.com/AbstProcDo/Master-Emacs-From-Scrach-with-Solid-Procedures][步步为营, 零秒精通 Emacs]] 进展到  [[https://emacs-china.org/t/05-org-as/12092][05.Org as 地表最强的管理与助手工具]] 之时, Org-Capture-Template 其中涉及到较多的 elisp 代码, 简单张贴出来, 则整个章节索然寡味, 而蜻蜓点水的拆解, 又隔靴搔痒, 意犹未尽.
@@ -15,7 +25,7 @@
 
 Emacs 相较于其他的编辑器, 学起来所以如此得简单, 其核心就在于绑定 Meta 键到 Function 上. 从此之后, 只需按键 M(Meta)-x(execute) 便能海阔天空调用命令做任何事情.
 
-行到此处, "零秒精通 Emacs" 项目, 大步一跃而过, 轻描淡写一句:
+行到此处, "零秒精通 Emacs" 项目, 大步流星一跃而过, 轻描淡写一句:
 
 #+BEGIN_QUOTE
 至此, Emacs从战略层面上的所有事情便结束了, 剩下的事情仅仅是战术层面上的高效问题与缝缝补补的实现.
@@ -23,248 +33,12 @@ Emacs 相较于其他的编辑器, 学起来所以如此得简单, 其核心就�
 
 本项目接续"往左拐"的路径, 开启探秘 Emacs-Lisp 之旅, 献上一桌思维与思想上的饕餮盛宴.
 
-* 1.Elisp 之缘起
-
-我们不钩沉罗列历史细节, 而转身从最根本处, 从思想上溯源, 探究 Elisp 因何而起, 由何而生.
-
-首先分析两种模式: 一是"动态"的 IDE-Shell模式, 二是"静态的" Plain-Text 文本模式.
-
-** 1.1 "动态"的 IDE-Shell 模式
-
-在 Python 的 IDE-Shell 中, 可以直接调用语言内置的 libraries 武器库,
-比如获取当前的时间.
-
-#+BEGIN_EXAMPLE
->>> import time
->>> time.ctime()
- 'Tue Mar 31 09:05:19 2020'
-#+END_EXAMPLE
-
-而在文本文件却做不到这一点. 比如当新建 "procedures.py" 文件, 然后输入以上 functions 命令,
-他们只是静静地躺在那里, 什么都不会发生.
-
-#+name: procedures.py
-#+BEGIN_SRC python
-!/usr/bin/env python
-
-import time
-time.ctime()
-pow(11, 2)
-#+END_SRC
-
-即便盯着 =pow(11, 2)= 到海枯石烂, 也不会等到结果. 而我们在 IDE 模式下却能够直接使用 builtin-routines 并且立刻获得运行结果.
-#+name: procedures.py
-#+BEGIN_EXAMPLE
->>> pow(11, 2, 7)
- 2
-#+END_EXAMPLE
-
-通过对比, 我们初步"管窥" IDE 对比 plain-text 的绝对优势, IDE-Shell 是"活"的, plain-text 是"死"的.
-
-** 1.2 "静态"的 Plain-Text 模式
-那么 plain-text 竟如此不堪, 一无是处吗?
-
-我们继续"current-date"的例子,
-
-=time.ctime= 打印出来当前的时间, 但显示的时间格式非卿所钟爱的顺序, 于是自定义更改:
-
-#+BEGIN_EXAMPLE
->>> print(datetime.now())
-2020-03-31 09:08:12.163249
-
->>> datetime.now().strftime("%Y-%m-%d %A")
- '2020-03-31 Tuesday'
-#+END_EXAMPLE
-
-"年-月-日 星期"的格式直观易读, 将其命名为 "current-date", 随时听候调令.
-
-#+BEGIN_EXAMPLE
->>> def current_time():
-...     from datetime import datetime
-...     return datetime.now().strftime("%Y-%m-%d %A")
-...
->>> current_time()
-'2020-04-01 Wednesday'
-#+END_EXAMPLE
-
-如上所示, 在 IDE-Shell中, 调用 =current_time= 能够即可返回当前的时间.
-
-到此, 主要工作已完成,  =current_time= 是个有用的 function. 将其留存备用.
-
-回到 IDE-Shell中, 当试图保存Shell中的内容之时, 立刻遭遇到棘手的问题.
-#+name: image-1.1
-[[file:./images/save-current-time.png]]
-
-IDE-Shell里的内容, 不能直接保存, 他们都是暂时的. 若要永久性存储 `current-time` 函数,　则必须将其写入文件.
-
-#+name: image-1.2
-[[file:./images/procedures-current-time.png]]
-
-如图 image-1.2所示, =current-time= 保存到了文件 procedures.py 中, 可以在当前或者日后被其他程序调用.
-
-但是, 此刻的问题也是一目了然. 当在 =plain-text= 的 procedures.py 中, 调用 =current_time= 之时, 无法即可得到结果. 不能直接运行函数.
-
-** 1.3 两难的困境
-考虑下面的应用场景, 在 procedures.py 文件中, 给 =current_time= 函数备注时间戳.
-#+name: procedures.py
-#+begin_src ipython :session elisp :results output
-!/usr/bin/env python
-from datetime import datetime
-
-def current_time(): # 2020-04-01 Wednesday
-    return datetime.now().strftime("%Y-%m-%d %A")
-#+end_src
-
-备注的时间戳"# 2020-04-01 Wednesday"乃我所钟爱的格式, 也是 =current-time= 函数返回的格式. 不幸的是, 这段备注却是我一个字母一个字母, 一个数字一个数字地敲进去的. 我劳神费力写出来的函数, 此时只是"静物摆设", 与我无助. 在 plain-text 模式下, 不能直接运行 =current_time= 以提供当前的时间.
-
-迂回的解决方案, 复制代码到 IDE-Shell 中运行, 再把结果拿来当备注.
-[[file:./images/save-current-time.png]]
-
-由此, 小结如下:
-+ IDE-Shell 交互模式下, 一切都是"活"的, "动态的", 直接调用和运行 python 内置的 libraries, 也可以运行自定义的函数, 即时获得运行结果, 但是内容都是临时性的, 没法储存.
-+ Plain-Text 文本编辑模式下, 一切都是"死"的, "静态的", 数据长期储存, 但是没法运行任何函以在第一时间获取运算结果.
-
-真是令人伤心的两难处境, 尤其是在 Plain-Text 文本编辑模式下, 绕费心机写出来函数, 直挺挺的躺在 procedures.py 文件中, 对我的辛苦劳累, 熟视无睹.
-
-我希望"躺尸"的 =current_date= 有生命注入, 能够"活"过来. 因为我定义它出来, 创造它出来; 就是要在需要的时刻, 它作为"及时雨"前来帮忙, 而不需一个字母一个字母, 一个数字一个数字的输入时间戳.
-
-那么解决方案是什么呢?
-
-** 1.4 合体为一
-
-IDE-Shell 与 plain-text 各有优劣, 恰好也优劣互补. 取长补短, 问题的解决, 顺理成章地会想到将二者合并, 整合到一处.
-也就是将上文的"迂回的解决方案": 复制代码到 IDE-Shell 中运行, 再把结果黏贴回 文本编辑的的两个步骤, 合并为一个步骤.
-
-这个想法之自然而然,
-正如当"贝吉塔"与"孙悟空"联手不敌的时候, 下意识的想法便是二人合体组成更强的力量单元"贝吉特".
-#+ATTR_HTML: :width 300px
-[[file:./images/龙珠:孙贝合体-黑.jpg]]
-
-思路简单, 实现却难. 难在哪儿呢?
-漫画中合体尚且需要沟通仪式比如"舞蹈", 需要媒介比如"波塔拉耳环". 而IDE-Shell 与 Plain-Text 合二为一, 则需要发明新的沟通语言, 于是　Emacs-Lisp 语言应运而生.
-#+ATTR_HTML: :width 300px
-[[file:./images/龙珠-贝吉特.jpeg]]
-
-当"长夜漫漫, 无心睡眠"之际, 我们 emacs-user, 不妨神游回那个风云际会的年代, 静静地体验和享受此美妙时刻. 当时人遭遇 IDE 与 plain-text 的两难而欣然妥协之际, RMS 童心大发, 合二者为一, 写出 Emacs-Lisp 作为解决方案. 到此, 我们也任"思绪"信马由缰, 应用"盗梦空间"的技术, 肆意尝试从"零"搭建起 Emacs-Lisp 的大厦.
-
-复盘一个思想初始迸发的那电光火石一瞬间, 乃是极大的思维享受.
-在当时没有语言能够实现这一创举, 于现在也没有第二种语言能够模仿此创举.
-
-** 1.5 "复活" Procedures
-
-现在, 我们即刻迈入 Emacs-Lisp 之门, 初步窥探其美妙之姿.
-
-上文提及 Plain-Text 文本编辑模式下, 一切都是"死"的, "静态的", 例举的是 =current_date= 函数, 我们需要为其注入"生命", 令其运行, 获取当前的时间.
-
-Emacs中新建文件 "procedures.el", 探索有了"生命"的 Plain-Text 的行为特征.
-
-先看简单的数学运算.
-#+ATTR_HTML: :width 500px
-#+name: image-1.5.1
-[[file:./images/arithmatic-oprations-cases.png]]
-
-如图 1.5.1 所示, Elisp 神奇的在文本文件中运行程序, 即刻计算 =(sqrt 11)= 并返回结果到 echo-area 中. 操作也便捷, 只需光标移动到行尾, 然后调用 C-x C-e (eval-last-sexp), 马上看到结果.
-
-接下来, 我们更进一步更沉浸式体验这奇迹的一刻, 我们回到对照的 Python 文件 "procedure.py".
-#+ATTR_HTML: :width 500px
-#+name: image-1.5.2
-[[file:./images/elisp之始-sqrt-in-py-1.5.2.png]]
-
-由图可见, 我们没有任何途径, 能在 python 文本文件*内部*运行一个程序, 这种"静态"与"动态"之间的壁垒真如"生死之界", 近在咫尺却压抑而无可逾越; 如在二维世界中的"蚂蚁", 永无可能伸手去摘取三维世界中苹果树上的果子.
-
-目光投向 IDE-Shell:
-#+ATTR_HTML: :width 500px
-#+name: image-1.5.3
-[[file:./images/elisp之始-sqrt-in-py-1.5.3.png.png]]
-
-如图 image-1.5.3 IDE-Shell 提供了一个丰富的 Python-Environment, 此处所有的程序都是"活"的, 可以运行, 得到结果, 但是不能保存.
-
-可是啊生命，
-你如此短暂；
-绚烂，如昙花一现。
-当我关闭终端；
-你即刻转身，消逝如烟，
-只如从没来过，
-却又何必说，休要挂念。
-
-IDE-Shell 中的内容, 似镜花水月, 不复挽留. 只有文本文档长长久久.
-
-接下来, 我们再反复体验下 elisp 促使文本文件由"静态"转"动态", 促使 IDE-Shell由"昙花一现"转"朝朝暮暮"的高潮时刻, 赞叹其曼妙之身姿, 欣赏其倾城之容颜.
-# 对微妙的技术时刻有生理反应.
-回到 =current-date= 的案例, 写入 Elisp 文件 procedures.el.
-#+begin_src emacs-lisp :tangle yes
-(format-time-string "%Y-%m-%d %A" (current-time))
-
-(defun current-date ()
-  (format-time-string "%Y-%m-%d %A" (current-time)))
-
-(current-date)
-#+end_src
-
-在第一行行位, 按键 C-x C-e 就立刻以恰当的格式显示当前的日期. 下面两行的代码抽象出以上的行为并命名为 =current-date=, 在函数末尾的括号后, 按键 C-x C-e, 然后在调用的函数后面 C-x C-e, 则期待的结果, 瞬间出现.
-
-于是"生死之界"而打破, 二维伸手如三维之境!
-
-(哈利路亚, (小声....
-
-#+BEGIN_QUOTE
-耶稣高声喊道∶“拉撒路 Lazarus，出来吧 Come out。”  ;;(come-out 'Lazarus) 死人果然出来了，手脚上都裹着布，脸上还包着一块布。
--- 约翰福音十一章.使拉撒路复活
-#+END_QUOTE
-#+ATTR_HTML: :width 450px
-[[file:images/12_Jesus_Lazarus_1024_JPEG.jpg]] [[file:images/13_Jesus_Lazarus_1024_JPEG.jpg]]
-
-
-神迹的时刻, 在编程中就能亲历. 而复活的"拉撒路", 我们人类, 或真是上帝这位程序员运行的一段　Procedure 如 =(come-out 'Lazarus)= .
-
-** 1.6 走向"波澜壮阔"的生命
-
-前面的五节内容, Elisp 作为解决方案, 实现 IDE-Shell 与输入文本之间无缝结合.
-Elisp 引擎复活了 Procedures , 从而能够在编辑的过程中, 与当前的文本内部直接运行程序.
-
-下面来看这样一个问题, 在1.5节中, 我们定义了 =current-date= 函数, 在 "procedures.el" 文本中运行, 并得到合适的格式的当前时间.  如果我在另外一个Emacs-Lisp文件中, 也想调用 =current-date= 函数, 该怎么办呢? 难道需要复制过去, 然后重复一遍上述 C-x C-e 的调用步骤吗?
-
-答案当然是否定的, 既然 Procedures 已然复活, 必然势不可挡地走向"波澜壮阔"的生命.
-
-我们转到"scratch-buffer"中, 如果要获取当前时间, 只需要按键 M-: (eval-expression), 然后在 mini-buffer 中键入 =(current-date)=, 便能得到结果.
-#+ATTR_HTML: :width 500px
-[[file:./images/elisp之始-1.6-eval-current-date.png]]
-
-#+ATTR_HTML: :width 500px
-[[file:./images/elisp之始-1.6-echo-area-current-date.png]]
-
-而事实上, 只要某个 Elisp 函数运行过一次之后, 便汇入了 Emacs 这浩瀚的大海,  我们可以从任何时间, 任何地点, 按键 M-: 运行该函数, 迅速得到运算结果. 一次运行, 无处不能用.
-
-当我们编程 Elisp 的时候, 在文本文件中, 不仅可以逐个逐个函数用 C-x C-e (eval-last-sexp) 去运行, 也可以整块整块 =eval-ragion=, 整页整页地运行 =eval-buffer=
-
-比如对于当前的 "procedures.el" 文本文件,
-
-#+begin_src emacs-lisp :tangle yes
-(sqrt 11)
-(log 8 2)
-(expt 2 3)
-
-(defun insert-current-date ()
-  "Insert the current date"
-  (interactive "*")
-  (insert (format-time-string "%Y-%m-%d %A" (current-time)))
-  )
-(defun current-date ()
-  (format-time-string "%Y-%m-%d %A" (current-time)))
-(current-date)
-#+end_src
-
-M-x 调用 eval-buffer 就能运行全部的代码.
-
-本章行到此处, Elisp 波澜壮阔的大幕, 正徐徐拉开.
-我们从 IDE-Shell 与 Plain-Text 各自的局限出发, 要么运行程序却不能持久保存, 要么能够保存却不能够运行程序. 于两难的困境之中, 萌发合并 IDE-Shell 与 Plain-Text 的想法, Elisp 作为思路的实现方案, 由此运行应用程序的 Emacs-Lisp 引擎与输入文本之间无缝结合. 编辑器中静态的数据与函数被吹入生命, 原地复活. 作为 emacs-user 我们也由此起步, 在 Emac-Elisp 的强大交互功能中, 开始神奇而富有创造性的工作.
-
-下一章, 我们将从 =current-date= 的残余问题出发, 登堂入室论述 Elisp 之眼: interactive, 共同体验画龙点睛, 雷电破壁.
-
------------------------------------------------------------------
-本项目开源打赏, 三天后打赏额满200大洋, 连载更新第二章: Elisp 之眼.
++
+
+* 打赏
+-----------------------------------------------------------------------
+本项目尝试开源打赏, 三天内打赏额满200大洋, 连载更新第二章: Elisp 之眼.
 #+ATTR_HTML: :width 200px
 [[file:./images/微信付款码.png]]
 
 打赏金额的10%将转捐给社区.
-
