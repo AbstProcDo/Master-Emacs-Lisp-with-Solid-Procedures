@@ -20,7 +20,6 @@ A buffer is a Lisp object containing text to be edited. Buffers are used to hold
 12) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Swapping-Text][Swapping Text]]: Swapping text between two buffers.
 13) [[https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Buffer-Gap][Buffer Gap]]: The gap in the buffer.
 
-
 * 27.1 Buffer Basics
     :PROPERTIES:
     :CUSTOM_ID: buffer-basics
