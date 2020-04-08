@@ -1,0 +1,33 @@
+#+TITLE: 02.Elisp之眼：Interactive
+* 2.Elisp 之眼: Interactive
+  :PROPERTIES:
+  :END:
+我要详细阐述, 我的教程好在什么地方? 格式的处理, 发表出去的时候, 全部转成中文的标点符号.
+使用中文的标点符号，不必加逗号。
+当格式完全匹配之后，我便能写简历或者做其他事情了。
+唤醒潜意识，唤醒直觉的方法。
+
+本项目持续突出”零秒“，第一章“Elisp之缘起”，反复应用“具体意象”的方法，唤醒潜意识内的直觉与洞察力。其中两处最为激动人心的时刻分别为：
+一是在突破“两难困境”的过程中， “动态”的 IDE-Shell 与 Plain-Text 之间的藩篱土崩瓦解，二者融合一体组成强大的：贝吉特: 一种现在被称之为”Emacs“的编辑器就此横空出世。
+#+ATTR_HTML: :width 300px
+[[file:./images/龙珠-贝吉特.jpeg]]
+
+二是语言”Elisp“作为上帝的母咒语，将 Procedures 从静态的文本中复活，起身服务于其创造者。
+#+ATTR_HTML: :width 450px
+[[file:./images/12_Jesus_Lazarus_1024_JPEG.jpg]] [[file:./images/13_Jesus_Lazarus_1024_JPEG.jpg]]
+
+在地球上，上帝呼唤一句 =(come-out 'Lazarus)= ，拉撒路复活。在Emacs中，我们发出指令 C-x C-e (eval-last-sexp), =current-date= 函数则立刻运行。
+
+此时此刻，从“静态的”的文本文件中“复活”而运行的“Procedures”，如一条真龙，潜游于水底。本章我们将首先一帧一帧拆解播放这条”真龙“乘雷电破水而出，腾云穿雾而去的瞬间，然后分六节内容详细论述 interactive 应用与案例.
+
+[[file:./images/画龙点睛-僧众.jpg]]
+
+
+#+name: procedures.py
+#+begin_src ipython :session elisp :results output
+!/usr/bin/env python
+from datetime import datetime
+
+def current_time(): # 2020-04-01 Wednesday
+    return datetime.now().strftime("%Y-%m-%d %A")
+#+end_src

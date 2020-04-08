@@ -1,0 +1,9 @@
+#+TITLE: 04.穹顶之下：Environment
+
+在蓝色的穹顶之下，上帝呼唤一句 =(come-out 'Lazarus)= ，拉撒路复活。在 Elisp-Environment 中，我们用 M-x 呼唤有鲜活生命的 procedures。这两次呼唤同样都发生在 Environment 中， 一是在 Reality 的 Environment， 一是在 Virtual Reality 的 Environment。
+
+本章，我们在尝试从原理上剖析 Environment 的同时，也尝试将前三章收尾并将论述推送到最高潮。以 Emacs-Lisp 为思考手段， 在我的真实世界中，凿穿现实与虚拟的界限。
+
+探讨如何以Elisp作为完全的思维工具, 思考助手. 不仅打开电脑, 生活在 Emacs-Environment 之中, 关闭电脑之后, 我们的一举一动, 一颦一笑, 亦同样在虚拟的 Virtual-Emacs-Environment 之下.
+作为完全的思考模式.
+
