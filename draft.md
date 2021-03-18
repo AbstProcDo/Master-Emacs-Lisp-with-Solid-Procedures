@@ -1,69 +1,87 @@
-> 昨晚看到电报群里热闹的讨论，抛砖分享个人学习的工作流，引引玉。（感谢学姐，这篇文章完全学习她无私分享和慷慨助人
-
-浏览论坛内入门elisp学习的讨论，会发现都在强调 `save-excursion`这个函数，可能是写elisp最有用的函数之一。
-
-在 rush blindly into details 之前，或者用 C-h f 打开  save-excursion 的黑匣子之前。我们先从抽象的思维层面考察此函数。
-
-# 一、Literallly 字面义分析
-
-先 literally 从字面上思考save-excursion，save毋庸赘言，拆解 excursion 为 ex + cur +  sion 三个部分，其中 ex 是 out 向外 比如 exit， 而 cur 是行走，与 car 汽车同源，sion 为名词后缀，因此  excursion 就是走出去，远足，或者短途旅行的含义。
-
-那么 save-excursion 是保存我的短途旅行吗（这句话非正常的表达）？或是保存远足旅行线路（似乎正常一点）？ 也是教人一头雾水。
-
-在引用手册定义之前，我们考察一个高频的应用场景。
-
-# 二、工作流场景
-
-假设当前正在读 elisp-introduction 手册，看到 save-excursion  函数，想要查询。
-
-![image](images/617ee1c0719c0db567a894e5737b4611ce8a99ec.png)
-
-最便捷的方式就是 C-h f save-excursion:
+#  日课：为什么说函数式是最好的编程范式和自然思考逻辑？
 
 
 
-[![image](images/ad13cdad62b08844443d538acd914bcff8a51f29_2_517x142.png)image777×214 25.9 KB](https://emacs-china.org/uploads/default/original/2X/a/ad13cdad62b08844443d538acd914bcff8a51f29.png)
+# 一、函数式是思考问题的本来状态
+
+函数式是完全符合人类自然思考习惯的范式，不仅当我们对着编辑器的时候在用函数式思考，当我们散步出去，也是无时无刻不在用函数式思考和解决任何问题。
+
+倘若不考虑更加符合人类自然思考逻辑的递归思考方式recursive-function, 而只考虑“尾递归”的情况。概括一句话，函数式编程就是所有的一切思考都发生在 function (args-list)  的这个参数括号内，而无须下潜到第二行，陷足到 dirty-details 之中。
 
 
 
-但我比较不推荐这种方式，一是 help-info 不能编辑， 二是 不能对 save-excursion 这个函数一眼看到底的穷尽展示。
+# 二、数鹅卵石的例子
 
-推荐从 elisp-manual 的 org 文件中查询：
-
-[![image](images/e72a943807da83bef3a53a538a2684814c38ac93_2_301x250.png)image870×721 96.4 KB](https://emacs-china.org/uploads/default/original/2X/e/e72a943807da83bef3a53a538a2684814c38ac93.png)
-
-
-
-在此处，一个亟待解决的问题凸显，我从当前的焦点走出去 excursion 出去做其他的事情，一番折腾之后，我还回得来吗？
-
-可以想见，在excursion出去参阅manual的时候，又会遇到其他问题，比如查询单词，比如又查询新的函数，比如查看今天的任务等等，excursion 之外又有 excursion。只要分心走出去，几乎必然回不到最初的焦点。
-
-此时，point-to-register 如及时雨赶到。在我们出发之前，就有了如下工作流：
-
-1）C-x r Spc Spc 调用 point-to-register 在出发去excursion 之前，保存当前的焦点到 Spec 键上；
- 2) Excursion 浪出去，尽情肆意的做任何任务；
- 3) 任务完成之后，回到最初的焦点，C-x r j Spec 调用 jump-to-register。
-
-以上三个步骤保障我们在任何时候，excursion出去做事，都能迷途知返。是最高频应用的工作流。
-
-# 三、定义 save-excursion
-
-以上三步的具体操作工作流，我们将其抽象出来，命名为 save-point-before-excurion 或者 save-point-for-excursion，或者将中间的两个单词去掉就是 save-excursion.
+比如经典的鹅卵石的例子：
 
 ```
-     (save-excursion
-       task1
-       task2
-        ...
-       last-task)
+ *
+ * *
+ * * *
+ * * * *
 ```
 
-也就是说 save-excursion 自动完成了 point-to-register 和 jump-to-register 这两步启动和收尾的步骤，我们只须放宽心在excursion里做任务即可。
+问题是：求当有 n 层的时候，鹅卵石的总数？
 
-这时候，我们再打开黑匣子，查看定义：
+如果一个儿童，他没学过高斯的求和方法，思考过程是这样的：
 
-> This special form saves the identity of the current buffer and the value of point in it, evaluates BODY, and finally restores the buffer and its saved value of point.  Both saved values are restored even in case of an abnormal exit via ‘throw’ or error (*note Nonlocal Exits::).
+首先从变量出发，该题目中的变量只有一个就是层数 n，
+而最终的结果是 total。
 
-从定义中能窥见，能自然流畅逻辑无阻塞的从抽象思维到具体使用的save-excursion这个函数的方法，就是在大脑里将其自动扩展为：save-point-for-excursion.
+他的观察：
 
-如果本文不会招来评论区无价值的讨论，就做成日课，每日分享。
+第一层，n = 1, total =1；
+第二层，n = 2, total + 2；
+第三层，n = 3, total + 3；
+
+于是他就自然而然地写出了 (total+n, n+1, terminate) 这个式子。
+
+ 然后将其命名为 triangle(total+n, n+1, terminate).
+
+这就是SICP总结的iteration三要素：
+
+1） 确定数目的变量，
+2） 如何得到最终的结果，
+3） 控制循环的terminate
+
+![帮你精通JS：为什么说函数式是最好的编程范式和自然思考逻辑？](images/7b6ec8243ee74a518687f495b4b07865)
+
+
+
+# 三、用 JS 的实现
+
+对 iteration 再提炼一步，第一项参数是生产最终结果的规则，后面两项控制循环，中间可能还有其他临时参数。
+
+所有这一切都发生这个括号内（args），思考完毕，只须挪一步设置终止判断：
+
+```
+function triangle1(product, rowNumber, rows) {
+    return rowNumber > rows
+        ? product
+        : triangle(product+rowNumber, rowNumber+1, rows);
+}
+```
+
+然而，procedural-programming 的逻辑，却将自然流畅的思考拽进了琐碎的细节中。
+
+```
+function triangle1(rows) {
+    let [total, rowNumber] = [0, 1];
+    while (rowNumber <= rows) {
+        total = total + rowNumber;
+        rowNumber++;
+    }
+    return total;
+}
+```
+
+第一行的参数(rows) 几乎只是一个摆设，你只能一头扎进黑匣子去思考问题，而且必然不可能在你走路的时候，用这套方法思考问题。
+
+# 四、函数式是世界运行的底层逻辑
+
+而函数式更底层的逻辑，input -> process --> output 就是这个世界的底层逻辑，工作是，管理是，计算机的结构也是。
+
+![帮你精通JS：为什么说函数式是最好的编程范式和自然思考逻辑？](images/ce4a08a3ec1c42b2813cdd0a15613b92)
+
+
+
