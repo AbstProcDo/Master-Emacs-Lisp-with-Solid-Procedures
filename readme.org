@@ -37,10 +37,13 @@ Emacs 相较于其他的编辑器，学起来所以如此得简单，其核心�
 
 * 日志
 - 以日课的形式更新 2021-03-16 Tue
+- [[file:日课.函数save-excursion命名晦涩却上手好用.org][日课1.save-excursion函数]]
+- [[file:日课.为什么函数式是最好的思考范式.org][日课2.函数编程的思考]]
 * 目录
 - [[0.引言]]
-- [[file:01.Elisp之缘起.org][1. Elisp 之缘起]]
+- [[file:01.Elisp之缘起.org][1.Elisp 之缘起]]
 - [[file:02.Elisp之眼：Interactive.org][2.Elisp 之眼：Interactive]]
-- [[file:03.物种的奇迹：Editing Types.org][3.物种的奇迹：Editing Types]]
-- [[file:04.穹顶之下：Environment.org][4.穹顶之下：Enviroment]]
-- [[file:05.窈窕淑女，君子好逑.org][5.窈窕淑女，君子好逑]]
+- [[file:03.召唤神龙-交互函数.org][3.召唤神龙-交互函数]]
+- [[file:04.物种的奇迹：Editing Types.org][4.物种的奇迹]]
+- [[file:05.穹顶之下：Environment.org][5.穹顶之下]]
+- [[file:06.窈窕淑女，君子好逑.org][6.窈窕淑女]]

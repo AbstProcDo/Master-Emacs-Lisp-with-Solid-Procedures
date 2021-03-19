@@ -1,87 +1,110 @@
-#  日课：为什么说函数式是最好的编程范式和自然思考逻辑？
+# 帮你精通Emacs：召唤神龙 interactive交互函数
+
+工作很无聊，生活亦复如是；学编程枯燥，学 elisp 燥上加燥，然而“想象力”是一切的解药。当你身疲意懒之时，深呼吸，按键 M-x 召唤我们的神龙。
+
+我们在编辑器中写一条一条的函数，就如“张僧繇”于壁上画龙，函数内的 interactive 就是催动神龙从“静态”入“动态“的点睛一笔。画龙点上“interactive”之须臾，一条条“函数”，霎时雷电破壁，腾云穿天而去。
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/5c7c26fb9c5a4c1aab977b2e951b5cd0)
 
 
 
-# 一、函数式是思考问题的本来状态
+# 一、静态的字符串却表达动态的属性
 
-函数式是完全符合人类自然思考习惯的范式，不仅当我们对着编辑器的时候在用函数式思考，当我们散步出去，也是无时无刻不在用函数式思考和解决任何问题。
-
-倘若不考虑更加符合人类自然思考逻辑的递归思考方式recursive-function, 而只考虑“尾递归”的情况。概括一句话，函数式编程就是所有的一切思考都发生在 function (args-list)  的这个参数括号内，而无须下潜到第二行，陷足到 dirty-details 之中。
-
-
-
-# 二、数鹅卵石的例子
-
-比如经典的鹅卵石的例子：
+交互函数的“点睛之笔”在于其内部的 interactive， 模板结构为：
 
 ```
- *
- * *
- * * *
- * * * *
+(defun interactive-function (args)
+  "documentation..."
+  (interactive ...)
+  body...)
 ```
 
-问题是：求当有 n 层的时候，鹅卵石的总数？
-
-如果一个儿童，他没学过高斯的求和方法，思考过程是这样的：
-
-首先从变量出发，该题目中的变量只有一个就是层数 n，
-而最终的结果是 total。
-
-他的观察：
-
-第一层，n = 1, total =1；
-第二层，n = 2, total + 2；
-第三层，n = 3, total + 3；
-
-于是他就自然而然地写出了 (total+n, n+1, terminate) 这个式子。
-
- 然后将其命名为 triangle(total+n, n+1, terminate).
-
-这就是SICP总结的iteration三要素：
-
-1） 确定数目的变量，
-2） 如何得到最终的结果，
-3） 控制循环的terminate
-
-![帮你精通JS：为什么说函数式是最好的编程范式和自然思考逻辑？](images/7b6ec8243ee74a518687f495b4b07865)
-
-
-
-# 三、用 JS 的实现
-
-对 iteration 再提炼一步，第一项参数是生产最终结果的规则，后面两项控制循环，中间可能还有其他临时参数。
-
-所有这一切都发生这个括号内（args），思考完毕，只须挪一步设置终止判断：
+再往下读 interactive 后面的字符串，确是一头雾水，比如:
 
 ```
-function triangle1(product, rowNumber, rows) {
-    return rowNumber > rows
-        ? product
-        : triangle(product+rowNumber, rowNumber+1, rows);
-}
+(interactive "BAppend to buffer: \nr")
 ```
 
-然而，procedural-programming 的逻辑，却将自然流畅的思考拽进了琐碎的细节中。
+读手册 “21.2.2 Code Characters for interactive”，获悉 B 代表 buffer-name, 而尾部的 r 代表 region， 中间的 \n 是分隔符，换言之，这串描述字符的本质属性是 list：
 
 ```
-function triangle1(rows) {
-    let [total, rowNumber] = [0, 1];
-    while (rowNumber <= rows) {
-        total = total + rowNumber;
-        rowNumber++;
-    }
-    return total;
-}
+> "BAppend to buffer: \nr".split('\n')
+[ 'BAppend to buffer: ', 'r' ]
 ```
 
-第一行的参数(rows) 几乎只是一个摆设，你只能一头扎进黑匣子去思考问题，而且必然不可能在你走路的时候，用这套方法思考问题。
+然而，文档中轻描淡写一句 B 代表 buffer-name； 
 
-# 四、函数式是世界运行的底层逻辑
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/5ab4d46b0d25417399d2aafd64e3da0a)
 
-而函数式更底层的逻辑，input -> process --> output 就是这个世界的底层逻辑，工作是，管理是，计算机的结构也是。
+B的含义描述
 
-![帮你精通JS：为什么说函数式是最好的编程范式和自然思考逻辑？](images/ce4a08a3ec1c42b2813cdd0a15613b92)
+虽然得知其内涵，但无论是字幕 B 还是命名 buffer-name 都是静态的名词，怎么会有读取buffer，read-buffer 的含义呢？
+
+再一探，才恍然大悟，原来 B 就是 动态的函数 read-buffer，上面的一串字符 "BAppend to buffer: \nr" 表达的具象含义是动态的函数组，扩展为：
+
+```
+(interactive
+ (list (read-buffer
+        "Append to buffer: "
+        ....
+       (region-beginning)
+       (region-end)))
+```
+
+于是茅塞顿开，静态的字符 B 就是动态的函数 read-buffer, 而 r 则对应 (region-beginning) (region-end)。
+
+回头看文档中对 code-character B的描述：
+
+> \- 'B'
+>
+>  A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion,  Default, Prompt.
+
+以静态的文字阐述静态的字符，却绝口不提加上一句 B 对应的是 read-buffer 函数，着实让人遗憾。
+
+# 二、分类总结 code-character
+
+填补文档的缺憾，以 Emacs 的操作对象分类，将 code 与 function 一一对应。
+
+**一、文本对象**
+
+文本对象包括：point, mark, region, varable, character, string，number，以及文本编辑的补全 completion:
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/c135ecb7b81b4093ae7a198d795ca88d)
 
 
+
+**二、Buffer 与 File** 
+
+包括 buffer mini-buffer file directory 等：
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/8e29351131834b989f2635713b39a5d8)
+
+
+
+**三、命令**
+
+没有对应操作 windows & Frame 的 code， 此处归类 Commands：
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/06276b67d5444e0cb1328917493d99f7)
+
+
+
+**四、最高频的 prefix-numeric-value:**
+
+同时也将 read-coding-system 归类到此处：
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/8e7ecc70be1a4d8990c428e4dac30028)
+
+
+
+# 三、总结
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/641333828aee4f5a9cc4bf6a22bd57fb)
+
+
+
+我们在编辑器中写的一条条函数就是挥毫作于画壁上的一条条神龙。
+interactive 是画龙点睛的一笔，而 character-code 则是我们指挥若定，输入其“眼耳口”中的咒符。
+
+![帮你精通Emacs：召唤神龙 interactive交互函数](images/b8284ebc694e49488a25d52560a03c74)
 
