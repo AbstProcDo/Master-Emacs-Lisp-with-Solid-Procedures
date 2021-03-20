@@ -1,77 +1,71 @@
-* 帮你精通Emacs：召唤神龙 interactive交互函数
+#+TITLE: 03 Call Dragons With Interactive Functions
 
-工作很无聊，生活亦复如是；学编程枯燥，学 elisp 燥上加燥，然而"想象力"是一切的解药。当你身疲意懒之时，深呼吸，按键 M-x 召唤我们的神龙。
+Work is boring, life is the same again;learning programming is tedious, learning elisp is tedious++. However,  "imagination" is the antidote to everything. When you get tired and lazy, take a deep breath and strike M-x to conjure our dragons.
 
-我们在编辑器中写一条一条的函数，就如"张僧繇"于壁上画龙，函数内的 interactive 就是催动神龙从"静态"入"动态“的点睛一笔。画龙点上“interactive"之须臾，一条条"函数"，霎时雷电破壁，腾云穿天而去。
+The functions we code in the editor, just as paint dragons on the wall. The "interactive" within the function is the vital finishing touch which urgs the dragon from "static" to "dynamic".
+At moment we place keyword "interactive" to the body of function,it come to vital life all of a sudden.  At a drogon on painting, break the walls, take the
+thunder and lightning and fly into the sky instantly.
 
 #+attr_html: :width 500px
 [[file:images/hualongdianjing.jpg]]
 
-* 一、静态的字符串却表达动态的属性
+* 1.Static strings but express dynamic attributes
 
-交互函数的"点睛之笔"在于其内部的 interactive， 模板结构为：
+The "finishing vital eye" of the interactive function lies in keyword "interactive". The template structure is:
 
-#+BEGIN_EXAMPLE
-    (defun interactive-function (args)
-      "documentation..."
-      (interactive ...)
-      body...)
-#+END_EXAMPLE
+#+begin_src emacs-lisp :tangle yes
+(defun interactive-function (args)
+  "documentation..."
+  (interactive ...)
+  body...)
+#+end_src
 
-再往下读 interactive 后面的字符串，确是一头雾水，比如:
+Reading further down the string after interactive, it immediately confuse me, for example:
 
-#+BEGIN_EXAMPLE
-    (interactive "BAppend to buffer: \nr")
-#+END_EXAMPLE
+: (interactive "BAppend to buffer: \nr")
 
-读手册 "21.2.2 Code Characters for interactive"，获悉 B 代表 buffer-name, 而尾部的 r 代表 region， 中间的 \n 是分隔符，换言之，这串描述字符的本质属性是 list：
+Reading the manual "21.2.2 Code Characters for interactive", I learned that B stands for buffer-name, the "r" stands for region, and the "\n" in the middle is the separator. In other words, its essense is "list":
 
-#+BEGIN_EXAMPLE
-    > "BAppend to buffer: \nr".split('\n')
-    [ 'BAppend to buffer: ', 'r' ]
-#+END_EXAMPLE
+#+BEGIN_SRC js :results output
+> "BAppend to buffer: \nr".split('\n')
+['BAppend to buffer:','r']
+#+END_SRC
 
-然而，文档中轻描淡写一句 B 代表 buffer-name；
+However, there is an understatement in the document which just state B for buffer-name;
 
-#+BEGIN_QUOTE
-  - 'B'
+#+begin_quote
+'B'
+A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
+#+end_quote
 
-  A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
-#+END_QUOTE
+Although I get its meaning, both charcter "B" and the name "buffer-name" are static expression. It should be dynamic as "read-buffer".
 
+When I explored it more, I suddenly realized that B is the dynamic function "read-buffer". The concrete meaning of the string of characters "BAppend to buffer: \nr" is a dynamic function list, which could be expanded to:
 
-虽然得知其内涵，但无论是字符 B 还是命名 buffer-name 都是静态的名词，怎么会有读取buffer，read-buffer 的含义呢？
+#+begin_src emacs-lisp :tangle yes
+(interactive
+ (list (read-buffer
+        "Append to buffer: "
+        ....
+       (region-beginning)
+       (region-end)))
+#+end_src
 
-再一探，才恍然大悟，原来 B 就是 动态的函数 read-buffer，上面的一串字符 "BAppend to buffer: \nr" 表达的具象含义是动态的函数组，扩展为：
+So, the static character B is the dynamic function read-buffer, and r corresponds to (region-beginning) (region-end).
 
-#+BEGIN_EXAMPLE
-    (interactive
-     (list (read-buffer
-            "Append to buffer: "
-            ....
-           (region-beginning)
-           (region-end)))
-#+END_EXAMPLE
+Look back at the description of code-character B in the document:
 
-于是茅塞顿开，静态的字符 B 就是动态的函数 read-buffer, 而 r 则对应 (region-beginning) (region-end)。
+#+begin_src emacs-lisp :tangle yes
+'B'
+A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
+#+end_src
+* 2.Classify code-characters
 
-回头看文档中对 code-character B的描述：
+As a complementary to manual, I categorize all the code-character against Emacs' objects
 
-#+BEGIN_QUOTE
-  - 'B'
+** 2.1 Text object
 
-  A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
-#+END_QUOTE
-
-以静态的文字阐述静态的字符，却绝口不提加上一句 B 对应的是 read-buffer 函数，着实让人遗憾。
-
-* 二、分类总结 code-character
-
-填补文档的缺憾，以 Emacs 的操作对象分类，将 code 与 function 一一对应。
-
-*一、文本对象*
-
-文本对象包括：point, mark, region, varable, character, string，number，以及文本编辑的补全 completion:
+Text includes: point, mark, region, varable, character, string，number，and editing such as completion:
 
 |-------------+------------------------------------------------------|
 | Text Code   | Functions                                            |
@@ -90,9 +84,9 @@
 | S           | (completing-read prompt obarray nil t)               |
 |-------------+------------------------------------------------------|
 
-*二、Buffer 与 File*
+** 2.2 Buffer and Files
 
-包括 buffer mini-buffer file directory 等：
+Contains buffer mini-buffer file directory etc
 
 |-------------+------------------------------------------------------|
 | Buffer&File |                                                      |
@@ -107,9 +101,9 @@
 | X           | (eval (read-from-minibuffer prompt nil nil t))       |
 |-------------+------------------------------------------------------|
 
-*三、命令*
+** 2.3 Command and Events
 
-没有对应操作 windows & Frame 的 code， 此处归类 Commands：
+Since there's not code for  windows & Frame, take Commands as third.
 
 |----------+----------------------------------|
 | Commands |                                  |
@@ -119,10 +113,9 @@
 | e        | (read-event)                     |
 |----------+----------------------------------|
 
+** 2.3 Most frequent prefix-numeric-value:
 
-*四、最高频的 prefix-numeric-value:*
-
-同时也将 read-coding-system 归类到此处：
+Also categorzie "read-coding-system" here.
 
 |-------------+------------------------------------------------------|
 | Univeral    |                                                      |
@@ -133,13 +126,13 @@
 | Z           | (and current-prefix-arg (read-coding-system prompt)) |
 |-------------+------------------------------------------------------|
 
-* 三、总结
+* 3.Summary
 
 #+attr_html: :width 500px
 [[file:images/jiayufeilong.jpg]]
 
-我们在编辑器中写的一条条函数就是挥毫作于画壁上的一条条神龙。 interactive 是画龙点睛的一笔，而 character-code 则是我们指挥若定，输入其"眼耳口"中的咒符。
-
+The function we compose in the editor are the dragons painting on the wall.
+Keyword "interactive" is the vital parts make dragons dynamic. As for the character codes, they are spell we conjure to drive our dragon.
 
 |-------------+------------------------------------------------------|
 | Text Code   | Functions                                            |
@@ -181,3 +174,5 @@
 | z           | (read-coding-system prompt)                          |
 | Z           | (and current-prefix-arg (read-coding-system prompt)) |
 |-------------+------------------------------------------------------|
+
+
