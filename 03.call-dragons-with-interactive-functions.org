@@ -1,9 +1,9 @@
 #+TITLE: 03 Call Dragons With Interactive Functions
 
-Work is boring, life is the same again;learning programming is tedious, learning elisp is tedious++. However,  "imagination" is the antidote to everything. When you get tired and lazy, take a deep breath and strike M-x to conjure our dragons.
+Work is boring, life is the same again; learning programming is tedious, learning elisp is tedious++. However,  "imagination" is the antidote to everything. When you get tired and lazy, take a deep breath and strike M-x to conjure our dragons.
 
-The functions we code in the editor, just as paint dragons on the wall. The "interactive" within the function is the vital finishing touch which urgs the dragon from "static" to "dynamic".
-At moment we place keyword "interactive" to the body of function,it come to vital life all of a sudden.  At a drogon on painting, break the walls, take the
+The functions we code in the editor, just as paint dragons on the wall. The "interactive" within the function is the vital finishing touch which urges the dragon from "static" to "dynamic".
+At moment we place keyword "interactive" to the body of function, it comes to vital life all of a sudden.  At a dragon on painting, break the walls, take the
 thunder and lightning and fly into the sky instantly.
 
 #+attr_html: :width 500px
@@ -11,7 +11,7 @@ thunder and lightning and fly into the sky instantly.
 
 * 1.Static strings but express dynamic attributes
 
-The "finishing vital eye" of the interactive function lies in keyword "interactive". The template structure is:
+The "finishing vital eye" of the interactive function lies in the keyword "interactive". The template structure is:
 
 #+begin_src emacs-lisp :tangle yes
 (defun interactive-function (args)
@@ -20,7 +20,7 @@ The "finishing vital eye" of the interactive function lies in keyword "interacti
   body...)
 #+end_src
 
-Reading further down the string after interactive, it immediately confuse me, for example:
+Reading further down the string after interactive, it immediately confused me, for example:
 
 : (interactive "BAppend to buffer: \nr")
 
@@ -31,14 +31,14 @@ Reading the manual "21.2.2 Code Characters for interactive", I learned that B st
 ['BAppend to buffer:','r']
 #+END_SRC
 
-However, there is an understatement in the document which just state B for buffer-name;
+However, there is an understatement in the document which just states B for buffer-name;
 
 #+begin_quote
 'B'
 A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
 #+end_quote
 
-Although I get its meaning, both charcter "B" and the name "buffer-name" are static expression. It should be dynamic as "read-buffer".
+Although I get its meaning, both the character "B" and the name "buffer-name" are static expressions. It should be dynamic as "read-buffer".
 
 When I explored it more, I suddenly realized that B is the dynamic function "read-buffer". The concrete meaning of the string of characters "BAppend to buffer: \nr" is a dynamic function list, which could be expanded to:
 
@@ -132,7 +132,7 @@ Also categorzie "read-coding-system" here.
 [[file:images/jiayufeilong.jpg]]
 
 The function we compose in the editor are the dragons painting on the wall.
-Keyword "interactive" is the vital parts make dragons dynamic. As for the character codes, they are spell we conjure to drive our dragon.
+Keyword "interactive" is the vital parts make dragons dynamic. As for the character codes, they are a spell we conjure to drive our dragon.
 
 |-------------+------------------------------------------------------|
 | Text Code   | Functions                                            |
