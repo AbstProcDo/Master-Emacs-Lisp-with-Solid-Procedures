@@ -2,9 +2,9 @@
 
 Work is boring, life is the same again;learning programming is tedious, learning elisp is tedious++. However,  "imagination" is the antidote to everything. When you get tired and lazy, take a deep breath and strike M-x to conjure our dragons.
 
-The functions we code in the editor, just as paint dragons on the wall. The "interactive" within the function is the vital finishing touch which urgs the dragon from "static" to "dynamic".
-At moment we place keyword "interactive" to the body of function,it come to vital life all of a sudden.  At a drogon on painting, break the walls, take the
-thunder and lightning and fly into the sky instantly.
+The functions we code in the editor, just as we paint dragons on the wall. The "interactive" within the function is the vital finishing touch which urgs the dragon from "static" to "dynamic".
+
+At the moment we place keyword "interactive" to the body of function,it come to vital life all of a sudden. immediately the drogons on painting, break the walls, take the thunders and lightning and fly into the sky instantly.
 
 #+attr_html: :width 500px
 [[file:images/hualongdianjing.jpg]]
@@ -55,10 +55,11 @@ So, the static character B is the dynamic function read-buffer, and r correspond
 
 Look back at the description of code-character B in the document:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_quote
 'B'
 A buffer name. The buffer need not exist. By default, uses the name of a recently used buffer other than the current buffer. Completion, Default, Prompt.
-#+end_src
+#+end_quote
+
 * 2.Classify code-characters
 
 As a complementary to manual, I categorize all the code-character against Emacs' objects
@@ -131,8 +132,8 @@ Also categorzie "read-coding-system" here.
 #+attr_html: :width 500px
 [[file:images/jiayufeilong.jpg]]
 
-The function we compose in the editor are the dragons painting on the wall.
-Keyword "interactive" is the vital parts make dragons dynamic. As for the character codes, they are spell we conjure to drive our dragon.
+The functions we compose in the editor are the dragons painting on the wall.
+Keyword "interactive" is the vital part make dragons dynamic. As for the character codes, they are spell we conjure to drive our dragon.
 
 |-------------+------------------------------------------------------|
 | Text Code   | Functions                                            |

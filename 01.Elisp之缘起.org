@@ -1,5 +1,5 @@
 #+TITLE: 01.Elisp Rise
-*1.Elisp 之缘起
+* 1.Elisp 之缘起
 
 我们不钩沉罗列历史细节，而转身从最根本处，从思想上溯源，探究 Elisp 因何而起，由何而生。
 
@@ -67,7 +67,8 @@ pow(11, 2)
 到此，主要工作已完成， =current_time= 是个有用的 function。 将其留存备用。
 
 回到 IDE-Shell中，当试图保存Shell中的内容之时，立刻遭遇到棘手的问题。
-#+name: image-1.1
+
+#+attr_html: :width 500px
 [[file:./images/save-current-time.png]]
 
 IDE-Shell里的内容，不能直接保存，他们都是暂时的。 若要永久性存储 `current-time` 函数,　则必须将其写入文件。
