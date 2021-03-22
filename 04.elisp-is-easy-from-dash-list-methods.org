@@ -1,8 +1,8 @@
 * Compare List methods with JS' array
 
-subtitle:Through dash.el,learn elisp with minor efforts by comparing wiht JS array methods in parallel
+Subtitle: Equipped with dash.el, elisp so nice to apply
 
-You might assume  elisp is hard to learn, yes, but that is a passed old story. Libraries advance with times. In fact, everyone could set out to write elisp even mere JavaScript Foundation.
+You might assume elisp hard to learn. Yes but that is a story long ago. Since Libraries advance with times. Now, everyone could set out to write elisp even some JavaScript Foundations.
 
 dash.el is such a library which facilitates elisp and help us manipulatig list effortless.
 
@@ -43,7 +43,6 @@ All methods lie in 5 scopes:
 |-----------------+---------------------+-------------------------|
 | Sorting         | sort,reverse        | -sort                   |
 |-----------------+---------------------+-------------------------|
-
 
 * 1.Transform Array with iteration (pure-functions)
 
