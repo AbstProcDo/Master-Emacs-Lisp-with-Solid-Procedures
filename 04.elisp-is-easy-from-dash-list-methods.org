@@ -2,7 +2,7 @@
 
 You might assume elisp hard to learn. Yes but that is a story long ago. Since Libraries advance with times. Now, everyone could set out to write elisp even some JavaScript Foundations.
 
-Then dash.el is such a library which facilitates elisp and help us manipulatig list effortless.
+Then dash.el is such a library which facilitates elisp and help us manipulating list effortless.
 
 I will introduce methods of dash.el by comparing in parallel with those of array in JavaScript.
 
@@ -18,9 +18,9 @@ and detailed categories as:
 
 #+NAME: List Methods Categories
 |-----------------+---------------------+-------------------------|
-| *Categories*    | *Javascript*        | *elisp(dash.el)*        |
+| *Categories*    | *JavaScript*        | *elisp(dash.el)*        |
 |-----------------+---------------------+-------------------------|
-| *PureFuncitons* |                     |                         |
+| *PureFunctions* |                     |                         |
 |-----------------+---------------------+-------------------------|
 | Transform with  | reduce,map          | -reduce,-map            |
 | Iteration       | flat,flatMap        | -flatten-n, **          |
@@ -46,7 +46,7 @@ and detailed categories as:
 
 * 1.Transform Array with iteration (pure-functions)
 
-We first list these functional iteratinal methods sans side effects. In JavaScrit, they are 1) reduce 2) map 3) flat 4) flatMap 5) fill 6) forEach。Among them, forEach is not  pure-function, since its implicit iteration, we sort it here.
+We first list these functional iterating methods sans side effects. In JavaScript, they are 1) reduce 2) map 3) flat 4) flatMap 5) fill 6) forEach。Among them, forEach is not  pure-function, since its implicit iteration, we sort it here.
 
 #+begin_src emacs-lisp :tangle yes
 ;; 1. reduce(-reduce)
@@ -136,7 +136,7 @@ Among them, array.includes in particular case of array.find, and indexOf is the 
 ;; => false
 #+end_src
 
-The preceeding 3 items are pure functions which have no side effects. Then successive categories are functions do side effects.
+The preceding 3 items are pure functions which have no side effects. Then successive categories are functions do side effects.
 
 * 4.Manipulate data structure (side-effect)
 
@@ -189,15 +189,15 @@ We end our categories with ubiquitous Sort methods
 
 * 6.Conclusion
 
-Elisp is the language we speak with Emacs to faciliate our daily workflow burden.
+Elisp is the language we speak with Emacs to facilitate our daily workflow burden.
 
 By comparing with JS in parallel literally, we find it fun and easy to learn:
 
 #+NAME: List Methods Categories
-|-----------------+---------------------+------------------------- |
-| *Categories*    | *Javascript*        | *elisp(dash.el)*        |
 |-----------------+---------------------+-------------------------|
-| *PureFuncitons* |                     |                         |
+| *Categories*    | *JavaScript*        | *elisp(dash.el)*        |
+|-----------------+---------------------+-------------------------|
+| *PureFuntions*  |                     |                         |
 |-----------------+---------------------+-------------------------|
 | Transform with  | reduce,map          | -reduce,-map            |
 | Iteration       | flat,flatMap        | -flatten-n, **          |
