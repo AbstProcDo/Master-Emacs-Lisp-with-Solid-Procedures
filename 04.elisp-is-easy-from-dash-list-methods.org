@@ -1,0 +1,223 @@
+* Compare List methods with JS' array
+
+subtitle:Through dash.el,learn elisp with minor efforts by comparing wiht JS array methods in parallel
+
+You might assume  elisp is hard to learn, yes, but that is a passed old story. Libraries advance with times. In fact, everyone could set out to write elisp even mere JavaScript Foundation.
+
+dash.el is such a library which facilitates elisp and help us manipulatig list effortless.
+
+I will introduce methods of dash.el by comparing in parallel with those of array in JavaScript.
+
+All methods lie in 5 scopes:
+
+1) Transform array with iteration
+2) Transform array non iteration
+3) Logic predicate higher order function
+4) Data manipulate
+5) Sort
+
+#+NAME: List Methods Categories
+|-----------------+---------------------+------------------------- |
+| *Categories*    | *Javascript*        | *elisp(dash.el)*        |
+|-----------------+---------------------+-------------------------|
+| *PureFuncitons* |                     |                         |
+|-----------------+---------------------+-------------------------|
+| Transform with  | reduce,map          | -reduce,-map            |
+| Iteration       | flat,flatMap        | -flatten-n, **          |
+|                 | fill,               | -repeat                 |
+|                 | forEach(sideEffect) | -each(sideEffect)       |
+|-----------------+---------------------+-------------------------|
+| Transform Non   | concat,join         | -concat,format          |
+| Iteration       | slice               | -slice                  |
+|-----------------+---------------------+-------------------------|
+| Logic Predicate | filter              | -filter                 |
+|                 | find,findIndex      | -find,-find-index       |
+|                 | includes,indexOf    | -contains-p,-elem-index |
+|                 | some, every         | -some,-every            |
+|-----------------+---------------------+-------------------------|
+| *SideEffects*   |                     |                         |
+|-----------------+---------------------+-------------------------|
+| Data Structure  | push, pop           | append, nbutlast        |
+| Operations      | shift, unshift      | push, pop               |
+|                 | splice              | -insert-at, -replace-at |
+|-----------------+---------------------+-------------------------|
+| Sorting         | sort,reverse        | -sort                   |
+|-----------------+---------------------+-------------------------|
+
+
+* 1.Transform Array with iteration (pure-functions)
+
+We first list these functional iteratinal methods sans side effects. In JavaScrit, they are 1) reduce 2) map 3) flat 4) flatMap 5) fill 6) forEach。Among them, forEach is not  pure-function, since its implicit iteration, we sort it here.
+
+#+begin_src emacs-lisp :tangle yes
+;; 1. reduce(-reduce)
+(-reduce-from (lambda (acc val) (+ acc val))
+              0
+              '(4 7 8 10))
+;; => 29
+
+;; 2.map(-map)
+(-map (lambda (val) (* val 2))
+      '(4 7 8 10))
+;; => (8 14 16 20)
+
+;; 3.flat(-flatten-n)
+(-flatten-n 2 '((1 2) ((3 4) ((5 6)))))
+;; => (1 2 3 4 (5 6))
+
+;; 4.flatMap with no couterpart
+;; 5.repeat as fill
+(-repeat 10 0)
+(0 0 0 0 0 0 0 0 0 0)
+
+;; 6.each with side effects
+(-each '("x" "y" "z")
+  (lambda (val) (princ val)))
+;; => "xyz"
+
+#+end_src
+
+* 2.Transform array but not iteration (pure-function)
+
+The subsequent functions which also transform array without side effects but do not iterating. In JavaScript, they are  1) concat 2) join 3) slice
+
+#+begin_src emacs-lisp :tangle yes
+;; 1.concat
+(-concat '("x" "y" "z") '( 3 5 6))
+;; => ("x" "y" "z" 3 5 6)
+
+;; 2.format for join (native elisp method)
+(format "%s" '("x" "y" "z"))
+;; => "(x y z)"
+
+;; 3.slice
+(-slice '("x" "y" "z" "w") 1 3)
+;; => ("y" "z")
+#+end_src
+
+* 3.Logic predicates functions(pure-function)
+
+We continue to explore the higher order function which do logic predicates.
+In JS, they are:
+1) filter 2) find 3) findIndex 4) includes 5) indexOf 6) some 7) every 8) not.
+Among them, array.includes in particular case of array.find, and indexOf is the same to findIndex.
+
+#+begin_src emacs-lisp
+;; 1.-filter as js filter
+(-filter (lambda (v) (and (> v 30) (< v 100)))
+         '(23 76 98 10))
+;; =>  (76 98)
+
+;; 2. find or first as js find
+(-find (lambda (v) (and (> v 30) (< v 100)))
+         '(23 76 98 10))
+;; => 76
+
+;; 3. -find-index as js findIndex
+(-find-index  (lambda (v) (and (> v 30) (< v 100)))
+         '(23 76 98 10))
+;; => 1
+
+;; 4.contains-p as js includes
+(-contains-p '(23 76 98 10) 76)
+;; t
+
+;; 5. -elem-index as indexOf
+(-elem-index 76 '(23 76 98 10))
+;; => 1
+
+;;6.some
+(-some (lambda (v) (and (> v 30) (< v 100)))
+       '(23 76 98 10))
+;; => t
+
+;;7.every
+(-every (lambda (v) (and (> v 30) (< v 100)))
+       '(23 76 98 10))
+;; => false
+#+end_src
+
+The preceeding 3 items are pure functions which have no side effects. Then successive categories are functions do side effects.
+
+* 4.Manipulate data structure (side-effect)
+
+List is a carrier which could represent two kinds of abstract data structure:
+Stack and Queue. In JavaScript we have 4 methods which handle array in-place, they are 1) push 2) pop 3) shift 4) unshift.
+Additionally we sort =array.splice= here since it modify array in-place as well.
+
+#+begin_src emacs-lisp :tangle yes
+;;1.append element to the end of array (array.push)
+(append '(23 76 101 89) 67)
+;; => (23 76 101 89 . 67)
+
+;;2.nbutlast to remove last element(array.pop)
+(nbutlast  '(23 76 101 89))
+;; => (23 76 101)
+
+;;3.remove first element(array.shift)
+ELISP> (let ((l '(23 76 89)))
+         (pop l)
+         l)
+(76 89)
+
+;;4. add element to the front (array.unshift)
+ELISP> (let ((l '(23 76 89)))
+         (push 12 l)
+         l)
+(12 23 76 89)
+
+;;5.insert to list at position n (array.splice)
+(-insert-at 1 'x '(a b c)) ;; => (a x b c)
+;;let arr = [a, b, c]; arr.splice(1, 0, x); arr
+
+;;6.replace at potion (array.splice)
+(-replace-at 0 9 '(0 1 2 3 4 5)) ;; => (9 1 2 3 4 5)
+;;let arr = [1, 2, 3, 4, 5]; arr.splice(0, 1, 9); arr
+
+#+end_src
+#+RESULTS:
+
+* 5.Sort Array (side-effects)
+
+We end our categories with ubiquitous Sort methods
+
+1) sort 2) reverse
+
+#+begin_src emacs-lisp :tangle yes
+(-sort '< '(3 1 2)) ;; => (1 2 3)
+(-sort '> '(3 1 2)) ;; => (3 2 1)
+#+end_src
+
+* 6.Conclusion
+
+Elisp is the language we speak with Emacs to faciliate our daily workflow burden.
+
+By comparing with JS in parallel literally, we find it fun and easy to learn:
+
+#+NAME: List Methods Categories
+|-----------------+---------------------+------------------------- |
+| *Categories*    | *Javascript*        | *elisp(dash.el)*        |
+|-----------------+---------------------+-------------------------|
+| *PureFuncitons* |                     |                         |
+|-----------------+---------------------+-------------------------|
+| Transform with  | reduce,map          | -reduce,-map            |
+| Iteration       | flat,flatMap        | -flatten-n, **          |
+|                 | fill,               | -repeat                 |
+|                 | forEach(sideEffect) | -each(sideEffect)       |
+|-----------------+---------------------+-------------------------|
+| Transform Non   | concat,join         | -concat,format          |
+| Iteration       | slice               | -slice                  |
+|-----------------+---------------------+-------------------------|
+| Logic Predicate | filter              | -filter                 |
+|                 | find,findIndex      | -find,-find-index       |
+|                 | includes,indexOf    | -contains-p,-elem-index |
+|                 | some, every         | -some,-every            |
+|-----------------+---------------------+-------------------------|
+| *SideEffects*   |                     |                         |
+|-----------------+---------------------+-------------------------|
+| Data Structure  | push, pop           | append, nbutlast        |
+| Operations      | shift, unshift      | push, pop               |
+|                 | splice              | -insert-at, -replace-at |
+|-----------------+---------------------+-------------------------|
+| Sorting         | sort,reverse        | -sort                   |
+|-----------------+---------------------+-------------------------|

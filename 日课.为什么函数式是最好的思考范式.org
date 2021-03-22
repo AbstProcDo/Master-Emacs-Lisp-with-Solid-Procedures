@@ -38,7 +38,7 @@
 1） 确定数目的变量， 2） 如何得到最终的结果， 3） 控制循环的terminate
 
 #+attr_html: :width 300px
-[[file:images/sicp-cover01.jpg]]
+[[file:./images/sicp-cover01.jpg]]
 
 * 三、用 JS 的实现
 
@@ -74,4 +74,4 @@
 而函数式更底层的逻辑，input -> process --> output 就是这个世界的底层逻辑，工作是，管理是，计算机的结构也是。
 
 #+attr_html: :width 500px
-[[file:images/computer-structure.jpg]]
+[[file:./images/computer-structure.jpg]]
