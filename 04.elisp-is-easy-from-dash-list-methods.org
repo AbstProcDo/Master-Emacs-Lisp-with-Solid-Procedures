@@ -197,7 +197,7 @@ By comparing with JS in parallel literally, we find it fun and easy to learn:
 |-----------------+---------------------+-------------------------|
 | *Categories*    | *JavaScript*        | *elisp(dash.el)*        |
 |-----------------+---------------------+-------------------------|
-| *PureFuntions*  |                     |                         |
+| *PureFunctions* |                     |                         |
 |-----------------+---------------------+-------------------------|
 | Transform with  | reduce,map          | -reduce,-map            |
 | Iteration       | flat,flatMap        | -flatten-n, **          |
