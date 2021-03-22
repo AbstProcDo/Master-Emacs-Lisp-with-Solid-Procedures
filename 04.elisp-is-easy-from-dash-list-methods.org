@@ -1,6 +1,4 @@
-* Compare List methods with JS' array
-
-Subtitle: Equipped with dash.el, elisp so nice to apply, alignned with JS array's methods.
+* Equipped with dash.el, elisp so nice to apply
 
 You might assume elisp hard to learn. Yes but that is a story long ago. Since Libraries advance with times. Now, everyone could set out to write elisp even some JavaScript Foundations.
 
