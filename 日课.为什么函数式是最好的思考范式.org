@@ -10,22 +10,22 @@
 
 比如经典的鹅卵石的例子：
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC js
      *
      * *
      * * *
      * * * *
-#+END_EXAMPLE
+#+END_SRC
 
 问题是：求当有 n 层的时候，鹅卵石的总数？
 
 如果一个儿童，他没学过高斯的求和方法，思考过程是这样的：
 
-首先从变量出发，该题目中的变量只有一个就是层数 n， 而最终的结果是 total。
+首先从变量出发，该题目中的变量只有一个就是层数 n， 而最终的结果是total。
 
 他的观察：
 
-第一层，n = 1, total =1；
+第一层，n = 1, total = 1；
 第二层，n = 2, total + 2；
 第三层，n = 3, total + 3；
 
@@ -35,7 +35,9 @@
 
 这就是SICP总结的iteration三要素：
 
-1） 确定数目的变量， 2） 如何得到最终的结果， 3） 控制循环的terminate
+1) 确定数目的变量， 
+2) 如何得到最终的结果， 
+3) 控制循环的terminate
 
 #+attr_html: :width 300px
 [[file:./images/sicp-cover01.jpg]]
@@ -44,19 +46,22 @@
 
 对iteration再提炼一步，第一项参数是生产最终结果的规则，后面两项控制循环，中间可能还有其他临时参数。
 
-所有这一切都发生这个括号内（args），思考完毕，只须挪一步设置终止判断：
+所有这一切都发生这个括号内(args)，思考完毕，只须挪一步设置终止判断：
+# [2023-02-12 Sun 18:00]
+# 之前的想法，函数有利于思考，是能直接从arg出发，只在括号里即可。
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC js
     function triangle1(product, rowNumber, rows) {
         return rowNumber > rows
             ? product
             : triangle(product+rowNumber, rowNumber+1, rows);
     }
-#+END_EXAMPLE
+#+END_SRC
 
 然而，procedural-programming 的逻辑，却将自然流畅的思考拽进了琐碎的细节中。
+# 拖拽到了繁琐的细节之中。
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC js
     function triangle1(rows) {
         let [total, rowNumber] = [0, 1];
         while (rowNumber <= rows) {
@@ -65,9 +70,10 @@
         }
         return total;
     }
-#+END_EXAMPLE
+#+END_SRC
 
-第一行的参数(rows) 几乎只是一个摆设，你只能一头扎进黑匣子去思考问题，而且必然不可能在你走路的时候，用这套方法思考问题。
+第一行的参数(rows)几乎只是一个摆设，你只能一头扎进黑匣子去思考问题，而且必然不可能在你走路的时候，用这套方法思考问题。
+# 需要往里面看内容才知道函数是在做些什么。
 
 * 四、函数式是世界运行的底层逻辑
 

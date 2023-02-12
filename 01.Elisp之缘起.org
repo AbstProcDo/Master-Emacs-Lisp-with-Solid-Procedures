@@ -1,11 +1,10 @@
-#+TITLE: 01.Elisp Rise
-* 1.Elisp 之缘起
+#+TITLE: 01.Elisp之缘起
 
 我们不钩沉罗列历史细节，而转身从最根本处，从思想上溯源，探究 Elisp 因何而起，由何而生。
 
 首先分析两种模式: 一是"动态"的 IDE-Shell模式，二是"静态的" Plain-Text 文本模式。
 
-* 1.1 "动态"的 IDE-Shell 模式
+* 1.1 "动态"的IDE-Shell模式
 # 问题？当前对 IDE 的具体概念并不是特别深入的掌握。 在 environment 下的
 在 Python 的 IDE-Shell 中，可以直接调用语言内置的 libraries 武器库,
 比如获取当前的时间。
@@ -189,11 +188,11 @@ IDE-Shell 中的内容，似镜花水月，不复挽留。 只有文本文档长
 耶稣高声喊道∶“拉撒路 Lazarus，出来吧 Come out。”  ;;(come-out 'Lazarus) 死人果然出来了，手脚上都裹着布，脸上还包着一块布。
 -- 约翰福音十一章。使拉撒路复活
 #+END_QUOTE
-#+ATTR_HTML: :width 450px
+#+ATTR_HTML: :width 300px
 [[file:./images/12_Jesus_Lazarus_1024_JPEG.jpg]] [[file:./images/13_Jesus_Lazarus_1024_JPEG.jpg]]
 
 
-神迹的时刻，在编程中见证。 而复活的"拉撒路"，我们人类，或真是上帝这位程序员运行的一段　Procedure 如 =(come-out 'Lazarus)= 。
+神迹的时刻，在编程中见证。 而复活的"拉撒路"，我们人类，或真是上帝这位程序员运行的一段Procedure如 =(come-out 'Lazarus)= 。
 
 * 1.6 走向"波澜壮阔"的生命
 
@@ -202,7 +201,7 @@ Elisp 引擎复活了 Procedures ，从而能够在编辑的过程中，与当�
 
 下面来看这样一个问题，在1.5节中，我们定义了 =current-date= 函数，在 "procedures.el" 文本中运行，并得到合适的格式的当前时间。  如果我在另外一个Emacs-Lisp文件中，也想调用 =current-date= 函数，该怎么办呢? 难道需要复制过去，然后重复一遍上述 C-x C-e 的调用步骤吗?
 
-答案当然是否定的，既然 Procedures 已然复活，必然势不可挡地走向"波澜壮阔"的生命。
+答案当然是否定的，既然Procedures已然复活，必然势不可挡地走向"波澜壮阔"的生命。
 
 我们转到"scratch-buffer"中，如果要获取当前时间，只需要按键 M-: (eval-expression)，然后在 mini-buffer 中键入 =(current-date)=，便能得到结果。
 #+ATTR_HTML: :width 500px
@@ -238,5 +237,6 @@ M-x 调用 eval-buffer 就能运行全部的代码。
 我们从 IDE-Shell 与 Plain-Text 各自的局限出发，于两难的困境之中，萌发合并 IDE-Shell 与 Plain-Text 的想法，于是 Elisp 作为实现方案而诞生，由此运行应用程序的 Emacs-Lisp 引擎与输入文本之间无缝结合。 吹入“生命“给编辑器中静态的数据与函数，令其原地复活。 作为 emacs-user 我们也由此起步，在 Emac-Elisp 的强大交互功能中，开始神奇而富有创造性的工作。
 
 下一章，我们将从 =current-date= 的剩余问题出发，登堂入室论述 Elisp 之眼: interactive。
+
 
 

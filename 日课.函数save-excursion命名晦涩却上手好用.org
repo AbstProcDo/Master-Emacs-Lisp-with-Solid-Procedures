@@ -1,26 +1,24 @@
 #+TITLE: Elisp日课：命名晦涩却应用趁手的 save-excursion
 
 #+BEGIN_QUOTE
-  昨晚看到电报群里热闹的讨论，抛砖分享个人学习的工作流，引引玉。（感谢学姐，这篇文章完全学习她无私分享和慷慨助人
+ 昨晚看到电报群里热闹的讨论，抛砖分享个人学习的工作流，引引玉。（感谢学姐，这篇文章完全学习她无私分享和慷慨助人
 #+END_QUOTE
 
-浏览论坛内入门elisp学习的讨论，会发现都在强调 =save-excursion=这个函数，可能是写elisp最有用的函数之一。
+浏览论坛内入门elisp学习的讨论，会发现都在强调save-excursion这个函数，可能是写elisp最有用的函数之一。
 
 在 rush blindly into details 之前，或者用 C-h f 打开 save-excursion 的黑匣子之前。我们先从抽象的思维层面考察此函数。
 
 * 一、Literallly 字面义分析
 
+先literally从字面上思考save-excursion，save毋庸赘言，拆解excursion为ex+cur+ sion三个部分，其中ex是out向外，比如 exit； 而cur是行走，与car汽车同源，sion 为名词后缀，因此 excursion 就是走出去，远足，或者短途旅行的含义。
 
-先 literally 从字面上思考save-excursion，save毋庸赘言，拆解 excursion 为 ex + cur + sion 三个部分，其中 ex 是 out 向外 比如 exit， 而 cur 是行走，与 car 汽车同源，sion 为名词后缀，因此 excursion 就是走出去，远足，或者短途旅行的含义。
-
-那么 save-excursion 是保存我的短途旅行吗（这句话非正常的表达）？或是保存远足旅行线路（似乎正常一点）？ 也是教人一头雾水。
+那么save-excursion是保存我的短途旅行吗（这句话非正常的表达）？或是保存远足旅行线路（似乎正常一点）？ 也是教人一头雾水。
 
 在引用手册定义之前，我们考察一个高频的应用场景。
 
 * 二、工作流场景
 
-
-假设当前正在读 elisp-introduction 手册，看到 save-excursion 函数，想要查询。
+假设当前正在读 elisp-introduction 手册，看到save-excursion函数想要查询。
 
 #+attr_html: :width 500px
 [[file:images/617ee1c0719c0db567a894e5737b4611ce8a99ec.png]]
@@ -36,18 +34,19 @@
 #+attr_html: :width 500px
 [[https://emacs-china.org/uploads/default/original/2X/e/e72a943807da83bef3a53a538a2684814c38ac93.png][file:images/e72a943807da83bef3a53a538a2684814c38ac93_2_301x250.png]]
 
-在此处，一个亟待解决的问题凸显，我从当前的焦点走出去 excursion 出去做其他的事情，一番折腾之后，我还回得来吗？
+在此处，一个亟待解决的问题凸显，我从当前的焦点走出去，excursion出去，做其他的事情，一番折腾之后，我还回得来吗？
 
-可以想见，在excursion出去参阅manual的时候，又会遇到其他问题，比如查询单词，比如又查询新的函数，比如查看今天的任务等等，excursion 之外又有 excursion。只要分心走出去，几乎必然回不到最初的焦点。
+可以想见，在excursion出去参阅manual的时候，又会遇到其他问题，比如查询单词，比如又查询新的函数，比如查看今天的任务等等，excursion之外又有excursion。只要分心走出去，几乎必然回不到最初的焦点。
 
-此时，point-to-register 如及时雨赶到。在我们出发之前，就有了如下工作流：
+此时，point-to-register如及时雨一般赶到。于是，在我们出发之前，便有了如下工作流：
 
-1）C-x r Spc Spc 调用 point-to-register 在出发去excursion 之前，保存当前的焦点到 Spec 键上； 2) Excursion 浪出去，尽情肆意的做任何任务； 3) 任务完成之后，回到最初的焦点，C-x r j Spec 调用 jump-to-register。
+1) C-x r Spc Spc 调用 point-to-register 在出发去excursion 之前，保存当前的焦点到 Spec 键上； 
+2) Excursion 浪出去，尽情肆意的做任何任务； 
+3) 任务完成之后，回到最初的焦点，C-x r j Spec 调用 jump-to-register。
 
-以上三个步骤保障我们在任何时候，excursion出去做事，都能迷途知返。是最高频应用的工作流。
+以上三个步骤保障我们在任何时候，excursion出去做事，都能迷途知返。是高频应用的工作流。
 
 * 三、定义 save-excursion
-
 
 以上三步的具体操作工作流，我们将其抽象出来，命名为 save-point-before-excurion 或者 save-point-for-excursion，或者将中间的两个单词去掉就是 save-excursion.
 
@@ -70,3 +69,23 @@
 从定义中能窥见，能自然流畅逻辑无阻塞的从抽象思维到具体使用的save-excursion这个函数的方法，就是在大脑里将其自动扩展为：save-point-for-excursion.
 
 如果本文不会招来评论区无价值的讨论，就做成日课，每日分享。
+
+* 精彩评论
+@DogLooksGood
+
+额，我觉得不需要绕来绕去，Emacs 里面有很多可以讲的东西。
+
+save-excursion 会保存 mark 的状态和当前的位置（包括光标与 window 相对的行数），执行 body，恢复这些状态。这个核心逻辑很简单，几乎所有的编辑 API 里面都有这样的功能。
+
+这个函数曾经叫 save-mark-and-excursion，之前的 save-excursion 是只含 mark 的（是的，名字很有困惑性），在 Emacs 25.1 之后重命名成了现在的样子。说到这里你应该发现，Emacs 中难以维护的，其实并不是光标的位置，而是 mark 的状态，因为 point 只是一个值，而 mark 是 mark-ring。
+
+# save-mark-and-excursion, 函数名字起得好。
+
+save-excursion 的实现就是咋看下就是用 unwind-protect 来恢复各种位置信息，实际也确实如此。所以：
+
+    就算 body 中有异常，依然可以回到先前的位置
+    即使函数中触发了 keyboard-quit ，也可以回到先前的位置
+
+但是要注意如果在 BODY 中对原先位置的内容进行修改，即便 point 值依然有效（point-min < point < point-max )，你也没有办法回去了。比如你 erase-buffer 后再插入一样的内容，是无法回到先前的位置的。所以 save-excursion 的 BODY 最好仅仅做移动的操作，就如命令的名字。
+
+save-excursion 还有几个使用场景接近的兄弟。。。

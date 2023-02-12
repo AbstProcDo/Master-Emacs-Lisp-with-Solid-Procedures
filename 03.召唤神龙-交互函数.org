@@ -1,4 +1,4 @@
-* 帮你精通Emacs：召唤神龙 interactive交互函数
+#+TITLE: 帮你精通Emacs：召唤神龙 interactive交互函数
 
 工作很无聊，生活亦复如是；学编程枯燥，学 elisp 燥上加燥，然而"想象力"是一切的解药。当你身疲意懒之时，深呼吸，按键 M-x 召唤我们的神龙。
 
@@ -11,25 +11,24 @@
 
 交互函数的"点睛之笔"在于其内部的 interactive， 模板结构为：
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC js
     (defun interactive-function (args)
       "documentation..."
       (interactive ...)
       body...)
-#+END_EXAMPLE
+#+END_SRC
+ interactive 后面的字符串，确是一头雾水，比如:
 
-再往下读 interactive 后面的字符串，确是一头雾水，比如:
-
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC js
     (interactive "BAppend to buffer: \nr")
-#+END_EXAMPLE
+#+END_SRC
 
 读手册 "21.2.2 Code Characters for interactive"，获悉 B 代表 buffer-name, 而尾部的 r 代表 region， 中间的 \n 是分隔符，换言之，这串描述字符的本质属性是 list：
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC elisp
     > "BAppend to buffer: \nr".split('\n')
     [ 'BAppend to buffer: ', 'r' ]
-#+END_EXAMPLE
+#+END_SRC
 
 然而，文档中轻描淡写一句 B 代表 buffer-name；
 
@@ -44,14 +43,14 @@
 
 再一探，才恍然大悟，原来 B 就是 动态的函数 read-buffer，上面的一串字符 "BAppend to buffer: \nr" 表达的具象含义是动态的函数组，扩展为：
 
-#+BEGIN_EXAMPLE
+#+BEGIN_SRC elisp
     (interactive
      (list (read-buffer
             "Append to buffer: "
             ....
            (region-beginning)
            (region-end)))
-#+END_EXAMPLE
+#+END_SRC
 
 于是茅塞顿开，静态的字符 B 就是动态的函数 read-buffer, 而 r 则对应 (region-beginning) (region-end)。
 
